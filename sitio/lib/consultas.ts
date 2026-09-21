@@ -1,0 +1,240 @@
+import 'server-only'
+import { cacheLife } from 'next/cache'
+import { consultar } from './db'
+import { MIN_KILLS_PORCENTAJES } from './calculos'
+
+/*
+ *  Todas las lecturas del sitio.
+ *
+ *  Cada funcion se cachea con el perfil "minutes" (se revalida cada minuto).
+ *  La ingesta corre cada 15 minutos, asi que las stats nunca estan mas viejas que
+ *  eso, y la mayoria de las visitas no llegan a tocar la base.
+ *
+ *  Los argumentos forman parte de la clave de cache: ranking('kd') y ranking('kills')
+ *  se cachean por separado.
+ */
+
+const n = (valor: unknown) => Number(valor ?? 0)
+const iso = (valor: unknown) => (valor instanceof Date ? valor.toISOString() : null)
+
+export type Jugador = {
+  id: number
+  nick: string
+  steamid: string | null
+  kills: number
+  muertes: number
+  headshots: number
+  teamkills: number
+  suicidios: number
+  segundos: number
+}
+
+export type JugadorDetalle = Jugador & { primeraVez: string | null, ultimaVez: string | null }
+
+function aJugador (f: Record<string, unknown>): Jugador {
+  return {
+    id: n(f.id),
+    nick: String(f.nick),
+    steamid: (f.steamid as string | null) ?? null,
+    kills: n(f.kills),
+    muertes: n(f.muertes),
+    headshots: n(f.headshots),
+    teamkills: n(f.teamkills),
+    suicidios: n(f.suicidios),
+    segundos: n(f.segundos_jugados)
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  General                                                            */
+/* ------------------------------------------------------------------ */
+
+export async function resumenGeneral () {
+  'use cache'
+  cacheLife('minutes')
+
+  const [totales] = await consultar(`
+    SELECT
+      (SELECT COUNT(*) FROM {p}ranking WHERE kills + muertes > 0)              AS jugadores,
+      (SELECT COUNT(*) FROM {p}muertes)                                        AS muertes,
+      (SELECT COUNT(*) FROM {p}muertes WHERE matador_id IS NOT NULL AND teamkill = 0) AS kills,
+      (SELECT COUNT(*) FROM {p}muertes WHERE headshot = 1 AND teamkill = 0)    AS headshots,
+      (SELECT COUNT(*) FROM {p}mapas_jugados)                                  AS mapas,
+      (SELECT MAX(actualizado) FROM {p}ingesta_estado)                         AS actualizado
+  `)
+
+  return {
+    jugadores: n(totales.jugadores),
+    muertes: n(totales.muertes),
+    kills: n(totales.kills),
+    headshots: n(totales.headshots),
+    mapas: n(totales.mapas),
+    actualizado: iso(totales.actualizado)
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Ranking                                                            */
+/* ------------------------------------------------------------------ */
+
+export type Orden = 'kills' | 'kd' | 'hs' | 'tiempo'
+
+/* Lista cerrada: el orden llega por la URL y NUNCA se interpola tal cual en el SQL */
+const ORDENES: Record<Orden, { sql: string, soloConMinimo: boolean }> = {
+  kills: { sql: 'kills DESC, muertes ASC', soloConMinimo: false },
+  kd: { sql: 'kills / GREATEST(muertes, 1) DESC, kills DESC', soloConMinimo: true },
+  hs: { sql: 'headshots / GREATEST(kills, 1) DESC, kills DESC', soloConMinimo: true },
+  tiempo: { sql: 'segundos_jugados DESC', soloConMinimo: false }
+}
+
+export function esOrden (valor: unknown): valor is Orden {
+  return typeof valor === 'string' && valor in ORDENES
+}
+
+export async function ranking (orden: Orden): Promise<Jugador[]> {
+  'use cache'
+  cacheLife('minutes')
+
+  const { sql, soloConMinimo } = ORDENES[orden]
+  const filas = await consultar(`
+    SELECT * FROM {p}ranking
+    WHERE kills + muertes > 0 ${soloConMinimo ? 'AND kills >= ?' : ''}
+    ORDER BY ${sql}, id
+    LIMIT 200
+  `, soloConMinimo ? [MIN_KILLS_PORCENTAJES] : [])
+
+  return filas.map(aJugador)
+}
+
+export async function listaJugadores (): Promise<{ id: number, nick: string }[]> {
+  'use cache'
+  cacheLife('minutes')
+
+  const filas = await consultar(`
+    SELECT id, nick FROM {p}ranking WHERE kills + muertes > 0 ORDER BY nick
+  `)
+  return filas.map((f) => ({ id: n(f.id), nick: String(f.nick) }))
+}
+
+/* ------------------------------------------------------------------ */
+/*  Perfil de jugador                                                  */
+/* ------------------------------------------------------------------ */
+
+export async function jugador (id: number): Promise<JugadorDetalle | null> {
+  'use cache'
+  cacheLife('minutes')
+
+  const [fila] = await consultar(`SELECT * FROM {p}ranking WHERE id = ?`, [id])
+  if (!fila) return null
+  return { ...aJugador(fila), primeraVez: iso(fila.primera_vez), ultimaVez: iso(fila.ultima_vez) }
+}
+
+export async function armasDeJugador (id: number) {
+  'use cache'
+  cacheLife('minutes')
+
+  const filas = await consultar(`
+    SELECT arma, COUNT(*) AS kills, SUM(headshot) AS headshots
+    FROM {p}muertes
+    WHERE matador_id = ? AND teamkill = 0
+    GROUP BY arma
+    ORDER BY kills DESC
+    LIMIT 10
+  `, [id])
+  return filas.map((f) => ({ arma: String(f.arma), kills: n(f.kills), headshots: n(f.headshots) }))
+}
+
+export async function hitboxesDeJugador (id: number) {
+  'use cache'
+  cacheLife('minutes')
+
+  const filas = await consultar(`
+    SELECT hitbox, COUNT(*) AS veces
+    FROM {p}muertes
+    WHERE matador_id = ? AND teamkill = 0 AND hitbox > 0
+    GROUP BY hitbox
+    ORDER BY veces DESC
+  `, [id])
+  return filas.map((f) => ({ hitbox: n(f.hitbox), veces: n(f.veces) }))
+}
+
+/** Rivales: de quien murio mas veces (nemesis) o a quien mato mas veces (victimas) */
+export async function rivales (id: number, tipo: 'nemesis' | 'victimas') {
+  'use cache'
+  cacheLife('minutes')
+
+  /* Columnas de una lista cerrada, no del usuario */
+  const [yo, otro] = tipo === 'nemesis' ? ['victima_id', 'matador_id'] : ['matador_id', 'victima_id']
+  const filas = await consultar(`
+    SELECT j.id, j.nick, COUNT(*) AS veces
+    FROM {p}muertes m
+    JOIN {p}jugadores j ON j.id = m.${otro}
+    WHERE m.${yo} = ? AND m.teamkill = 0 AND m.${otro} IS NOT NULL
+    GROUP BY j.id, j.nick
+    ORDER BY veces DESC
+    LIMIT 5
+  `, [id])
+  return filas.map((f) => ({ id: n(f.id), nick: String(f.nick), veces: n(f.veces) }))
+}
+
+export async function mapasDeJugador (id: number) {
+  'use cache'
+  cacheLife('minutes')
+
+  const filas = await consultar(`
+    SELECT mapa,
+           SUM(matador_id = ? AND teamkill = 0) AS kills,
+           SUM(victima_id = ?)                  AS muertes
+    FROM {p}muertes
+    WHERE matador_id = ? OR victima_id = ?
+    GROUP BY mapa
+    ORDER BY kills DESC
+    LIMIT 8
+  `, [id, id, id, id])
+  return filas.map((f) => ({ mapa: String(f.mapa), kills: n(f.kills), muertes: n(f.muertes) }))
+}
+
+/* ------------------------------------------------------------------ */
+/*  Comparacion                                                        */
+/* ------------------------------------------------------------------ */
+
+/** Cuantas veces a mato a b y b mato a a */
+export async function enfrentamiento (a: number, b: number) {
+  'use cache'
+  cacheLife('minutes')
+
+  const [fila] = await consultar(`
+    SELECT
+      SUM(matador_id = ? AND victima_id = ?) AS a_sobre_b,
+      SUM(matador_id = ? AND victima_id = ?) AS b_sobre_a
+    FROM {p}muertes
+    WHERE teamkill = 0 AND matador_id IN (?, ?) AND victima_id IN (?, ?)
+  `, [a, b, b, a, a, b, a, b])
+  return { aSobreB: n(fila?.a_sobre_b), bSobreA: n(fila?.b_sobre_a) }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Armas                                                              */
+/* ------------------------------------------------------------------ */
+
+export async function armas () {
+  'use cache'
+  cacheLife('minutes')
+
+  const filas = await consultar(`
+    SELECT arma,
+           COUNT(*)                   AS kills,
+           SUM(headshot)              AS headshots,
+           COUNT(DISTINCT matador_id) AS jugadores
+    FROM {p}muertes
+    WHERE matador_id IS NOT NULL AND teamkill = 0
+    GROUP BY arma
+    ORDER BY kills DESC
+  `)
+  return filas.map((f) => ({
+    arma: String(f.arma),
+    kills: n(f.kills),
+    headshots: n(f.headshots),
+    jugadores: n(f.jugadores)
+  }))
+}

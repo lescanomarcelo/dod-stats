@@ -1,0 +1,17 @@
+{
+  "name": "dod-stats-ingesta",
+  "version": "0.1.0",
+  "description": "Baja los eventos que registra dod_stats_registro.amxx y los carga en MySQL",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --env-file=.env --test",
+    "esquema": "node --env-file=.env aplicar-esquema.mjs",
+    "ingerir": "node --env-file=.env ingerir.mjs"
+  },
+  "dependencies": {
+    "basic-ftp": "^5.0.5",
+    "mysql2": "^3.11.0",
+    "ssh2-sftp-client": "^12.1.1"
+  }
+}
