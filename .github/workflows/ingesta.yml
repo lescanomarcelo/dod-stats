@@ -1,0 +1,50 @@
+# Corre la ingesta cada 15 minutos: baja los eventos nuevos del server por SFTP
+# y los carga en MySQL. Tambien se puede lanzar a mano desde la pestana Actions.
+#
+# Las credenciales van en Settings -> Secrets and variables -> Actions del repo.
+# Nunca en este archivo.
+
+name: Ingesta de stats
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+# Una sola ejecucion a la vez. El candado de MySQL ya lo garantiza, esto evita
+# ademas gastar minutos en corridas que terminarian sin hacer nada.
+concurrency:
+  group: ingesta
+  cancel-in-progress: false
+
+jobs:
+  ingerir:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: ingesta
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: ingesta/package-lock.json
+
+      - run: npm ci
+
+      - name: Ingerir eventos
+        run: node ingerir.mjs
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          SFTP_HOST: ${{ secrets.SFTP_HOST }}
+          SFTP_PORT: ${{ secrets.SFTP_PORT }}
+          SFTP_USER: ${{ secrets.SFTP_USER }}
+          SFTP_PASS: ${{ secrets.SFTP_PASS }}
+          SFTP_HUELLA: ${{ secrets.SFTP_HUELLA }}
