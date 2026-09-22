@@ -7,7 +7,8 @@ import { Hace } from '@/components/Hace'
 import { BanderaArgentina } from '@/components/Banderas'
 import { CopiarIp } from '@/components/CopiarIp'
 import { Menu } from '@/components/Menu'
-import { estadoServidor, SERVIDOR } from '@/lib/estado'
+import { estadoServidor, jugadoresEnLinea, SERVIDOR } from '@/lib/estado'
+import { JugadoresEnLinea } from '@/components/JugadoresEnLinea'
 import './globals.css'
 
 const geist = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
@@ -41,12 +42,14 @@ async function EstadoServidor () {
     return <span className='estado-servidor fuera'><span className='punto' aria-hidden='true' /><strong>Server caído</strong></span>
   }
   const humanos = Math.max(0, e.jugadores - e.bots)
+  /* La lista solo se pide si hay alguien: con el server vacio no tiene sentido */
+  const jugadores = humanos > 0 ? await jugadoresEnLinea() : []
   return (
     <span className='estado-servidor'>
       <span className='punto' aria-hidden='true' />
       <strong className='en-linea'>En línea</strong>
       <span className='separador'>·</span>
-      <strong className='numero'>{humanos}/{e.maximo}</strong> jugando
+      <JugadoresEnLinea jugadores={jugadores} humanos={humanos} maximo={e.maximo} mapa={e.mapa} />
       <span className='separador'>·</span>
       <span className='numero'>{e.mapa}</span>
     </span>

@@ -4,7 +4,7 @@
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { leerRespuesta } from './servidor.ts'
+import { leerRespuesta, leerJugadores } from './servidor.ts'
 
 const cabecera = (tipo: number) => Buffer.from([0xff, 0xff, 0xff, 0xff, tipo])
 const texto = (s: string) => Buffer.from(s + '\0', 'utf8')
@@ -37,4 +37,34 @@ test('challenge: devuelve los 4 bytes para repetir la consulta', () => {
 test('basura o respuesta cortada: error, no un estado inventado', () => {
   assert.throws(() => leerRespuesta(Buffer.from('hola')))
   assert.throws(() => leerRespuesta(Buffer.concat([cabecera(0x49), Buffer.from([48]), Buffer.from('sin fin')])))
+})
+
+function jugador (indice: number, nombre: string, puntos: number, segundos: number) {
+  const numeros = Buffer.alloc(8)
+  numeros.writeInt32LE(puntos, 0)
+  numeros.writeFloatLE(segundos, 4)
+  return Buffer.concat([Buffer.from([indice]), texto(nombre), numeros])
+}
+
+test('lista de jugadores: nombre, puntaje y tiempo', () => {
+  const b = Buffer.concat([
+    cabecera(0x44), Buffer.from([2]),
+    jugador(0, 'Chinchulin', 31, 2563.4),
+    jugador(1, 'ELJUNA OLMOND', 47, 2405.9)
+  ])
+  assert.deepEqual(leerJugadores(b), [
+    { nombre: 'Chinchulin', puntos: 31, segundos: 2563 },
+    { nombre: 'ELJUNA OLMOND', puntos: 47, segundos: 2406 }
+  ])
+})
+
+test('los que estan entrando, sin nombre todavia, no se cuentan', () => {
+  const b = Buffer.concat([cabecera(0x44), Buffer.from([2]), jugador(0, '', 0, 0), jugador(1, 'Trevor', 5, 60)])
+  assert.deepEqual(leerJugadores(b), [{ nombre: 'Trevor', puntos: 5, segundos: 60 }])
+})
+
+test('la lista tambien puede pedir challenge, y la basura da error', () => {
+  const r = leerJugadores(Buffer.concat([cabecera(0x41), Buffer.from([9, 8, 7, 6])]))
+  assert.ok('challenge' in r)
+  assert.throws(() => leerJugadores(Buffer.concat([cabecera(0x44), Buffer.from([3]), jugador(0, 'Solo uno', 1, 1)])))
 })

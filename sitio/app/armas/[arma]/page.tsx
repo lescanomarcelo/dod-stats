@@ -3,15 +3,19 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
 import { armas, rankingDeArma, resumenDeArma } from '@/lib/consultas'
-import { rangoDesdeBusqueda, type Periodo } from '@/lib/periodos'
+import { rangoDesdeBusqueda } from '@/lib/periodos'
+import { enlaceDeArma } from '@/lib/enlaces'
 import { porcentaje, formatoPorcentaje, formatoNumero, nombreArma } from '@/lib/calculos'
 import { Tarjeta, EnlaceJugador, Cargando } from '@/components/Ui'
 import { ControlPeriodo } from '@/components/Periodo'
 
-/* El codigo del arma viene de la URL: solo letras, numeros y guion bajo */
-function leerArma (crudo: string): string | null {
-  const arma = decodeURIComponent(crudo).toLowerCase()
-  return /^[a-z0-9_]{1,32}$/.test(arma) ? arma : null
+/*
+ *  El arma viene de la URL. El juego las nombra con mayusculas y espacios
+ *  ("BAR", "scoped K98"), asi que no se puede validar con un patron: lo unico
+ *  que vale es que exista en la base, y eso se chequea contra la lista.
+ */
+function leerArma (crudo: string): string {
+  return decodeURIComponent(crudo).slice(0, 32)
 }
 
 export async function generateMetadata (props: PageProps<'/armas/[arma]'>): Promise<Metadata> {
@@ -19,24 +23,16 @@ export async function generateMetadata (props: PageProps<'/armas/[arma]'>): Prom
   return { title: arma ? nombreArma(arma) : 'Arma' }
 }
 
-function enlace (arma: string, periodo: Periodo, fecha: string | null) {
-  const q = new URLSearchParams()
-  if (periodo !== 'global') q.set('periodo', periodo)
-  if (fecha) q.set('fecha', fecha)
-  const texto = q.toString()
-  return texto ? `/armas/${arma}?${texto}` : `/armas/${arma}`
-}
-
 async function Contenido ({ parametros, busqueda }: {
   parametros: PageProps<'/armas/[arma]'>['params']
   busqueda: PageProps<'/armas/[arma]'>['searchParams']
 }) {
-  const arma = leerArma((await parametros).arma)
-  if (!arma) notFound()
+  const pedida = leerArma((await parametros).arma)
 
   /* Que el arma exista de verdad: si nadie mató nunca con ella, es 404 */
   const todas = await armas()
-  if (!todas.some((a) => a.arma === arma)) notFound()
+  const arma = todas.find((a) => a.arma.toLowerCase() === pedida.toLowerCase())?.arma
+  if (!arma) notFound()
 
   const rango = rangoDesdeBusqueda(await busqueda)
   const ventana = { desde: rango.desde, hasta: rango.hasta }
@@ -44,7 +40,7 @@ async function Contenido ({ parametros, busqueda }: {
 
   return (
     <>
-      <ControlPeriodo rango={rango} enlace={(periodo, fecha) => enlace(arma, periodo, fecha)} />
+      <ControlPeriodo rango={rango} enlace={(periodo, fecha) => enlaceDeArma(arma, periodo, fecha)} />
 
       <div className='tarjetas'>
         <Tarjeta etiqueta='Kills' valor={formatoNumero(resumen.kills)} destacada />
@@ -90,8 +86,7 @@ async function Contenido ({ parametros, busqueda }: {
 
 /* El nombre del arma sale de la URL, que es dato de la visita: va dentro del Suspense */
 async function Titulo ({ parametros }: { parametros: PageProps<'/armas/[arma]'>['params'] }) {
-  const arma = leerArma((await parametros).arma)
-  return <h1>{arma ? nombreArma(arma) : 'Arma'}</h1>
+  return <h1>{nombreArma(leerArma((await parametros).arma))}</h1>
 }
 
 export default function PaginaArma (props: PageProps<'/armas/[arma]'>) {
