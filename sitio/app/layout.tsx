@@ -9,6 +9,8 @@ import { CopiarIp } from '@/components/CopiarIp'
 import { Menu } from '@/components/Menu'
 import { estadoServidor, jugadoresEnLinea, SERVIDOR } from '@/lib/estado'
 import { JugadoresEnLinea } from '@/components/JugadoresEnLinea'
+import { IconoWhatsApp, IconoDiscord } from '@/components/Iconos'
+import { GRUPOS } from '@/lib/links'
 import './globals.css'
 
 const geist = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
@@ -34,6 +36,21 @@ async function UltimaActualizacion () {
 }
 
 const DIRECCION = `${SERVIDOR.host}:${SERVIDOR.puerto}`
+
+/* Las secciones del sitio, listadas abajo de todo ademas de en el menu */
+const SECCIONES = [
+  { href: '/', texto: 'Ranking' },
+  { href: '/equipos', texto: 'Eje vs Aliados' },
+  { href: '/armas', texto: 'Armas' },
+  { href: '/comparar', texto: 'Comparar' },
+  { href: '/links', texto: 'Links' }
+] as const
+
+/* Los links de la comunidad salen de lib/links.ts: se cargan en un solo lugar */
+const deComunidad = (nombre: string) =>
+  GRUPOS.flatMap((g) => g.enlaces).find((e) => e.nombre === nombre)?.url ?? '#'
+const WHATSAPP = deComunidad('Grupo de WhatsApp')
+const DISCORD = deComunidad('Discord')
 
 /* Jugadores y mapa en este momento (cacheado un minuto: ver lib/estado.ts) */
 async function EstadoServidor () {
@@ -91,10 +108,39 @@ export default function RootLayout ({ children }: LayoutProps<'/'>) {
 
         <footer className='pie'>
           <div className='contenedor'>
-            <span>DoD 1.3 :::aU::: Tributo Server · {DIRECCION} · Hecho por <strong className='firma'>Trevor</strong></span>
-            <Suspense fallback={<span>&nbsp;</span>}>
-              <UltimaActualizacion />
-            </Suspense>
+            <div className='pie-columnas'>
+              <nav className='pie-columna' aria-label='Secciones'>
+                <h2>Secciones</h2>
+                {SECCIONES.map((s) => <Link key={s.href} href={s.href}>{s.texto}</Link>)}
+              </nav>
+
+              <div className='pie-columna'>
+                <h2>Sumate a la comunidad</h2>
+                <a href={WHATSAPP} target='_blank' rel='noopener noreferrer' className='con-icono'>
+                  <IconoWhatsApp className='icono' />Grupo de WhatsApp
+                </a>
+                <a href={DISCORD} target='_blank' rel='noopener noreferrer' className='con-icono'>
+                  <IconoDiscord className='icono' />Discord
+                </a>
+                <span className='pie-nota'>Avisale a alguien del server que pediste entrar al grupo.</span>
+              </div>
+
+              <div className='pie-columna'>
+                <h2>El server</h2>
+                <span className='numero'>{DIRECCION}</span>
+                <span>DoD 1.3 :::aU::: Tributo</span>
+                <a href={`https://www.gametracker.com/server_info/${DIRECCION}/`} target='_blank' rel='noopener noreferrer'>
+                  GameTracker
+                </a>
+              </div>
+            </div>
+
+            <div className='pie-abajo'>
+              <span>Hecho por <strong className='firma'>Trevor</strong></span>
+              <Suspense fallback={<span>&nbsp;</span>}>
+                <UltimaActualizacion />
+              </Suspense>
+            </div>
           </div>
         </footer>
       </body>

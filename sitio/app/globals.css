@@ -86,7 +86,7 @@ main { padding: 2rem 0 3rem; }
   font-size: 0.82rem;
   padding: 1.25rem 0 2rem;
 }
-.pie .contenedor { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.pie .contenedor { display: flex; flex-direction: column; gap: 1.25rem; }
 
 .encabezado-pagina { margin-bottom: 1.75rem; }
 .encabezado-pagina p { color: var(--tenue); margin: 0.35rem 0 0; }
@@ -544,3 +544,22 @@ a.figurita:hover img { transform: scale(1.03); }
 }
 .ventana-cerrar:hover { color: var(--acento); }
 .jugando-nick { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Pie con todas las secciones */
+.pie-columnas {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1.5rem; padding-bottom: 1.25rem;
+}
+.pie-columna { display: flex; flex-direction: column; gap: 0.4rem; }
+.pie-columna h2 {
+  font-size: 0.75rem; color: var(--tenue); letter-spacing: 0.08em; margin: 0 0 0.25rem;
+}
+.pie-columna a { color: #cfcbb6; }
+.pie-columna a:hover { color: var(--acento); }
+.pie-columna .con-icono { display: inline-flex; align-items: center; gap: 0.45rem; }
+.pie-columna .icono { width: 18px; height: 18px; flex-shrink: 0; }
+.pie-nota { color: var(--tenue); font-size: 0.75rem; }
+.pie-abajo {
+  display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  border-top: 1px solid var(--borde); padding-top: 0.9rem;
+}
