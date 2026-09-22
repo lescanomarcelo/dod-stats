@@ -103,6 +103,20 @@ CREATE TABLE IF NOT EXISTS {p}acostado (
   CONSTRAINT fk_{p}acostado_jugador FOREIGN KEY (jugador_id) REFERENCES {p}jugadores (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Tiempo jugado de verdad: los segundos que el jugador estuvo en un bando, sin
+-- contar el rato de espectador ni eligiendo clase. Una fila por jugador, mapa y
+-- dia, igual que la de acostado. Desde la version 0.5 del plugin.
+CREATE TABLE IF NOT EXISTS {p}jugado (
+  jugador_id   INT UNSIGNED    NOT NULL,
+  mapa         VARCHAR(40)     NOT NULL,
+  dia          DATETIME        NOT NULL,
+  segundos     BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  actualizado  DATETIME        NOT NULL,
+  PRIMARY KEY (jugador_id, mapa, dia),
+  KEY ix_dia (dia),
+  CONSTRAINT fk_{p}jugado_jugador FOREIGN KEY (jugador_id) REFERENCES {p}jugadores (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Puntos de cada jugador (tomar banderas y objetivos): una fila por vez que sumo,
 -- con el bando con el que jugaba en ese momento. Desde la version 0.3 del plugin.
 CREATE TABLE IF NOT EXISTS {p}puntos (
@@ -159,7 +173,8 @@ SELECT
   COALESCE(d.suicidios, 0)  AS suicidios,
   COALESCE(s.segundos, 0)   AS segundos_jugados,
   COALESCE(pt.puntos, 0)    AS puntos,
-  COALESCE(ac.segundos, 0)  AS segundos_acostado
+  COALESCE(ac.segundos, 0)  AS segundos_acostado,
+  COALESCE(tj.segundos, 0)  AS segundos_en_juego
 FROM {p}jugadores j
 LEFT JOIN (
   SELECT matador_id,
@@ -191,4 +206,9 @@ LEFT JOIN (
   SELECT jugador_id, SUM(segundos) AS segundos
   FROM {p}acostado
   GROUP BY jugador_id
-) ac ON ac.jugador_id = j.id;
+) ac ON ac.jugador_id = j.id
+LEFT JOIN (
+  SELECT jugador_id, SUM(segundos) AS segundos
+  FROM {p}jugado
+  GROUP BY jugador_id
+) tj ON tj.jugador_id = j.id;

@@ -6,7 +6,7 @@
  */
 
 /* Cantidad de campos por tipo de evento, incluyendo el propio tipo */
-const CAMPOS = { P: 3, C: 4, D: 5, M: 18, H: 15, S: 7, E: 6, A: 6 }
+const CAMPOS = { P: 3, C: 4, D: 5, M: 18, H: 15, S: 7, E: 6, A: 6, J: 6 }
 
 /* Orden de las zonas en la linea H: el hitplace del motor, de 0 a 7 */
 export const ZONAS = ['generico', 'cabeza', 'pecho', 'estomago', 'brazo_izq', 'brazo_der', 'pierna_izq', 'pierna_der']
@@ -86,10 +86,14 @@ export function parsearLinea (linea) {
     return { tipo: 'marcador', ts, mapa: campos[2], inicio, aliados, eje }
   }
 
-  if (tipo === 'A') {
+  /* A: acostado (Camper). J: tiempo en un bando. Las dos traen segundos sueltos */
+  if (tipo === 'A' || tipo === 'J') {
     const segundos = entero(campos[5])
     if (segundos === null || segundos <= 0) return null
-    return { tipo: 'acostado', ts, mapa: campos[2], steamid: campos[3], nick: campos[4], segundos }
+    return {
+      tipo: tipo === 'A' ? 'acostado' : 'jugado',
+      ts, mapa: campos[2], steamid: campos[3], nick: campos[4], segundos
+    }
   }
 
   /* M: muerte */

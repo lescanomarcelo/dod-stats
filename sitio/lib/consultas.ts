@@ -55,6 +55,8 @@ export type Jugador = {
   segundos: number
   puntos: number
   segundosAcostado: number
+  /** Segundos en un bando (plugin 0.5). 0 si todavia no se registra */
+  segundosEnJuego: number
 }
 
 export type JugadorDetalle = Jugador & { primeraVez: string | null, ultimaVez: string | null }
@@ -71,7 +73,8 @@ function aJugador (f: Record<string, unknown>): Jugador {
     suicidios: n(f.suicidios),
     segundos: n(f.segundos_jugados),
     puntos: n(f.puntos),
-    segundosAcostado: n(f.segundos_acostado)
+    segundosAcostado: n(f.segundos_acostado),
+    segundosEnJuego: n(f.segundos_en_juego)
   }
 }
 
@@ -115,8 +118,8 @@ const ORDENES: Record<Orden, { sql: string, soloConMinimo?: boolean, soloCamper?
   kills: { sql: 'kills DESC, muertes ASC', soloConMinimo: false },
   kd: { sql: 'kills / GREATEST(muertes, 1) DESC, kills DESC', soloConMinimo: true },
   hs: { sql: 'headshots / GREATEST(kills, 1) DESC, kills DESC', soloConMinimo: true },
-  tiempo: { sql: 'segundos_jugados DESC', soloConMinimo: false },
-  camper: { sql: 'segundos_acostado / GREATEST(segundos_jugados, 1) DESC, segundos_acostado DESC', soloCamper: true }
+  tiempo: { sql: 'IF(segundos_en_juego > 0, segundos_en_juego, segundos_jugados) DESC', soloConMinimo: false },
+  camper: { sql: 'segundos_acostado / GREATEST(IF(segundos_en_juego > 0, segundos_en_juego, segundos_jugados), 1) DESC, segundos_acostado DESC', soloCamper: true }
 }
 
 export function esOrden (valor: unknown): valor is Orden {
@@ -134,35 +137,40 @@ function sqlTotales (v: Ventana) {
   const fs = filtro(null, v, '', 'desconexion')
   const fp = filtro(null, v)
   const fa = filtro(null, v, '', 'dia')
+  const fj = filtro(null, v, '', 'dia')
   return {
     sql: `
       SELECT j.id, j.identidad, j.steamid, j.nick, j.primera_vez, j.ultima_vez,
              SUM(x.kills) AS kills, SUM(x.headshots) AS headshots, SUM(x.teamkills) AS teamkills,
              SUM(x.muertes) AS muertes, SUM(x.suicidios) AS suicidios,
              SUM(x.segundos_jugados) AS segundos_jugados, SUM(x.puntos) AS puntos,
-             SUM(x.segundos_acostado) AS segundos_acostado
+             SUM(x.segundos_acostado) AS segundos_acostado, SUM(x.segundos_en_juego) AS segundos_en_juego
       FROM (
         SELECT matador_id AS jugador_id, SUM(teamkill = 0) AS kills,
                SUM(teamkill = 0 AND headshot = 1) AS headshots, SUM(teamkill = 1) AS teamkills,
-               0 AS muertes, 0 AS suicidios, 0 AS segundos_jugados, 0 AS puntos, 0 AS segundos_acostado
+               0 AS muertes, 0 AS suicidios, 0 AS segundos_jugados, 0 AS puntos, 0 AS segundos_acostado,
+               0 AS segundos_en_juego
         FROM {p}muertes WHERE matador_id IS NOT NULL ${fm.sql} GROUP BY matador_id
         UNION ALL
-        SELECT victima_id, 0, 0, 0, COUNT(*), SUM(matador_id IS NULL), 0, 0, 0
+        SELECT victima_id, 0, 0, 0, COUNT(*), SUM(matador_id IS NULL), 0, 0, 0, 0
         FROM {p}muertes WHERE 1 = 1 ${fm.sql} GROUP BY victima_id
         UNION ALL
-        SELECT jugador_id, 0, 0, 0, 0, 0, SUM(segundos), 0, 0
+        SELECT jugador_id, 0, 0, 0, 0, 0, SUM(segundos), 0, 0, 0
         FROM {p}sesiones WHERE 1 = 1 ${fs.sql} GROUP BY jugador_id
         UNION ALL
-        SELECT jugador_id, 0, 0, 0, 0, 0, 0, SUM(puntos), 0
+        SELECT jugador_id, 0, 0, 0, 0, 0, 0, SUM(puntos), 0, 0
         FROM {p}puntos WHERE 1 = 1 ${fp.sql} GROUP BY jugador_id
         UNION ALL
-        SELECT jugador_id, 0, 0, 0, 0, 0, 0, 0, SUM(segundos)
+        SELECT jugador_id, 0, 0, 0, 0, 0, 0, 0, SUM(segundos), 0
         FROM {p}acostado WHERE 1 = 1 ${fa.sql} GROUP BY jugador_id
+        UNION ALL
+        SELECT jugador_id, 0, 0, 0, 0, 0, 0, 0, 0, SUM(segundos)
+        FROM {p}jugado WHERE 1 = 1 ${fj.sql} GROUP BY jugador_id
       ) x
       JOIN {p}jugadores j ON j.id = x.jugador_id
       GROUP BY j.id, j.identidad, j.steamid, j.nick, j.primera_vez, j.ultima_vez
     `,
-    valores: [...fm.valores, ...fm.valores, ...fs.valores, ...fp.valores, ...fa.valores]
+    valores: [...fm.valores, ...fm.valores, ...fs.valores, ...fp.valores, ...fa.valores, ...fj.valores]
   }
 }
 
@@ -172,7 +180,7 @@ export async function ranking (orden: Orden, v: Ventana = TODO): Promise<Jugador
 
   const { sql, soloConMinimo, soloCamper } = ORDENES[orden]
   /* Camper: solo con tiempo acostado registrado (plugin 0.4) y un minimo de tiempo jugado */
-  const condicion = soloConMinimo ? 'AND kills >= ?' : soloCamper ? 'AND segundos_acostado > 0 AND segundos_jugados >= ?' : ''
+  const condicion = soloConMinimo ? 'AND kills >= ?' : soloCamper ? 'AND segundos_acostado > 0 AND IF(segundos_en_juego > 0, segundos_en_juego, segundos_jugados) >= ?' : ''
   const valores = soloConMinimo ? [MIN_KILLS_PORCENTAJES] : soloCamper ? [MIN_SEGUNDOS_CAMPER] : []
   const base = esTodo(v) ? { sql: 'SELECT * FROM {p}ranking', valores: [] as unknown[] } : sqlTotales(v)
   const filas = await consultar(`
@@ -456,27 +464,41 @@ export async function destacados (v: Ventana = TODO): Promise<Destacados> {
   const fp = filtro(null, v)
   const fa = filtro(null, v, 'a.', 'dia')
   const fse = filtro(null, v, 's.', 'desconexion')
+  const fjg = filtro(null, v, 'g.', 'dia')
   const marcadores = GRANADAS.map(() => '?').join(', ')
 
   const [fiel, camper, granadas, banderas, teamkills, headshots] = await Promise.all([
-    /* El que mas horas jugo. El tiempo sale de las sesiones, como en el ranking */
+    /*
+     *  El que mas horas jugo. Con el plugin 0.5 el tiempo es el que estuvo en un
+     *  bando; mientras no haya nada registrado se usa el tiempo conectado.
+     */
     consultar(`
-      SELECT j.id, j.nick, SUM(s.segundos) AS valor
-      FROM {p}sesiones s JOIN {p}jugadores j ON j.id = s.jugador_id
-      WHERE 1 = 1 ${filtro(null, v, 's.', 'desconexion').sql}
-      GROUP BY j.id, j.nick ORDER BY valor DESC LIMIT 1
-    `, fse.valores),
+      SELECT j.id, j.nick, SUM(t.segundos) AS valor FROM (
+        SELECT jugador_id, segundos FROM {p}jugado g WHERE 1 = 1 ${fjg.sql}
+        UNION ALL
+        SELECT jugador_id, IF((SELECT COUNT(*) FROM {p}jugado) > 0, 0, segundos)
+        FROM {p}sesiones s WHERE 1 = 1 ${fse.sql}
+      ) t
+      JOIN {p}jugadores j ON j.id = t.jugador_id
+      GROUP BY j.id, j.nick HAVING valor > 0 ORDER BY valor DESC LIMIT 1
+    `, [...fjg.valores, ...fse.valores]),
 
     /* Camper: mayor parte del tiempo jugado acostado, con un minimo de tiempo jugado */
     consultar(`
       SELECT j.id, j.nick, ROUND(100 * a.segundos / s.segundos) AS valor
       FROM (SELECT jugador_id, SUM(segundos) AS segundos FROM {p}acostado a WHERE 1 = 1 ${fa.sql} GROUP BY jugador_id) a
-      JOIN (SELECT jugador_id, SUM(segundos) AS segundos FROM {p}sesiones s WHERE 1 = 1 ${fse.sql} GROUP BY jugador_id) s
-        ON s.jugador_id = a.jugador_id
+      JOIN (
+        SELECT jugador_id, SUM(segundos) AS segundos FROM (
+          SELECT jugador_id, segundos FROM {p}jugado g WHERE 1 = 1 ${fjg.sql}
+          UNION ALL
+          SELECT jugador_id, IF((SELECT COUNT(*) FROM {p}jugado) > 0, 0, segundos)
+          FROM {p}sesiones s WHERE 1 = 1 ${fse.sql}
+        ) t GROUP BY jugador_id
+      ) s ON s.jugador_id = a.jugador_id
       JOIN {p}jugadores j ON j.id = a.jugador_id
       WHERE s.segundos >= ? AND a.segundos > 0
       ORDER BY a.segundos / s.segundos DESC LIMIT 1
-    `, [...fa.valores, ...fse.valores, MIN_SEGUNDOS_CAMPER]),
+    `, [...fa.valores, ...fjg.valores, ...fse.valores, MIN_SEGUNDOS_CAMPER]),
 
     consultar(`
       SELECT j.id, j.nick, COUNT(*) AS valor
