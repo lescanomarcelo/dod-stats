@@ -5,6 +5,7 @@ import { porcentaje, formatoPorcentaje, formatoNumero, nombreArma } from '@/lib/
 import Link from 'next/link'
 import { Barras, Cargando } from '@/components/Ui'
 import { enlaceDeArma } from '@/lib/enlaces'
+import { ImagenArma } from '@/components/ImagenArma'
 import { ControlPeriodo } from '@/components/Periodo'
 import { rangoDesdeBusqueda, type Periodo } from '@/lib/periodos'
 
@@ -62,7 +63,8 @@ async function TablaArmas ({ parametros }: { parametros: Busqueda }) {
             {filas.map((a) => (
               <tr key={a.arma}>
                 <td>
-                  <Link href={enlaceDeArma(a.arma, rango.periodo, rango.clave)} className='jugador'>
+                  <Link href={enlaceDeArma(a.arma, rango.periodo, rango.clave)} className='jugador con-dibujo'>
+                    <ImagenArma arma={a.arma} />
                     {nombreArma(a.arma)}
                   </Link>
                 </td>

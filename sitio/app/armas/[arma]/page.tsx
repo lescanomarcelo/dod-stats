@@ -8,6 +8,7 @@ import { enlaceDeArma } from '@/lib/enlaces'
 import { porcentaje, formatoPorcentaje, formatoNumero, nombreArma } from '@/lib/calculos'
 import { Tarjeta, EnlaceJugador, Cargando } from '@/components/Ui'
 import { ControlPeriodo } from '@/components/Periodo'
+import { ImagenArma } from '@/components/ImagenArma'
 
 /*
  *  El arma viene de la URL. El juego las nombra con mayusculas y espacios
@@ -41,6 +42,10 @@ async function Contenido ({ parametros, busqueda }: {
   return (
     <>
       <ControlPeriodo rango={rango} enlace={(periodo, fecha) => enlaceDeArma(arma, periodo, fecha)} />
+
+      <div className='arma-retrato'>
+        <ImagenArma arma={arma} grande />
+      </div>
 
       <div className='tarjetas'>
         <Tarjeta etiqueta='Kills' valor={formatoNumero(resumen.kills)} destacada />
