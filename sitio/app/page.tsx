@@ -3,7 +3,7 @@ import { esOrden, ranking, destacados, type Orden } from '@/lib/consultas'
 import { rangoDesdeBusqueda, type Periodo } from '@/lib/periodos'
 import {
   kd, porcentaje, formatoKd, formatoPorcentaje, formatoNumero, formatoTiempo,
-  MIN_KILLS_PORCENTAJES, MIN_SEGUNDOS_CAMPER, camper
+  MIN_KILLS_PORCENTAJES, MIN_SEGUNDOS_CAMPER, camper, tiempoDeJuego
 } from '@/lib/calculos'
 import { EnlaceJugador, Cargando } from '@/components/Ui'
 import { ControlPeriodo } from '@/components/Periodo'
@@ -95,9 +95,9 @@ async function Contenido ({ parametros }: { parametros: Busqueda }) {
                       <td className='num'>{formatoKd(kd(j.kills, j.muertes))}</td>
                       <td className='num'>{formatoPorcentaje(porcentaje(j.headshots, j.kills))}</td>
                       <td className='num'>{j.teamkills}</td>
-                      <td className='num'>{formatoTiempo(j.segundos)}</td>
+                      <td className='num'>{formatoTiempo(tiempoDeJuego(j))}</td>
                       {orden === 'camper' && <td className='num'>{formatoTiempo(j.segundosAcostado)}</td>}
-                      {orden === 'camper' && <td className='num destacado'>{formatoPorcentaje(camper(j.segundosAcostado, j.segundos))}</td>}
+                      {orden === 'camper' && <td className='num destacado'>{formatoPorcentaje(camper(j.segundosAcostado, tiempoDeJuego(j)))}</td>}
                     </tr>
                   ))}
                 </tbody>
@@ -108,6 +108,8 @@ async function Contenido ({ parametros }: { parametros: Busqueda }) {
         {orden === 'camper' && (
           <p className='nota'>Camper = porcentaje del tiempo jugado que pasó acostado. Solo jugadores con al menos {MIN_SEGUNDOS_CAMPER / 60} minutos jugados.</p>
         )}
+
+        <p className='nota'>El tiempo es el que estuvo en un bando, sin contar el rato de espectador (desde la versión 0.5 del plugin; antes de eso, el tiempo conectado).</p>
 
         {(orden === 'kd' || orden === 'hs') && (
           <p className='nota'>Solo jugadores con al menos {MIN_KILLS_PORCENTAJES} kills, para que el porcentaje sea representativo.</p>

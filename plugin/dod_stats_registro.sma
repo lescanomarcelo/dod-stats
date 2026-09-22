@@ -26,6 +26,7 @@
  *    S  ts  mapa  steamid  nick  equipo  puntos                    puntos de un jugador
  *    E  ts  mapa  inicio  puntos_aliados  puntos_eje               marcador de equipos
  *    A  ts  mapa  steamid  nick  segundos                          tiempo acostado
+ *    J  ts  mapa  steamid  nick  segundos                          tiempo en un bando
  *
  *    ts = segundos unix.  m_ = matador, v_ = victima.  equipo: 1 aliados, 2 eje.
  *    Si no hay matador (suicidio, caida, mundo) los campos m_ van vacios.
@@ -45,6 +46,10 @@
  *    A trae los segundos que el jugador estuvo acostado (prone, con o sin la
  *    ametralladora apoyada) desde la linea A anterior: se suman al cargarlos. Para
  *    la estadistica "Camper". Se escribe junto con las H.
+ *
+ *    J trae los segundos que el jugador estuvo en un bando (Aliados o Eje) desde la
+ *    linea J anterior: el tiempo jugando de verdad, sin contar el rato de espectador
+ *    ni eligiendo clase. Tambien se suman al cargarlos.
  */
 
 #include <amxmodx>
@@ -53,7 +58,7 @@
 #include <dodstats>
 
 #define PLUGIN_NAME     "DoD Stats - Registro"
-#define PLUGIN_VERSION  "0.4.0"
+#define PLUGIN_VERSION  "0.5.0"
 #define PLUGIN_AUTHOR   "Marcelo Lescano"
 
 #define PARTES_CUERPO   8   /* generico + las 7 zonas: igual a MAX_BODYHITS */
@@ -78,6 +83,10 @@ new g_disparosInformados[33];
 /* Tiempo acostado: desde cuando esta acostado (0.0 = parado) y lo acumulado sin informar */
 new Float:g_acostadoDesde[33];
 new Float:g_acostadoAcumulado[33];
+
+/* Tiempo en un bando: desde cuando esta en Aliados o Eje (0.0 = afuera) y lo acumulado */
+new Float:g_enEquipoDesde[33];
+new Float:g_jugadoAcumulado[33];
 
 /* Marcador de equipos: la partida se identifica por el momento en que empezo el mapa */
 new g_inicioMapa;
@@ -117,6 +126,15 @@ public plugin_cfg()
         g_marcadorInformado[equipo] = g_marcadorBase[equipo];
     }
     g_marcadorValido = false;
+
+    /* Cambio de mapa: los que ya estaban en un bando siguen jugando desde ahora */
+    for (new id = 1; id <= 32; id++)
+    {
+        g_enEquipoDesde[id] = 0.0;
+        g_jugadoAcumulado[id] = 0.0;
+        if (is_user_connected(id))
+            actualizarEquipo(id, get_user_team(id));
+    }
 
     new linea[LARGO_LINEA];
     formatex(linea, charsmax(linea), "P^t%d^t%s", g_inicioMapa, g_mapa);
@@ -256,6 +274,7 @@ registrarImpactosDeTodos()
     {
         registrarImpactos(id);
         registrarAcostado(id);
+        registrarJugado(id);
     }
 }
 
@@ -298,6 +317,64 @@ limpiarAcostado(id)
 {
     g_acostadoDesde[id] = 0.0;
     g_acostadoAcumulado[id] = 0.0;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Tiempo jugando de verdad                                           */
+/* ------------------------------------------------------------------ */
+
+/* Suma el tramo en el bando. Si sigueJugando, arranca uno nuevo desde ahora */
+cerrarTramoJugado(id, bool:sigueJugando)
+{
+    if (g_enEquipoDesde[id] > 0.0)
+    {
+        new Float:ahora = get_gametime();
+        g_jugadoAcumulado[id] += ahora - g_enEquipoDesde[id];
+        g_enEquipoDesde[id] = sigueJugando ? ahora : 0.0;
+    }
+}
+
+/* Solo cuenta el tiempo en Aliados o Eje: espectador y sin elegir bando no son jugar */
+actualizarEquipo(id, equipo)
+{
+    if (equipo == ALLIES || equipo == AXIS)
+    {
+        if (g_enEquipoDesde[id] == 0.0)
+            g_enEquipoDesde[id] = get_gametime();
+    }
+    else
+        cerrarTramoJugado(id, false);
+}
+
+registrarJugado(id)
+{
+    if (!is_user_connected(id) || is_user_bot(id) || is_user_hltv(id))
+        return;
+
+    cerrarTramoJugado(id, true);
+
+    new segundos = floatround(g_jugadoAcumulado[id], floatround_floor);
+    if (segundos < 1)
+        return;
+    g_jugadoAcumulado[id] -= float(segundos);
+
+    new steam[35], nick[32], linea[LARGO_LINEA];
+    datosJugador(id, steam, charsmax(steam), nick, charsmax(nick));
+
+    formatex(linea, charsmax(linea), "J^t%d^t%s^t%s^t%s^t%d", get_systime(), g_mapa, steam, nick, segundos);
+    ArrayPushString(g_pendientes, linea);
+}
+
+limpiarJugado(id)
+{
+    g_enEquipoDesde[id] = 0.0;
+    g_jugadoAcumulado[id] = 0.0;
+}
+
+public dod_client_changeteam(id, equipo, equipoViejo)
+{
+    if (id >= 1 && id <= 32)
+        actualizarEquipo(id, equipo);
 }
 
 /* dodx: valor 1 = se acuesta, 0 = se levanta */
@@ -396,6 +473,7 @@ public client_putinserver(id)
     g_conectadoDesde[id] = get_systime();
     limpiarImpactos(id);
     limpiarAcostado(id);
+    limpiarJugado(id);
     g_disparosInformados[id] = disparosTotales(id);
 
     new steam[35], nick[32], linea[LARGO_LINEA];
@@ -415,6 +493,9 @@ public client_disconnected(id, bool:drop, message[], maxlen)
     cerrarTramoAcostado(id, false);
     registrarAcostado(id);
     limpiarAcostado(id);
+    cerrarTramoJugado(id, false);
+    registrarJugado(id);
+    limpiarJugado(id);
 
     new segundos = get_systime() - g_conectadoDesde[id];
     g_conectadoDesde[id] = 0;

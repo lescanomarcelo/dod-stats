@@ -41,6 +41,7 @@ const E = (ts, inicio, aliados, eje, mapa = 'dod_kalt') => ['E', ts, mapa, inici
 
 /* A ts mapa steam nick segundos */
 const A = (ts, steam, nick, segundos, mapa = 'dod_kalt') => ['A', ts, mapa, steam, nick, segundos].join('	')
+const J = (ts, steam, nick, segundos, mapa = 'dod_kalt') => ['J', ts, mapa, steam, nick, segundos].join('	')
 
 const TREVOR = 'STEAM_0:1:111'
 const PEPE = 'STEAM_0:0:222'
@@ -372,6 +373,20 @@ test('el tiempo acostado se separa por dia argentino, para poder filtrarlo por p
   const filas = await base.consultar('SELECT dia, segundos FROM {p}acostado ORDER BY dia')
   assert.deepEqual(filas.map((f) => [f.dia.toISOString(), Number(f.segundos)]),
     [['2026-09-21T03:00:00.000Z', 30], ['2026-09-22T03:00:00.000Z', 20]])
+})
+
+test('el tiempo en un bando se suma aparte del tiempo conectado', async () => {
+  await escribir([
+    C(1000, TREVOR, 'Trevor'),
+    J(1200, TREVOR, 'Trevor', 180),
+    J(1400, TREVOR, 'Trevor', 120),
+    D(1500, TREVOR, 'Trevor', 500)
+  ])
+  const r = await correr()
+  assert.equal(r.jugado, 2)
+  const j = await jugador('Trevor')
+  assert.equal(j.segundos_jugados, 500, 'conectado')
+  assert.equal(j.segundos_en_juego, 300, 'en un bando')
 })
 
 test('el marcador de una partida queda con el ultimo valor', async () => {

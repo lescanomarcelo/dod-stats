@@ -15,7 +15,7 @@ import { ZONAS } from './parsear.mjs'
 
 const RUTA_ESQUEMA = fileURLToPath(new URL('./esquema.sql', import.meta.url))
 /* En orden de borrado: las que apuntan a jugadores, antes que jugadores */
-const TABLAS = ['muertes', 'sesiones', 'impactos', 'acostado', 'puntos', 'partidas', 'mapas_jugados', 'ingesta_estado', 'jugadores']
+const TABLAS = ['muertes', 'sesiones', 'impactos', 'acostado', 'jugado', 'puntos', 'partidas', 'mapas_jugados', 'ingesta_estado', 'jugadores']
 const FILAS_POR_INSERT = 500
 
 /* Recorta a lo que entra en la columna. Un dato raro no puede trabar la ingesta:
@@ -159,11 +159,11 @@ export async function conectar (config, prefijo = '') {
 
   /* Cada linea E pisa el marcador de su partida, salvo que sea mas vieja que el
      guardado (una re-carga fuera de orden no puede volver atras el resultado) */
-  /* Las lineas A traen diferencias: se suman a la fila (jugador, mapa), como los impactos */
-  async function acumularAcostado (filas) {
+/* Las lineas A y J traen diferencias: se suman a la fila (jugador, mapa, dia) */
+  async function acumularSegundos (tabla, filas) {
     for (let i = 0; i < filas.length; i += FILAS_POR_INSERT) {
       await conexion.query(
-        `INSERT INTO ${t('acostado')} (jugador_id, mapa, dia, segundos, actualizado) VALUES ?
+        `INSERT INTO ${t(tabla)} (jugador_id, mapa, dia, segundos, actualizado) VALUES ?
          ON DUPLICATE KEY UPDATE segundos = segundos + VALUES(segundos), actualizado = GREATEST(actualizado, VALUES(actualizado))`,
         [filas.slice(i, i + FILAS_POR_INSERT)])
     }
@@ -188,7 +188,7 @@ export async function conectar (config, prefijo = '') {
    * opciones.fallarAntesDeConfirmar: solo para tests, simula un corte justo antes del COMMIT.
    */
   async function guardarLote (archivo, nuevoOffset, eventos, descartadas, opciones = {}) {
-    const resumen = { muertes: 0, sesiones: 0, mapas: 0, impactos: 0, acostado: 0, puntos: 0, marcadores: 0, ignorados: 0 }
+    const resumen = { muertes: 0, sesiones: 0, mapas: 0, impactos: 0, acostado: 0, jugado: 0, puntos: 0, marcadores: 0, ignorados: 0 }
 
     await conexion.beginTransaction()
     try {
@@ -199,6 +199,7 @@ export async function conectar (config, prefijo = '') {
       const impactos = []
       const puntos = []
       const acostado = []
+      const jugado = []
       const marcadores = []
 
       for (const e of eventos) {
@@ -222,10 +223,11 @@ export async function conectar (config, prefijo = '') {
           continue
         }
 
-        if (e.tipo === 'acostado') {
+        if (e.tipo === 'acostado' || e.tipo === 'jugado') {
           const id = await asegurarJugador(cache, e.steamid, e.nick, e.ts)
           if (!id) { resumen.ignorados++; continue }
-          acostado.push([id, recortar(e.mapa, 40).toLowerCase(), diaArgentino(e.ts), e.segundos, fecha(e.ts)])
+          const fila = [id, recortar(e.mapa, 40).toLowerCase(), diaArgentino(e.ts), e.segundos, fecha(e.ts)]
+          ;(e.tipo === 'acostado' ? acostado : jugado).push(fila)
           continue
         }
 
@@ -287,7 +289,8 @@ export async function conectar (config, prefijo = '') {
       await acumularImpactos(impactos)
       await insertarEnTandas('puntos', ['momento', 'mapa', 'jugador_id', 'equipo', 'puntos'], puntos)
       await guardarMarcadores(marcadores)
-      await acumularAcostado(acostado)
+      await acumularSegundos('acostado', acostado)
+      await acumularSegundos('jugado', jugado)
 
       await conexion.query(
         `INSERT INTO ${t('ingesta_estado')}
@@ -310,6 +313,7 @@ export async function conectar (config, prefijo = '') {
       resumen.impactos = impactos.length
       resumen.puntos = puntos.length
       resumen.acostado = acostado.length
+      resumen.jugado = jugado.length
       resumen.marcadores = marcadores.length
       return resumen
     } catch (error) {
@@ -333,7 +337,8 @@ export async function conectar (config, prefijo = '') {
       suicidios: Number(f.suicidios),
       segundos_jugados: Number(f.segundos_jugados),
       puntos: Number(f.puntos),
-      segundos_acostado: Number(f.segundos_acostado)
+      segundos_acostado: Number(f.segundos_acostado),
+      segundos_en_juego: Number(f.segundos_en_juego)
     }))
   }
 
