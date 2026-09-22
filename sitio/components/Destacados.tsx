@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import type { Destacados as DatosDestacados, Destacado } from '@/lib/consultas'
-import { formatoNumero } from '@/lib/calculos'
+import { formatoNumero, formatoTiempo } from '@/lib/calculos'
 
 /* "1 bandera" / "3 banderas": el numero manda */
 const plural = (v: number, uno: string, varios: string) => `${formatoNumero(v)} ${v === 1 ? uno : varios}`
@@ -25,6 +25,14 @@ type Categoria = {
 }
 
 const CATEGORIAS: Categoria[] = [
+  {
+    clave: 'fiel',
+    titulo: 'El dodero fiel',
+    subtitulo: 'Más horas jugadas',
+    imagen: '/destacados/fiel.webp',
+    valor: (v) => formatoTiempo(v),
+    vacio: 'Todavía nadie jugó en este período.'
+  },
   {
     clave: 'camper',
     titulo: 'El más Kenny',
