@@ -8,7 +8,7 @@ import {
 } from '@/lib/consultas'
 import {
   kd, porcentaje, formatoKd, formatoPorcentaje, formatoNumero, formatoTiempo,
-  nombreArma
+  nombreArma, camper
 } from '@/lib/calculos'
 import { overviewDe, imagenDe } from '@/lib/mapas'
 import { puntosAImagen } from '@/lib/overview'
@@ -173,6 +173,7 @@ async function Perfil ({ parametros, busqueda }: { parametros: PageProps<'/jugad
         <Tarjeta etiqueta='Tiempo jugado' valor={formatoTiempo(j.segundos)} />
         <Tarjeta etiqueta='Teamkills' valor={j.teamkills} />
         <Tarjeta etiqueta='Suicidios' valor={j.suicidios} />
+        <Tarjeta etiqueta='Camper' valor={j.segundosAcostado > 0 ? formatoPorcentaje(camper(j.segundosAcostado, j.segundos)) : '—'} />
       </div>
 
       <section className='seccion panel'>

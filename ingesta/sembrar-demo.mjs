@@ -191,6 +191,9 @@ function generarDia (inicioDia, dia) {
     for (const j of presentes) {
       const jugado = entre(300, SEGUNDOS_POR_MAPA)
       lineas.push(lineaImpactos(ts + jugado - 1, mapa, j, jugado))
+      /* Camper: cada jugador pasa acostado una fraccion propia de su tiempo (2% a 37%) */
+      const acostado = Math.round(jugado * (0.02 + (j.steam.charCodeAt(j.steam.length - 2) % 8) * 0.05) * (0.7 + azar() * 0.6))
+      if (acostado > 0) lineas.push(['A', ts + jugado - 1, mapa, j.steam, j.nick, acostado].join(T))
       lineas.push(['D', ts + jugado, j.steam, j.nick, jugado].join(T))
     }
 

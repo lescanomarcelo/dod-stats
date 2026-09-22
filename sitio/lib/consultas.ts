@@ -1,7 +1,7 @@
 import 'server-only'
 import { cacheLife } from 'next/cache'
 import { consultar } from './db'
-import { MIN_KILLS_PORCENTAJES } from './calculos'
+import { MIN_KILLS_PORCENTAJES, MIN_SEGUNDOS_CAMPER } from './calculos'
 import { HORAS_ARGENTINA, type Ventana, type Balance } from './periodos'
 
 /*
@@ -29,6 +29,7 @@ export type Jugador = {
   suicidios: number
   segundos: number
   puntos: number
+  segundosAcostado: number
 }
 
 export type JugadorDetalle = Jugador & { primeraVez: string | null, ultimaVez: string | null }
@@ -44,7 +45,8 @@ function aJugador (f: Record<string, unknown>): Jugador {
     teamkills: n(f.teamkills),
     suicidios: n(f.suicidios),
     segundos: n(f.segundos_jugados),
-    puntos: n(f.puntos)
+    puntos: n(f.puntos),
+    segundosAcostado: n(f.segundos_acostado)
   }
 }
 
@@ -80,15 +82,16 @@ export async function resumenGeneral () {
 /*  Ranking                                                            */
 /* ------------------------------------------------------------------ */
 
-export type Orden = 'puntos' | 'kills' | 'kd' | 'hs' | 'tiempo'
+export type Orden = 'puntos' | 'kills' | 'kd' | 'hs' | 'tiempo' | 'camper'
 
 /* Lista cerrada: el orden llega por la URL y NUNCA se interpola tal cual en el SQL */
-const ORDENES: Record<Orden, { sql: string, soloConMinimo: boolean }> = {
+const ORDENES: Record<Orden, { sql: string, soloConMinimo?: boolean, soloCamper?: boolean }> = {
   puntos: { sql: 'puntos DESC, kills DESC, muertes ASC', soloConMinimo: false },
   kills: { sql: 'kills DESC, muertes ASC', soloConMinimo: false },
   kd: { sql: 'kills / GREATEST(muertes, 1) DESC, kills DESC', soloConMinimo: true },
   hs: { sql: 'headshots / GREATEST(kills, 1) DESC, kills DESC', soloConMinimo: true },
-  tiempo: { sql: 'segundos_jugados DESC', soloConMinimo: false }
+  tiempo: { sql: 'segundos_jugados DESC', soloConMinimo: false },
+  camper: { sql: 'segundos_acostado / GREATEST(segundos_jugados, 1) DESC, segundos_acostado DESC', soloCamper: true }
 }
 
 export function esOrden (valor: unknown): valor is Orden {
@@ -99,13 +102,16 @@ export async function ranking (orden: Orden): Promise<Jugador[]> {
   'use cache'
   cacheLife('minutes')
 
-  const { sql, soloConMinimo } = ORDENES[orden]
+  const { sql, soloConMinimo, soloCamper } = ORDENES[orden]
+  /* Camper: solo con tiempo acostado registrado (plugin 0.4) y un minimo de tiempo jugado */
+  const condicion = soloConMinimo ? 'AND kills >= ?' : soloCamper ? 'AND segundos_acostado > 0 AND segundos_jugados >= ?' : ''
+  const valores = soloConMinimo ? [MIN_KILLS_PORCENTAJES] : soloCamper ? [MIN_SEGUNDOS_CAMPER] : []
   const filas = await consultar(`
     SELECT * FROM {p}ranking
-    WHERE kills + muertes + puntos > 0 ${soloConMinimo ? 'AND kills >= ?' : ''}
+    WHERE kills + muertes + puntos > 0 ${condicion}
     ORDER BY ${sql}, id
     LIMIT 200
-  `, soloConMinimo ? [MIN_KILLS_PORCENTAJES] : [])
+  `, valores)
 
   return filas.map(aJugador)
 }

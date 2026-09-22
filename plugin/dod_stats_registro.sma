@@ -25,6 +25,7 @@
  *
  *    S  ts  mapa  steamid  nick  equipo  puntos                    puntos de un jugador
  *    E  ts  mapa  inicio  puntos_aliados  puntos_eje               marcador de equipos
+ *    A  ts  mapa  steamid  nick  segundos                          tiempo acostado
  *
  *    ts = segundos unix.  m_ = matador, v_ = victima.  equipo: 1 aliados, 2 eje.
  *    Si no hay matador (suicidio, caida, mundo) los campos m_ van vacios.
@@ -40,6 +41,10 @@
  *    E es el marcador de la partida: inicio = ts de la linea P de este mapa, que
  *    identifica la partida. Cada E reemplaza a la anterior de la misma partida; la
  *    ultima es el resultado final. Se escribe cada 30s si cambio y al terminar el mapa.
+ *
+ *    A trae los segundos que el jugador estuvo acostado (prone, con o sin la
+ *    ametralladora apoyada) desde la linea A anterior: se suman al cargarlos. Para
+ *    la estadistica "Camper". Se escribe junto con las H.
  */
 
 #include <amxmodx>
@@ -48,7 +53,7 @@
 #include <dodstats>
 
 #define PLUGIN_NAME     "DoD Stats - Registro"
-#define PLUGIN_VERSION  "0.3.0"
+#define PLUGIN_VERSION  "0.4.0"
 #define PLUGIN_AUTHOR   "Marcelo Lescano"
 
 #define PARTES_CUERPO   8   /* generico + las 7 zonas: igual a MAX_BODYHITS */
@@ -69,6 +74,10 @@ new g_impactos[33][PARTES_CUERPO];
 new g_danio[33];
 /* Total de disparos de dodx que ya se informo: la linea H lleva la diferencia */
 new g_disparosInformados[33];
+
+/* Tiempo acostado: desde cuando esta acostado (0.0 = parado) y lo acumulado sin informar */
+new Float:g_acostadoDesde[33];
+new Float:g_acostadoAcumulado[33];
 
 /* Marcador de equipos: la partida se identifica por el momento en que empezo el mapa */
 new g_inicioMapa;
@@ -244,7 +253,73 @@ registrarImpactos(id)
 registrarImpactosDeTodos()
 {
     for (new id = 1; id <= 32; id++)
+    {
         registrarImpactos(id);
+        registrarAcostado(id);
+    }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Tiempo acostado (Camper)                                           */
+/* ------------------------------------------------------------------ */
+
+/* Suma el tramo acostado en curso. Si sigueAcostado, arranca un tramo nuevo desde ahora */
+cerrarTramoAcostado(id, bool:sigueAcostado)
+{
+    if (g_acostadoDesde[id] > 0.0)
+    {
+        new Float:ahora = get_gametime();
+        g_acostadoAcumulado[id] += ahora - g_acostadoDesde[id];
+        g_acostadoDesde[id] = sigueAcostado ? ahora : 0.0;
+    }
+}
+
+registrarAcostado(id)
+{
+    if (!is_user_connected(id) || is_user_bot(id) || is_user_hltv(id))
+        return;
+
+    cerrarTramoAcostado(id, true);
+
+    /* Solo segundos enteros; el resto queda para la proxima linea */
+    new segundos = floatround(g_acostadoAcumulado[id], floatround_floor);
+    if (segundos < 1)
+        return;
+    g_acostadoAcumulado[id] -= float(segundos);
+
+    new steam[35], nick[32], linea[LARGO_LINEA];
+    datosJugador(id, steam, charsmax(steam), nick, charsmax(nick));
+
+    formatex(linea, charsmax(linea), "A^t%d^t%s^t%s^t%s^t%d", get_systime(), g_mapa, steam, nick, segundos);
+    ArrayPushString(g_pendientes, linea);
+}
+
+limpiarAcostado(id)
+{
+    g_acostadoDesde[id] = 0.0;
+    g_acostadoAcumulado[id] = 0.0;
+}
+
+/* dodx: valor 1 = se acuesta, 0 = se levanta */
+public dod_client_prone(id, valor)
+{
+    if (id < 1 || id > 32 || !is_user_alive(id))
+        return;
+
+    if (valor)
+    {
+        if (g_acostadoDesde[id] == 0.0)
+            g_acostadoDesde[id] = get_gametime();
+    }
+    else
+        cerrarTramoAcostado(id, false);
+}
+
+/* Al reaparecer arranca parado: si quedo un tramo abierto (murio acostado), se cierra */
+public dod_client_spawn(id)
+{
+    if (id >= 1 && id <= 32)
+        cerrarTramoAcostado(id, false);
 }
 
 public client_damage(atacante, victima, danio, indiceArma, lugarImpacto, TA)
@@ -320,6 +395,7 @@ public client_putinserver(id)
 
     g_conectadoDesde[id] = get_systime();
     limpiarImpactos(id);
+    limpiarAcostado(id);
     g_disparosInformados[id] = disparosTotales(id);
 
     new steam[35], nick[32], linea[LARGO_LINEA];
@@ -334,8 +410,11 @@ public client_disconnected(id, bool:drop, message[], maxlen)
     if (!g_conectadoDesde[id])
         return;
 
-    /* Lo que disparo y pego desde la ultima tanda, antes de que se vaya */
+    /* Lo que disparo, pego y estuvo acostado desde la ultima tanda, antes de que se vaya */
     registrarImpactos(id);
+    cerrarTramoAcostado(id, false);
+    registrarAcostado(id);
+    limpiarAcostado(id);
 
     new segundos = get_systime() - g_conectadoDesde[id];
     g_conectadoDesde[id] = 0;
@@ -351,6 +430,10 @@ public client_death(matador, victima, indiceArma, lugarImpacto, TK)
 {
     if (!victima || !is_user_connected(victima))
         return;
+
+    /* Muerto no esta acostado: se cierra el tramo aunque el juego no avise que se levanto */
+    if (victima <= 32)
+        cerrarTramoAcostado(victima, false);
 
     new vSteam[35], vNick[32];
     new vOrigen[3];

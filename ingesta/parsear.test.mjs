@@ -210,3 +210,11 @@ test('linea E: marcador de la partida', () => {
   })
   assert.equal(parsearLinea(linea('E', 1790000300, 'dod_kalt', 'x', 7, 3)), null)
 })
+
+test('linea A: segundos acostado', () => {
+  assert.deepEqual(parsearLinea(linea('A', 1789999999, 'dod_kalt', 'STEAM_0:1:111', 'Trevor', 42)), {
+    tipo: 'acostado', ts: 1789999999, mapa: 'dod_kalt', steamid: 'STEAM_0:1:111', nick: 'Trevor', segundos: 42
+  })
+  assert.equal(parsearLinea(linea('A', 1789999999, 'dod_kalt', 'STEAM_0:1:111', 'Trevor', 0)), null)
+  assert.equal(parsearLinea(linea('A', 1789999999, 'dod_kalt', 'STEAM_0:1:111', 'Trevor', -3)), null)
+})

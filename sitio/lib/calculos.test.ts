@@ -6,7 +6,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   kd, porcentaje, formatoKd, formatoPorcentaje, formatoTiempo,
-  tiempoRelativo, nombreArma, nombreHitbox, nombreEquipo
+  tiempoRelativo, nombreArma, nombreHitbox, nombreEquipo, camper
 } from './calculos.ts'
 
 test('K/D: kills sobre muertes', () => {
@@ -69,4 +69,10 @@ test('nombres de hitbox y equipo', () => {
   assert.equal(nombreEquipo(1), 'Aliados')
   assert.equal(nombreEquipo(2), 'Eje')
   assert.equal(nombreEquipo(null), '—')
+})
+
+test('Camper: porcentaje del tiempo jugado acostado, sin dividir por cero ni pasar de 100', () => {
+  assert.equal(camper(900, 3600), 25)
+  assert.equal(camper(100, 0), 0)
+  assert.equal(camper(5000, 3600), 100)
 })

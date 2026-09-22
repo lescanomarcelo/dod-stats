@@ -39,6 +39,9 @@ const H = (ts, steam, nick, zonas, danio, disparos, mapa = 'dod_kalt') =>
 const S = (ts, steam, nick, equipo, puntos, mapa = 'dod_kalt') => ['S', ts, mapa, steam, nick, equipo, puntos].join('	')
 const E = (ts, inicio, aliados, eje, mapa = 'dod_kalt') => ['E', ts, mapa, inicio, aliados, eje].join('	')
 
+/* A ts mapa steam nick segundos */
+const A = (ts, steam, nick, segundos, mapa = 'dod_kalt') => ['A', ts, mapa, steam, nick, segundos].join('	')
+
 const TREVOR = 'STEAM_0:1:111'
 const PEPE = 'STEAM_0:0:222'
 
@@ -348,6 +351,18 @@ test('los puntos de cada jugador suman en el ranking', async () => {
   assert.equal((await jugador('Pepe')).puntos, 3)
   const porBando = await base.consultar('SELECT equipo, SUM(puntos) AS p FROM {p}puntos GROUP BY equipo ORDER BY equipo')
   assert.deepEqual(porBando.map((f) => [f.equipo, Number(f.p)]), [[1, 2], [2, 4]])
+})
+
+test('el tiempo acostado se suma por jugador entre pasadas y llega al ranking', async () => {
+  await escribir([A(1000, TREVOR, 'Trevor', 40), A(1030, TREVOR, 'Trevor', 25, 'dod_Avalanche'), A(1060, 'BOT', '[BOT] Sturm', 99)])
+  const r = await correr()
+  assert.equal(r.acostado, 2)
+  await agregar([A(1090, TREVOR, 'Trevor', 5)])
+  await correr()
+  await correr()
+  assert.equal((await jugador('Trevor')).segundos_acostado, 70)
+  const filas = await base.consultar('SELECT mapa, segundos FROM {p}acostado ORDER BY mapa')
+  assert.deepEqual(filas.map((f) => [f.mapa, Number(f.segundos)]), [['dod_avalanche', 25], ['dod_kalt', 45]])
 })
 
 test('el marcador de una partida queda con el ultimo valor', async () => {

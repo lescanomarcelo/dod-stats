@@ -3,7 +3,7 @@ import { Suspense } from 'react'
 import { esOrden, ranking, resumenGeneral, type Orden } from '@/lib/consultas'
 import {
   kd, porcentaje, formatoKd, formatoPorcentaje, formatoNumero, formatoTiempo,
-  MIN_KILLS_PORCENTAJES
+  MIN_KILLS_PORCENTAJES, MIN_SEGUNDOS_CAMPER, camper
 } from '@/lib/calculos'
 import { Tarjeta, EnlaceJugador, Cargando } from '@/components/Ui'
 
@@ -12,7 +12,8 @@ const PESTANAS: { orden: Orden, texto: string }[] = [
   { orden: 'kills', texto: 'Kills' },
   { orden: 'kd', texto: 'K/D' },
   { orden: 'hs', texto: 'Headshots %' },
-  { orden: 'tiempo', texto: 'Tiempo jugado' }
+  { orden: 'tiempo', texto: 'Tiempo jugado' },
+  { orden: 'camper', texto: 'Camper' }
 ]
 
 async function Resumen () {
@@ -63,6 +64,8 @@ async function TablaRanking ({ parametros }: { parametros: PageProps<'/'>['searc
                   <th className='num'>HS %</th>
                   <th className='num'>TK</th>
                   <th className='num'>Tiempo</th>
+                  {orden === 'camper' && <th className='num'>Acostado</th>}
+                  {orden === 'camper' && <th className='num'>Camper</th>}
                 </tr>
               </thead>
               <tbody>
@@ -77,12 +80,18 @@ async function TablaRanking ({ parametros }: { parametros: PageProps<'/'>['searc
                     <td className='num'>{formatoPorcentaje(porcentaje(j.headshots, j.kills))}</td>
                     <td className='num'>{j.teamkills}</td>
                     <td className='num'>{formatoTiempo(j.segundos)}</td>
+                    {orden === 'camper' && <td className='num'>{formatoTiempo(j.segundosAcostado)}</td>}
+                    {orden === 'camper' && <td className='num destacado'>{formatoPorcentaje(camper(j.segundosAcostado, j.segundos))}</td>}
                   </tr>
                 ))}
               </tbody>
             </table>
             )}
       </div>
+
+      {orden === 'camper' && (
+        <p className='nota'>Camper = porcentaje del tiempo jugado que pasó acostado. Solo jugadores con al menos {MIN_SEGUNDOS_CAMPER / 60} minutos jugados.</p>
+      )}
 
       {(orden === 'kd' || orden === 'hs') && (
         <p className='nota'>Solo jugadores con al menos {MIN_KILLS_PORCENTAJES} kills, para que el porcentaje sea representativo.</p>

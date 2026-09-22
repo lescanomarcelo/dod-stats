@@ -16,7 +16,7 @@
 import { parsearFragmento } from './parsear.mjs'
 
 export async function ingerir ({ fuente, base, registrar = () => {} }) {
-  const resultado = { ocupado: false, archivos: 0, muertes: 0, sesiones: 0, mapas: 0, impactos: 0, puntos: 0, marcadores: 0, ignorados: 0, descartadas: 0, alertas: [] }
+  const resultado = { ocupado: false, archivos: 0, muertes: 0, sesiones: 0, mapas: 0, impactos: 0, acostado: 0, puntos: 0, marcadores: 0, ignorados: 0, descartadas: 0, alertas: [] }
 
   if (!await base.tomarCandado()) {
     registrar('Hay otra ingesta corriendo. Esta termina sin hacer nada.')
@@ -64,12 +64,13 @@ async function procesarArchivos (fuente, base, registrar, resultado) {
     resultado.mapas += lote.mapas
     resultado.impactos += lote.impactos
     resultado.puntos += lote.puntos
+    resultado.acostado += lote.acostado
     resultado.marcadores += lote.marcadores
     resultado.ignorados += lote.ignorados
     resultado.descartadas += descartadas
 
     registrar(`${nombre}: +${bytesConsumidos} bytes, ${lote.muertes} muertes, ` +
-      `${lote.sesiones} sesiones, ${lote.mapas} mapas, ${lote.impactos} lineas de impactos, ${lote.puntos} de puntos, ${lote.marcadores} marcadores, ${lote.ignorados} ignorados (bots), ` +
+      `${lote.sesiones} sesiones, ${lote.mapas} mapas, ${lote.impactos} lineas de impactos, ${lote.puntos} de puntos, ${lote.acostado} de acostado, ${lote.marcadores} marcadores, ${lote.ignorados} ignorados (bots), ` +
       `${descartadas} lineas descartadas`)
   }
 }

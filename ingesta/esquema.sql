@@ -88,6 +88,17 @@ CREATE TABLE IF NOT EXISTS {p}impactos (
   CONSTRAINT fk_{p}impactos_jugador FOREIGN KEY (jugador_id) REFERENCES {p}jugadores (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Tiempo acostado (prone) de cada jugador, para la estadistica "Camper". Una fila
+-- por jugador y mapa que se va sumando: las lineas A traen diferencias. Desde la 0.4.
+CREATE TABLE IF NOT EXISTS {p}acostado (
+  jugador_id   INT UNSIGNED    NOT NULL,
+  mapa         VARCHAR(40)     NOT NULL,
+  segundos     BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  actualizado  DATETIME        NOT NULL,
+  PRIMARY KEY (jugador_id, mapa),
+  CONSTRAINT fk_{p}acostado_jugador FOREIGN KEY (jugador_id) REFERENCES {p}jugadores (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Puntos de cada jugador (tomar banderas y objetivos): una fila por vez que sumo,
 -- con el bando con el que jugaba en ese momento. Desde la version 0.3 del plugin.
 CREATE TABLE IF NOT EXISTS {p}puntos (
@@ -143,7 +154,8 @@ SELECT
   COALESCE(d.muertes, 0)    AS muertes,
   COALESCE(d.suicidios, 0)  AS suicidios,
   COALESCE(s.segundos, 0)   AS segundos_jugados,
-  COALESCE(pt.puntos, 0)    AS puntos
+  COALESCE(pt.puntos, 0)    AS puntos,
+  COALESCE(ac.segundos, 0)  AS segundos_acostado
 FROM {p}jugadores j
 LEFT JOIN (
   SELECT matador_id,
@@ -170,4 +182,9 @@ LEFT JOIN (
   SELECT jugador_id, SUM(puntos) AS puntos
   FROM {p}puntos
   GROUP BY jugador_id
-) pt ON pt.jugador_id = j.id;
+) pt ON pt.jugador_id = j.id
+LEFT JOIN (
+  SELECT jugador_id, SUM(segundos) AS segundos
+  FROM {p}acostado
+  GROUP BY jugador_id
+) ac ON ac.jugador_id = j.id;

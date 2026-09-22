@@ -7,6 +7,15 @@
  *  el K/D seria infinito y encabezaria el ranking. */
 export const MIN_KILLS_PORCENTAJES = 20
 
+/* Para el ranking Camper: con menos de media hora jugada el porcentaje no dice nada */
+export const MIN_SEGUNDOS_CAMPER = 30 * 60
+
+/** Camper: porcentaje del tiempo jugado que paso acostado, de 0 a 100 */
+export function camper (segundosAcostado: number, segundosJugados: number): number {
+  if (segundosJugados <= 0) return 0
+  return Math.min(100, (segundosAcostado / segundosJugados) * 100)
+}
+
 /** Kills por muerte. Sin muertes, se divide por 1 (convencion habitual). */
 export function kd (kills: number, muertes: number): number {
   return kills / Math.max(muertes, 1)
