@@ -29,7 +29,6 @@ export const GRUPOS: GrupoEnlaces[] = [
   {
     titulo: 'El server',
     enlaces: [
-      { nombre: 'Entrar al server', descripcion: 'Abre el juego y conecta directo (necesita Steam).', url: 'steam://connect/45.235.98.67:27017' },
       { nombre: 'GameTracker', descripcion: 'Historial de jugadores y mapas del server.', url: 'https://www.gametracker.com/server_info/45.235.98.67:27017/' }
     ]
   }
