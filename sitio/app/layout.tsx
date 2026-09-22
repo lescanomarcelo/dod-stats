@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import Link from 'next/link'
 import { Suspense } from 'react'
-import { Geist, Geist_Mono, Oswald, Playfair_Display, Libre_Baskerville, UnifrakturMaguntia } from 'next/font/google'
+import { Geist, Geist_Mono, Oswald, Playfair_Display, Libre_Baskerville, Anton } from 'next/font/google'
 import { resumenGeneral } from '@/lib/consultas'
 import { Hace } from '@/components/Hace'
 import { BanderaArgentina } from '@/components/Banderas'
@@ -19,9 +19,10 @@ const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin']
 const oswald = Oswald({ variable: '--font-oswald', subsets: ['latin'], weight: ['500', '600', '700'] })
 
 /* Tema diario: titulares con serifa, texto de diario y el nombre en letra gotica */
-const titulosDiario = Playfair_Display({ variable: '--font-diario-titulo', subsets: ['latin'], weight: ['600', '700', '900'] })
+/* El nombre del diario en serifa gorda; los titulares, condensados y negros */
+const mastheadDiario = Playfair_Display({ variable: '--font-diario-masthead', subsets: ['latin'], weight: ['700', '800', '900'] })
+const titularDiario = Anton({ variable: '--font-diario-titular', subsets: ['latin'], weight: '400' })
 const textoDiario = Libre_Baskerville({ variable: '--font-diario-texto', subsets: ['latin'], weight: ['400', '700'] })
-const mastheadDiario = UnifrakturMaguntia({ variable: '--font-diario-masthead', subsets: ['latin'], weight: '400' })
 
 export const metadata: Metadata = {
   title: {
@@ -81,7 +82,7 @@ async function EstadoServidor () {
 
 export default function RootLayout ({ children }: LayoutProps<'/'>) {
   return (
-    <html lang='es' data-tema='diario' className={`${geist.variable} ${geistMono.variable} ${oswald.variable} ${titulosDiario.variable} ${textoDiario.variable} ${mastheadDiario.variable}`}>
+    <html lang='es' data-tema='diario' className={`${geist.variable} ${geistMono.variable} ${oswald.variable} ${mastheadDiario.variable} ${titularDiario.variable} ${textoDiario.variable}`}>
       <body>
         <header className='cabecera'>
           <div className='contenedor'>
@@ -105,6 +106,12 @@ export default function RootLayout ({ children }: LayoutProps<'/'>) {
             <Suspense fallback={<div className='menu-boton' aria-hidden='true' />}>
               <Menu />
             </Suspense>
+          </div>
+          <div className='contenedor'>
+            <div className='renglon-diario'>
+              <span>Año I · <strong>Edición de hoy</strong> · Buenos Aires</span>
+              <span>Director: <strong>Trevor</strong> · Server :::aU::: Tributo · <strong>Gratis</strong></span>
+            </div>
           </div>
         </header>
 
