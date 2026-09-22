@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import Link from 'next/link'
 import { Suspense } from 'react'
-import { Geist, Geist_Mono, Oswald } from 'next/font/google'
+import { Geist, Geist_Mono, Oswald, Playfair_Display, Libre_Baskerville, UnifrakturMaguntia } from 'next/font/google'
 import { resumenGeneral } from '@/lib/consultas'
 import { Hace } from '@/components/Hace'
 import { BanderaArgentina } from '@/components/Banderas'
@@ -12,14 +12,20 @@ import { JugadoresEnLinea } from '@/components/JugadoresEnLinea'
 import { IconoWhatsApp, IconoDiscord } from '@/components/Iconos'
 import { GRUPOS } from '@/lib/links'
 import './globals.css'
+import './diario.css'
 
 const geist = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
 const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] })
 const oswald = Oswald({ variable: '--font-oswald', subsets: ['latin'], weight: ['500', '600', '700'] })
 
+/* Tema diario: titulares con serifa, texto de diario y el nombre en letra gotica */
+const titulosDiario = Playfair_Display({ variable: '--font-diario-titulo', subsets: ['latin'], weight: ['600', '700', '900'] })
+const textoDiario = Libre_Baskerville({ variable: '--font-diario-texto', subsets: ['latin'], weight: ['400', '700'] })
+const mastheadDiario = UnifrakturMaguntia({ variable: '--font-diario-masthead', subsets: ['latin'], weight: '400' })
+
 export const metadata: Metadata = {
   title: {
-    default: 'Tributo Server — Estadísticas',
+    default: 'El Diario DoD — Tributo Server',
     template: '%s · Tributo Server'
   },
   description: 'Ranking y estadísticas de los jugadores del server DoD 1.3 :::aU::: Tributo.',
@@ -75,7 +81,7 @@ async function EstadoServidor () {
 
 export default function RootLayout ({ children }: LayoutProps<'/'>) {
   return (
-    <html lang='es' className={`${geist.variable} ${geistMono.variable} ${oswald.variable}`}>
+    <html lang='es' data-tema='diario' className={`${geist.variable} ${geistMono.variable} ${oswald.variable} ${titulosDiario.variable} ${textoDiario.variable} ${mastheadDiario.variable}`}>
       <body>
         <header className='cabecera'>
           <div className='contenedor'>
@@ -87,8 +93,8 @@ export default function RootLayout ({ children }: LayoutProps<'/'>) {
                     {/* eslint-disable-next-line @next/next/no-img-element -- icono de 64 px, no hace falta optimizarlo */}
                     <img src='/dod.png' alt='' width={64} height={64} className='logo-dod' />
                   </span>
-                  <span className='titular'>Tributo</span>
-                  <small>DoD 1.3 · Estadísticas</small>
+                  <span className='titular'>El Diario DoD</span>
+                  <small>Crónica del server :::aU::: Tributo · DoD 1.3</small>
                 </Link>
               </div>
               <Suspense fallback={<span className='estado-servidor cargando'><span className='punto' aria-hidden='true' />Consultando el server…</span>}>

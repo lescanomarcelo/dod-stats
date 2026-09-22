@@ -1,0 +1,200 @@
+/*
+ *  Tema "El Diario DoD": el sitio como un diario viejo.
+ *
+ *  Papel color hueso, tinta negra, tipografias con serifa y filetes finos. El color
+ *  queda solo para lo que tiene que saltar: las figuritas del ranking (que son
+ *  fotos), el marcador del Eje y los numeros que definen algo.
+ *
+ *  Se carga despues de globals.css y pisa sus variables, asi no hay que tocar
+ *  ninguna pagina: cambia el estilo, no el sitio.
+ */
+
+:root {
+  --papel: #efe9da;
+  --papel-alto: #e6dfcd;
+  --tinta: #1c1a16;
+  --tinta-suave: #5c564a;
+  --filete: #bdb5a1;
+
+  --fondo: var(--papel);
+  --panel: #f6f1e4;
+  --panel-alto: var(--papel-alto);
+  --borde: var(--filete);
+  --texto: var(--tinta);
+  --tenue: var(--tinta-suave);
+  --acento: #9c1c12;              /* rojo de tinta: para lo que tiene que saltar */
+  --acento-suave: rgba(156, 28, 18, 0.1);
+  --aliados: #2a2721;
+  --eje: #9c1c12;
+  --radio: 0;
+  color-scheme: light;
+}
+
+body {
+  font-family: var(--font-diario-texto), Georgia, serif;
+  /* Trama finita, como el grano del papel de diario */
+  background-color: var(--papel);
+  background-image:
+    repeating-linear-gradient(0deg, rgba(28, 26, 22, 0.035) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(28, 26, 22, 0.02) 0 1px, transparent 1px 4px);
+}
+
+h1, h2, h3, .titular {
+  font-family: var(--font-diario-titulo), Georgia, serif;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+h1 { font-size: 2.6rem; letter-spacing: -0.01em; }
+h2 { color: var(--tinta); text-transform: uppercase; font-size: 0.95rem; letter-spacing: 0.1em; }
+
+.numero, td.num, th.num { font-family: var(--font-diario-texto), Georgia, serif; }
+
+/* ------------------------------------------------------------------ */
+/*  Cabecera: la tapa del diario                                       */
+/* ------------------------------------------------------------------ */
+
+.cabecera {
+  background: none;
+  border-bottom: 3px double var(--tinta);
+}
+.cabecera .contenedor { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+
+.marca .titular {
+  font-family: var(--font-diario-masthead), var(--font-diario-titulo), Georgia, serif;
+  font-size: 2.1rem;
+  color: var(--tinta);
+  letter-spacing: 0.02em;
+}
+.marca small { font-style: italic; }
+.marca-bloque { border-bottom: 1px solid var(--filete); }
+
+.estado-servidor { font-style: italic; }
+.estado-servidor .punto { box-shadow: none; }
+.estado-servidor .en-linea { color: #1f6b2a; }
+
+.ip-servidor { background: var(--panel); border: 1px solid var(--filete); }
+
+.menu-boton { background: var(--panel); border: 1px solid var(--tinta); }
+.menu-panel { border: 1px solid var(--tinta); box-shadow: 4px 4px 0 rgba(28, 26, 22, 0.15); }
+
+/* ------------------------------------------------------------------ */
+/*  Titulos de seccion, como los del diario                            */
+/* ------------------------------------------------------------------ */
+
+.encabezado-pagina h1 { border-bottom: 3px double var(--tinta); padding-bottom: 0.35rem; }
+.encabezado-pagina p { font-style: italic; }
+
+.seccion h2 {
+  border-bottom: 1px solid var(--tinta);
+  padding-bottom: 0.25rem;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Cajas y tablas: filetes finos, sin sombras                         */
+/* ------------------------------------------------------------------ */
+
+.panel, .tabla-envoltorio, .tarjeta {
+  border: 1px solid var(--tinta);
+  box-shadow: 2px 2px 0 rgba(28, 26, 22, 0.08);
+}
+
+thead th { background: var(--papel-alto); border-bottom: 1px solid var(--tinta); }
+tbody tr { border-bottom: 1px solid var(--filete); }
+tbody tr:hover { background: var(--papel-alto); }
+
+.pestanas a { border: 1px solid var(--tinta); border-radius: 0; }
+.pestanas a.activa { background: var(--tinta); color: var(--papel); border-color: var(--tinta); }
+
+.desplegable select, .formulario-comparar select, .formulario-comparar button {
+  border-radius: 0;
+  border: 1px solid var(--tinta);
+  background: var(--panel);
+}
+
+.navegador-periodo a { border-radius: 0; border: 1px solid var(--tinta); }
+.navegador-periodo strong { font-family: var(--font-diario-titulo), Georgia, serif; }
+
+/* ------------------------------------------------------------------ */
+/*  Lo que sigue en color: las figuritas del ranking                   */
+/* ------------------------------------------------------------------ */
+
+.figurita { border: 1px solid var(--tinta); box-shadow: 3px 3px 0 rgba(28, 26, 22, 0.15); }
+.figurita img { filter: saturate(0.85) contrast(1.05); }
+.figurita-texto {
+  background: linear-gradient(180deg, rgba(20, 18, 15, 0) 0%, rgba(20, 18, 15, 0.8) 45%, rgba(20, 18, 15, 0.95) 100%);
+}
+.figurita-titulo { font-family: var(--font-diario-titulo), Georgia, serif; color: #f3e6b8; }
+.figurita-nick, .figurita-valor { color: #f6f1e4; }
+
+/* Los dibujos de las armas, como un grabado del diario */
+.arma-dibujo { filter: grayscale(1) contrast(1.25) brightness(0.95); opacity: 1; }
+
+/* El soldado del "Dónde pega" tambien va en tinta */
+.cuerpo > svg image { filter: grayscale(1) contrast(1.1); }
+.soldado-etiqueta { fill: var(--tinta); }
+.soldado-valor { fill: var(--acento); }
+
+/* El mapa de calor se deja en color: es un dato, no una foto */
+
+/* ------------------------------------------------------------------ */
+/*  Numeros fuertes                                                    */
+/* ------------------------------------------------------------------ */
+
+td.destacado, .tarjeta.destacada .valor, .duelo-cifra { color: var(--acento); }
+.tarjeta.destacada { border-color: var(--acento); }
+.gana-aliados { color: var(--tinta); }
+.gana-eje { color: var(--acento); }
+.firma { color: var(--acento); }
+
+/* ------------------------------------------------------------------ */
+/*  Pie: la ultima pagina                                              */
+/* ------------------------------------------------------------------ */
+
+.pie { border-top: 3px double var(--tinta); }
+.pie-columna a { color: var(--tinta); text-decoration: underline; text-underline-offset: 2px; }
+.pie-columna a:hover { color: var(--acento); }
+
+/* ------------------------------------------------------------------ */
+/*  Detalles de tapa                                                   */
+/* ------------------------------------------------------------------ */
+
+/* Las banderitas de la marca, en tinta como el resto del encabezado */
+.banderas { filter: grayscale(1) contrast(1.15); }
+
+/* La primera nota va en dos columnas, como en el diario, cuando hay lugar */
+@media (min-width: 900px) {
+  .encabezado-pagina p { column-count: 2; column-gap: 2rem; }
+}
+
+/* Volanta arriba del titulo de cada pagina */
+.encabezado-pagina h1::before {
+  content: 'Edición del server';
+  display: block;
+  font-family: var(--font-diario-texto), Georgia, serif;
+  font-size: 0.72rem;
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+  margin-bottom: 0.2rem;
+}
+
+/* Los titulos de las figuritas, como el copete de una foto de diario */
+.figurita-subtitulo { font-style: italic; }
+
+/* Las barras del historial: Aliados en tinta llena, Eje rayado */
+.historial-barra.eje { fill: var(--acento); }
+.historial-fondo { fill: transparent; }
+.historial-columna.elegida .historial-fondo { fill: rgba(156, 28, 18, 0.08); stroke: var(--acento); }
+.historial-cero { stroke: var(--tinta); }
+
+/* Las tiras de Eje vs Aliados, con filete */
+.tira { border: 1px solid var(--tinta); background: var(--papel-alto); border-radius: 0; }
+.tira-aliados { background: var(--tinta); }
+.tira-eje { background: var(--acento); }
+
+/* La ventana de jugadores, como un recuadro del diario */
+.ventana { border: 1px solid var(--tinta); box-shadow: 6px 6px 0 rgba(28, 26, 22, 0.25); }
+.fondo-ventana { background: rgba(28, 26, 22, 0.45); }
