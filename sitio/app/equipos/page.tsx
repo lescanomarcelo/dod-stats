@@ -10,7 +10,7 @@ import { ControlPeriodo } from '@/components/Periodo'
 import { kd, porcentaje, formatoKd, formatoPorcentaje, formatoNumero, nombreArma } from '@/lib/calculos'
 import { Barras, EnlaceJugador, Cargando } from '@/components/Ui'
 import { EscudoAliados, EscudoEje } from '@/components/Banderas'
-import { SelectorMapa } from '@/components/SelectorMapa'
+import { Desplegable } from '@/components/Desplegable'
 import { HistorialBandos } from '@/components/HistorialBandos'
 
 export const metadata: Metadata = { title: 'Eje vs Aliados' }
@@ -211,7 +211,7 @@ async function Contenido ({ busqueda }: { busqueda: Busqueda }) {
     <>
       <ControlPeriodo rango={rango} enlace={(x, fecha) => enlace({ periodo: x, fecha, mapa })}>
         {mapas.length > 0 && (
-          <SelectorMapa
+          <Desplegable
             etiqueta='Mapa'
             actual={mapa ?? ''}
             opciones={[
@@ -327,10 +327,6 @@ export default function PaginaEquipos (props: PageProps<'/equipos'>) {
     <>
       <div className='encabezado-pagina'>
         <h1>Eje vs Aliados</h1>
-        <p>
-          Gana el bando que gana más mapas: en cada mapa, el que termina con más puntos en el marcador
-          (banderas y objetivos). Las kills se muestran aparte y cuentan para el bando con el que se hicieron.
-        </p>
       </div>
       <Suspense fallback={<Cargando />}>
         <Contenido busqueda={props.searchParams} />

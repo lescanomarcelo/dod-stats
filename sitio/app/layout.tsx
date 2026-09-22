@@ -88,7 +88,7 @@ export default function RootLayout ({ children }: LayoutProps<'/'>) {
 
         <footer className='pie'>
           <div className='contenedor'>
-            <span>DoD 1.3 :::aU::: Tributo Server · 45.235.98.67:27017</span>
+            <span>DoD 1.3 :::aU::: Tributo Server · {DIRECCION} · Hecho por <strong className='firma'>Trevor</strong></span>
             <Suspense fallback={<span>&nbsp;</span>}>
               <UltimaActualizacion />
             </Suspense>

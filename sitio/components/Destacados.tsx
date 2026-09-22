@@ -72,29 +72,29 @@ function Tarjeta ({ categoria, quien }: { categoria: Categoria, quien: Destacado
     <>
       {/* eslint-disable-next-line @next/next/no-img-element -- imagen fija ya optimizada a webp */}
       <img src={categoria.imagen} alt='' width={700} height={700} loading='lazy' />
-      <div className='destacado-texto'>
-        <span className='destacado-titulo'>{categoria.titulo}</span>
-        <span className='destacado-subtitulo'>{categoria.subtitulo}</span>
+      <div className='figurita-texto'>
+        <span className='figurita-titulo'>{categoria.titulo}</span>
+        <span className='figurita-subtitulo'>{categoria.subtitulo}</span>
         {quien
           ? (
             <>
-              <strong className='destacado-nick'>{quien.nick}</strong>
-              <span className='destacado-valor numero'>{categoria.valor(quien.valor)}</span>
+              <strong className='figurita-nick'>{quien.nick}</strong>
+              <span className='figurita-valor numero'>{categoria.valor(quien.valor)}</span>
             </>
             )
-          : <span className='destacado-vacio'>{categoria.vacio}</span>}
+          : <span className='figurita-vacio'>{categoria.vacio}</span>}
       </div>
     </>
   )
 
   return quien
-    ? <Link href={`/jugador/${quien.id}`} className='destacado'>{contenido}</Link>
-    : <div className='destacado sin-datos'>{contenido}</div>
+    ? <Link href={`/jugador/${quien.id}`} className='figurita'>{contenido}</Link>
+    : <div className='figurita sin-datos'>{contenido}</div>
 }
 
 export function Destacados ({ datos }: { datos: DatosDestacados }) {
   return (
-    <div className='destacados'>
+    <div className='figuritas'>
       {CATEGORIAS.map((c) => <Tarjeta key={c.clave} categoria={c} quien={datos[c.clave]} />)}
     </div>
   )

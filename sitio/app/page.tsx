@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { Suspense } from 'react'
 import { esOrden, ranking, destacados, type Orden } from '@/lib/consultas'
 import { rangoDesdeBusqueda, type Periodo } from '@/lib/periodos'
@@ -8,6 +7,7 @@ import {
 } from '@/lib/calculos'
 import { EnlaceJugador, Cargando } from '@/components/Ui'
 import { ControlPeriodo } from '@/components/Periodo'
+import { Desplegable } from '@/components/Desplegable'
 import { Destacados } from '@/components/Destacados'
 
 const PESTANAS: { orden: Orden, texto: string }[] = [
@@ -41,27 +41,23 @@ async function Contenido ({ parametros }: { parametros: Busqueda }) {
 
   return (
     <>
-      <ControlPeriodo rango={rango} enlace={(periodo, fecha) => enlace({ orden, periodo, fecha })} />
+      <ControlPeriodo rango={rango} enlace={(periodo, fecha) => enlace({ orden, periodo, fecha })}>
+        <Desplegable
+          etiqueta='Ordenar por'
+          actual={orden}
+          opciones={PESTANAS.map((x) => ({
+            valor: x.orden,
+            etiqueta: x.texto,
+            href: enlace({ orden: x.orden, periodo: rango.periodo, fecha: rango.clave })
+          }))}
+        />
+      </ControlPeriodo>
 
       <section className='seccion'>
         <Destacados datos={figuras} />
       </section>
 
       <section className='seccion'>
-        <nav className='pestanas' aria-label='Ordenar ranking'>
-          {PESTANAS.map((x) => (
-            <Link
-              key={x.orden}
-              href={enlace({ orden: x.orden, periodo: rango.periodo, fecha: rango.clave })}
-              className={x.orden === orden ? 'activa' : ''}
-              aria-current={x.orden === orden ? 'page' : undefined}
-              scroll={false}
-            >
-              {x.texto}
-            </Link>
-          ))}
-        </nav>
-
         <div className='tabla-envoltorio'>
           {filas.length === 0
             ? (
@@ -126,7 +122,6 @@ export default function PaginaRanking (props: PageProps<'/'>) {
     <>
       <div className='encabezado-pagina'>
         <h1>Ranking</h1>
-        <p>Los puntos se ganan tomando banderas y objetivos. Los teamkills no suman como kill. Los suicidios cuentan como muerte. Las partidas contra bots no se registran.</p>
       </div>
 
       <Suspense fallback={<Cargando texto='Cargando ranking…' />}>

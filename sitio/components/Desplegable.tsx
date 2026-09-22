@@ -3,8 +3,9 @@
 import { useRouter } from 'next/navigation'
 
 /*
- *  Desplegable de mapas. Reemplaza a la fila de botones, que con decenas de mapas
- *  ocupaba media pantalla.
+ *  Desplegable para elegir entre opciones que son enlaces: el mapa, el orden del
+ *  ranking. Reemplaza a las filas de botones, que en el celular se apilaban en
+ *  dos o tres renglones.
  *
  *  Cada opcion trae su enlace ya armado desde el servidor (con los demas parametros
  *  de la URL), asi el componente solo navega: no sabe nada de la pagina.
@@ -13,19 +14,19 @@ import { useRouter } from 'next/navigation'
  *  elegis y que carga la pagina nueva, volveria a mostrar el mapa anterior.
  */
 
-export type OpcionMapa = { valor: string, etiqueta: string, href: string }
+export type Opcion = { valor: string, etiqueta: string, href: string }
 
 type Props = {
-  opciones: OpcionMapa[]
+  opciones: Opcion[]
   actual: string
   etiqueta: string
 }
 
-export function SelectorMapa ({ opciones, actual, etiqueta }: Props) {
+export function Desplegable ({ opciones, actual, etiqueta }: Props) {
   const router = useRouter()
 
   return (
-    <label className='selector-mapa'>
+    <label className='desplegable'>
       <span>{etiqueta}</span>
       <select
         key={actual}

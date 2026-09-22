@@ -16,7 +16,7 @@ import { Tarjeta, Barras, EnlaceJugador, Cargando } from '@/components/Ui'
 import { Hace } from '@/components/Hace'
 import { MapaDeCalor } from '@/components/MapaDeCalor'
 import { Cuerpo, type Zonas } from '@/components/Cuerpo'
-import { SelectorMapa } from '@/components/SelectorMapa'
+import { Desplegable } from '@/components/Desplegable'
 
 /** El id llega por la URL: solo enteros positivos, cualquier otra cosa es 404 */
 function leerId (crudo: string): number | null {
@@ -112,7 +112,7 @@ async function SeccionCalor ({ id, busqueda }: { id: number, busqueda: Busqueda 
           <Link href={enlace(mapa, 'kills')} scroll={false} className={tipo === 'kills' ? 'activa' : ''}>Dónde mató</Link>
           <Link href={enlace(mapa, 'muertes')} scroll={false} className={tipo === 'muertes' ? 'activa' : ''}>Dónde murió</Link>
         </nav>
-        <SelectorMapa
+        <Desplegable
           etiqueta='Mapa'
           actual={mapa}
           opciones={jugados.map((m) => ({ valor: m.mapa, etiqueta: `${m.mapa} (${m.eventos})`, href: enlace(m.mapa, tipo) }))}

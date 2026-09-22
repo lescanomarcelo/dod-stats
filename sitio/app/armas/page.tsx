@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { armas } from '@/lib/consultas'
 import { porcentaje, formatoPorcentaje, formatoNumero, nombreArma } from '@/lib/calculos'
+import Link from 'next/link'
 import { Barras, Cargando } from '@/components/Ui'
 import { ControlPeriodo } from '@/components/Periodo'
 import { rangoDesdeBusqueda, type Periodo } from '@/lib/periodos'
@@ -59,7 +60,11 @@ async function TablaArmas ({ parametros }: { parametros: Busqueda }) {
           <tbody>
             {filas.map((a) => (
               <tr key={a.arma}>
-                <td>{nombreArma(a.arma)}</td>
+                <td>
+                  <Link href={enlace(rango.periodo, rango.clave).replace('/armas', `/armas/${a.arma}`)} className='jugador'>
+                    {nombreArma(a.arma)}
+                  </Link>
+                </td>
                 <td className='num'>{formatoNumero(a.kills)}</td>
                 <td className='num'>{formatoPorcentaje(porcentaje(a.kills, total))}</td>
                 <td className='num'>{formatoPorcentaje(porcentaje(a.headshots, a.kills))}</td>
@@ -78,7 +83,6 @@ export default function PaginaArmas (props: PageProps<'/armas'>) {
     <>
       <div className='encabezado-pagina'>
         <h1>Armas</h1>
-        <p>Qué se usa en el server y qué tan efectivo es. Sin contar teamkills.</p>
       </div>
       <Suspense fallback={<Cargando />}>
         <TablaArmas parametros={props.searchParams} />

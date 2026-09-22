@@ -5,6 +5,13 @@ import { MIN_KILLS_PORCENTAJES, MIN_SEGUNDOS_CAMPER } from './calculos'
 import { HORAS_ARGENTINA, type Ventana, type Balance } from './periodos'
 
 /*
+ *  Cuanto vive lo cacheado. La ingesta carga datos nuevos cada 15 minutos, asi que
+ *  recalcular cada minuto era gastar por gusto: con 5 minutos las visitas casi nunca
+ *  tocan la base y el sitio responde de entrada.
+ */
+const VIDA_CACHE = { stale: 300, revalidate: 300, expire: 3600 }
+
+/*
  *  Todas las lecturas del sitio.
  *
  *  Cada funcion se cachea con el perfil "minutes" (se revalida cada minuto).
@@ -74,7 +81,7 @@ function aJugador (f: Record<string, unknown>): Jugador {
 
 export async function resumenGeneral () {
   'use cache'
-  cacheLife('minutes')
+  cacheLife(VIDA_CACHE)
 
   const [totales] = await consultar(`
     SELECT
@@ -161,7 +168,7 @@ function sqlTotales (v: Ventana) {
 
 export async function ranking (orden: Orden, v: Ventana = TODO): Promise<Jugador[]> {
   'use cache'
-  cacheLife('minutes')
+  cacheLife(VIDA_CACHE)
 
   const { sql, soloConMinimo, soloCamper } = ORDENES[orden]
   /* Camper: solo con tiempo acostado registrado (plugin 0.4) y un minimo de tiempo jugado */
@@ -180,7 +187,7 @@ export async function ranking (orden: Orden, v: Ventana = TODO): Promise<Jugador
 
 export async function listaJugadores (): Promise<{ id: number, nick: string }[]> {
   'use cache'
-  cacheLife('minutes')
+  cacheLife(VIDA_CACHE)
 
   const filas = await consultar(`
     SELECT id, nick FROM {p}ranking WHERE kills + muertes + puntos > 0 ORDER BY nick
@@ -194,7 +201,7 @@ export async function listaJugadores (): Promise<{ id: number, nick: string }[]>
 
 export async function jugador (id: number): Promise<JugadorDetalle | null> {
   'use cache'
-  cacheLife('minutes')
+  cacheLife(VIDA_CACHE)
 
   const [fila] = await consultar(`SELECT * FROM {p}ranking WHERE id = ?`, [id])
   if (!fila) return null
@@ -204,7 +211,7 @@ export async function jugador (id: number): Promise<JugadorDetalle | null> {
 /** Totales de un jugador dentro de una ventana. Para comparar por periodo. */
 export async function jugadorEnPeriodo (id: number, v: Ventana): Promise<JugadorDetalle | null> {
   'use cache'
-  cacheLife('minutes')
+  cacheLife(VIDA_CACHE)
 
   if (esTodo(v)) return jugador(id)
 
@@ -216,7 +223,7 @@ export async function jugadorEnPeriodo (id: number, v: Ventana): Promise<Jugador
 
 export async function armasDeJugador (id: number) {
   'use cache'
-  cacheLife('minutes')
+  cacheLife(VIDA_CACHE)
 
   const filas = await consultar(`
     SELECT arma, COUNT(*) AS kills, SUM(headshot) AS headshots
@@ -231,7 +238,7 @@ export async function armasDeJugador (id: number) {
 
 export async function hitboxesDeJugador (id: number) {
   'use cache'
-  cacheLife('minutes')
+  cacheLife(VIDA_CACHE)
 
   const filas = await consultar(`
     SELECT hitbox, COUNT(*) AS veces
@@ -246,7 +253,7 @@ export async function hitboxesDeJugador (id: number) {
 /** Rivales: de quien murio mas veces (nemesis) o a quien mato mas veces (victimas) */
 export async function rivales (id: number, tipo: 'nemesis' | 'victimas') {
   'use cache'
-  cacheLife('minutes')
+  cacheLife(VIDA_CACHE)
 
   /* Columnas de una lista cerrada, no del usuario */
   const [yo, otro] = tipo === 'nemesis' ? ['victima_id', 'matador_id'] : ['matador_id', 'victima_id']
@@ -264,7 +271,7 @@ export async function rivales (id: number, tipo: 'nemesis' | 'victimas') {
 
 export async function mapasDeJugador (id: number) {
   'use cache'
-  cacheLife('minutes')
+  cacheLife(VIDA_CACHE)
 
   const filas = await consultar(`
     SELECT mapa,
@@ -286,7 +293,7 @@ export async function mapasDeJugador (id: number) {
 /** Suma de impactos por zona en todos los mapas, mas danio y disparos */
 export async function impactosDeJugador (id: number) {
   'use cache'
-  cacheLife('minutes')
+  cacheLife(VIDA_CACHE)
 
   const [f] = await consultar(`
     SELECT SUM(cabeza) AS cabeza, SUM(pecho) AS pecho, SUM(estomago) AS estomago,
@@ -318,7 +325,7 @@ export async function impactosDeJugador (id: number) {
 /** Todos los mapas donde el jugador mato o murio, del mas jugado al menos jugado */
 export async function mapasJugadosPor (id: number) {
   'use cache'
-  cacheLife('minutes')
+  cacheLife(VIDA_CACHE)
 
   const filas = await consultar(`
     SELECT LOWER(mapa) AS mapa, COUNT(*) AS eventos
@@ -341,7 +348,7 @@ export const MAX_PUNTOS_CALOR = 5000
  */
 export async function puntosDeCalor (id: number, mapa: string, tipo: TipoCalor): Promise<[number, number][]> {
   'use cache'
-  cacheLife('minutes')
+  cacheLife(VIDA_CACHE)
 
   /* Dos consultas fijas en vez de armar columnas con el tipo: nada del usuario entra al SQL */
   const filas = tipo === 'kills'
@@ -364,7 +371,7 @@ export async function puntosDeCalor (id: number, mapa: string, tipo: TipoCalor):
 /** Cuantas veces a mato a b y b mato a a */
 export async function enfrentamiento (a: number, b: number, v: Ventana = TODO) {
   'use cache'
-  cacheLife('minutes')
+  cacheLife(VIDA_CACHE)
 
   const f = filtro(null, v)
   const [fila] = await consultar(`
@@ -375,6 +382,37 @@ export async function enfrentamiento (a: number, b: number, v: Ventana = TODO) {
     WHERE teamkill = 0 AND matador_id IN (?, ?) AND victima_id IN (?, ?) ${f.sql}
   `, [a, b, b, a, a, b, a, b, ...f.valores])
   return { aSobreB: n(fila?.a_sobre_b), bSobreA: n(fila?.b_sobre_a) }
+}
+
+/** Los mejores con un arma: top por kills, con sus headshots */
+export async function rankingDeArma (arma: string, v: Ventana = TODO, limite = 10) {
+  'use cache'
+  cacheLife(VIDA_CACHE)
+
+  const f = filtro(null, v, 'm.')
+  const filas = await consultar(`
+    SELECT j.id, j.nick, COUNT(*) AS kills, SUM(m.headshot) AS headshots
+    FROM {p}muertes m JOIN {p}jugadores j ON j.id = m.matador_id
+    WHERE m.teamkill = 0 AND m.arma = ? ${f.sql}
+    GROUP BY j.id, j.nick
+    ORDER BY kills DESC, headshots DESC
+    LIMIT ?
+  `, [arma, ...f.valores, limite])
+  return filas.map((r) => ({ id: n(r.id), nick: String(r.nick), kills: n(r.kills), headshots: n(r.headshots) }))
+}
+
+/** Totales de un arma en la ventana */
+export async function resumenDeArma (arma: string, v: Ventana = TODO) {
+  'use cache'
+  cacheLife(VIDA_CACHE)
+
+  const f = filtro(null, v)
+  const [fila] = await consultar(`
+    SELECT COUNT(*) AS kills, SUM(headshot) AS headshots, COUNT(DISTINCT matador_id) AS jugadores
+    FROM {p}muertes
+    WHERE matador_id IS NOT NULL AND teamkill = 0 AND arma = ? ${f.sql}
+  `, [arma, ...f.valores])
+  return { kills: n(fila?.kills), headshots: n(fila?.headshots), jugadores: n(fila?.jugadores) }
 }
 
 /* ------------------------------------------------------------------ */
@@ -403,7 +441,7 @@ const MIN_KILLS_HEADSHOTS = 20
  */
 export async function destacados (v: Ventana = TODO): Promise<Destacados> {
   'use cache'
-  cacheLife('minutes')
+  cacheLife(VIDA_CACHE)
 
   const fm = filtro(null, v)
   const fp = filtro(null, v)
@@ -487,7 +525,7 @@ const bandoVacio = (): Bando => ({ kills: 0, muertes: 0, headshots: 0, teamkills
 /** Mapas con actividad en la ventana: muertes o partidas con marcador */
 export async function mapasConActividad (v: Ventana = TODO) {
   'use cache'
-  cacheLife('minutes')
+  cacheLife(VIDA_CACHE)
 
   const fm = filtro(null, v)
   const fp = filtro(null, v, '', 'inicio')
@@ -505,7 +543,7 @@ export async function mapasConActividad (v: Ventana = TODO) {
 /** Resultado por marcadores: mapas ganados por cada bando y puntos sumados */
 export async function marcadorDeBandos (mapa: string | null, v: Ventana = TODO) {
   'use cache'
-  cacheLife('minutes')
+  cacheLife(VIDA_CACHE)
 
   const f = filtro(mapa, v, '', 'inicio')
   const [fila] = await consultar(`
@@ -527,7 +565,7 @@ export async function marcadorDeBandos (mapa: string | null, v: Ventana = TODO) 
 /** Puntos de jugadores (banderas y objetivos) sumados por bando */
 export async function puntosDeJugadoresPorBando (mapa: string | null, v: Ventana = TODO) {
   'use cache'
-  cacheLife('minutes')
+  cacheLife(VIDA_CACHE)
 
   const f = filtro(mapa, v)
   const filas = await consultar(`
@@ -539,7 +577,7 @@ export async function puntosDeJugadoresPorBando (mapa: string | null, v: Ventana
 
 export async function duelo (mapa: string | null, v: Ventana = TODO): Promise<{ aliados: Bando, eje: Bando }> {
   'use cache'
-  cacheLife('minutes')
+  cacheLife(VIDA_CACHE)
 
   const f = filtro(mapa, v)
   const [ataque, defensa] = await Promise.all([
@@ -577,7 +615,7 @@ export type Figura = { id: number, nick: string, puntos: number, kills: number }
 /** Los que mas aportaron a cada bando: primero por puntos, despues por kills */
 export async function figurasPorBando (mapa: string | null, v: Ventana = TODO) {
   'use cache'
-  cacheLife('minutes')
+  cacheLife(VIDA_CACHE)
 
   const fk = filtro(mapa, v, 'm.')
   const fp = filtro(mapa, v, 'p.')
@@ -604,7 +642,7 @@ export async function figurasPorBando (mapa: string | null, v: Ventana = TODO) {
 
 export async function armasPorBando (mapa: string | null, v: Ventana = TODO) {
   'use cache'
-  cacheLife('minutes')
+  cacheLife(VIDA_CACHE)
 
   const f = filtro(mapa, v)
   const filas = await consultar(`
@@ -622,7 +660,7 @@ export async function armasPorBando (mapa: string | null, v: Ventana = TODO) {
 /** Mapa por mapa: partidas, mapas ganados, puntos y kills de cada bando */
 export async function balancePorMapa (v: Ventana = TODO) {
   'use cache'
-  cacheLife('minutes')
+  cacheLife(VIDA_CACHE)
 
   const fm = filtro(null, v)
   const fp = filtro(null, v, '', 'inicio')
@@ -667,7 +705,7 @@ const CLAVE_SQL = {
 
 export async function historial (tipo: 'semana' | 'mes', mapa: string | null, desde: string): Promise<Record<string, Balance>> {
   'use cache'
-  cacheLife('minutes')
+  cacheLife(VIDA_CACHE)
 
   const v: Ventana = { desde, hasta: null }
   const fm = filtro(mapa, v)
@@ -710,7 +748,7 @@ export async function historial (tipo: 'semana' | 'mes', mapa: string | null, de
 
 export async function armas (v: Ventana = TODO) {
   'use cache'
-  cacheLife('minutes')
+  cacheLife(VIDA_CACHE)
 
   const f = filtro(null, v)
   const filas = await consultar(`

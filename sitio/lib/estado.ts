@@ -12,8 +12,8 @@ export const SERVIDOR = { host: '45.235.98.67', puerto: 27017 }
  */
 export async function estadoServidor (): Promise<EstadoServidor & { consultado: string }> {
   'use cache'
-  cacheLife('minutes')
+  cacheLife({ stale: 60, revalidate: 60, expire: 300 })
 
-  const estado = await consultarServidor(SERVIDOR.host, SERVIDOR.puerto)
+  const estado = await consultarServidor(SERVIDOR.host, SERVIDOR.puerto, 1200)
   return { ...estado, consultado: new Date().toISOString() }
 }
