@@ -1,0 +1,28 @@
+name: Despertar el sitio
+
+# Vercel apaga el sitio cuando nadie entra por un rato, y la primera visita tiene
+# que esperar a que arranque. Esto le hace una visita cada 10 minutos para que
+# siempre este despierto.
+#
+# Solo toca el sitio: no se conecta al server de juego ni a la base.
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: despertar
+  cancel-in-progress: false
+
+jobs:
+  visitar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Visitar el ranking y Eje vs Aliados
+        run: |
+          for pagina in "" "equipos"; do
+            codigo=$(curl -s -o /dev/null -w '%{http_code} en %{time_total}s' --max-time 30 \
+              "https://tributo-stats.vercel.app/$pagina")
+            echo "/$pagina -> $codigo"
+          done
