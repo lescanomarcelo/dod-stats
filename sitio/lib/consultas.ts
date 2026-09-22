@@ -433,6 +433,7 @@ const GRANADAS = ['handgrenade', 'stickgrenade', 'mills_bomb', 'grenade']
 export type Destacado = { id: number, nick: string, valor: number } | null
 
 export type Destacados = {
+  fiel: Destacado
   camper: Destacado
   granadas: Destacado
   banderas: Destacado
@@ -457,7 +458,15 @@ export async function destacados (v: Ventana = TODO): Promise<Destacados> {
   const fse = filtro(null, v, 's.', 'desconexion')
   const marcadores = GRANADAS.map(() => '?').join(', ')
 
-  const [camper, granadas, banderas, teamkills, headshots] = await Promise.all([
+  const [fiel, camper, granadas, banderas, teamkills, headshots] = await Promise.all([
+    /* El que mas horas jugo. El tiempo sale de las sesiones, como en el ranking */
+    consultar(`
+      SELECT j.id, j.nick, SUM(s.segundos) AS valor
+      FROM {p}sesiones s JOIN {p}jugadores j ON j.id = s.jugador_id
+      WHERE 1 = 1 ${filtro(null, v, 's.', 'desconexion').sql}
+      GROUP BY j.id, j.nick ORDER BY valor DESC LIMIT 1
+    `, fse.valores),
+
     /* Camper: mayor parte del tiempo jugado acostado, con un minimo de tiempo jugado */
     consultar(`
       SELECT j.id, j.nick, ROUND(100 * a.segundos / s.segundos) AS valor
@@ -504,6 +513,7 @@ export async function destacados (v: Ventana = TODO): Promise<Destacados> {
     filas.length ? { id: n(filas[0].id), nick: String(filas[0].nick), valor: n(filas[0].valor) } : null
 
   return {
+    fiel: uno(fiel),
     camper: uno(camper),
     granadas: uno(granadas),
     banderas: uno(banderas),
