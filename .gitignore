@@ -1,2 +1,5 @@
 node_modules/
 .env
+
+# Imagenes originales de los destacados: pesadas, en el sitio van optimizadas a webp
+imagenes ranking/
