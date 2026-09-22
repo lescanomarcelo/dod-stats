@@ -3,7 +3,7 @@ import type { MetadataRoute } from 'next'
 /*
  *  Manifiesto de la web app: con esto el celular la instala como aplicacion (icono
  *  propio, pantalla completa, sin la barra del navegador) en vez de un acceso directo.
- *  Los iconos salen de mapas/iconos.mjs.
+ *  Los iconos son el logo de DoD, generados por mapas/iconos.mjs.
  */
 export default function manifest (): MetadataRoute.Manifest {
   return {
@@ -21,7 +21,7 @@ export default function manifest (): MetadataRoute.Manifest {
     icons: [
       { src: '/iconos/icono-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
       { src: '/iconos/icono-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-      { src: '/iconos/icono-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+      { src: '/iconos/icono-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
     ]
   }
 }
