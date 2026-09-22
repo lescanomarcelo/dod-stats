@@ -441,9 +441,10 @@ tr.fila-clave td:first-child { font-weight: 600; }
 .estado-servidor { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; color: var(--tenue); font-size: 0.8rem; }
 .estado-servidor strong { color: var(--texto); }
 .estado-servidor .separador { opacity: 0.5; }
-.estado-servidor .punto { width: 8px; height: 8px; border-radius: 50%; background: var(--aliados); box-shadow: 0 0 0 3px rgba(134, 168, 98, 0.18); }
-.estado-servidor .punto.con-gente { background: #6fdc5a; box-shadow: 0 0 0 3px rgba(111, 220, 90, 0.25); }
-.estado-servidor.fuera .punto { background: var(--eje); box-shadow: 0 0 0 3px rgba(224, 65, 47, 0.2); }
+.estado-servidor .punto { width: 10px; height: 10px; border-radius: 50%; background: #4ade3a; box-shadow: 0 0 0 3px rgba(74, 222, 58, 0.22), 0 0 8px rgba(74, 222, 58, 0.6); }
+.estado-servidor .en-linea { color: #4ade3a; }
+.estado-servidor.fuera .punto { background: #ef3b2d; box-shadow: 0 0 0 3px rgba(239, 59, 45, 0.22), 0 0 8px rgba(239, 59, 45, 0.6); }
+.estado-servidor.fuera strong { color: #ef3b2d; }
 .estado-servidor.cargando .punto { background: var(--tenue); box-shadow: none; }
 .estado-servidor .conectar { color: var(--acento); }
 .estado-servidor .conectar:hover { text-decoration: underline; }

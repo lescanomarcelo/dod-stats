@@ -37,12 +37,14 @@ const DIRECCION = `${SERVIDOR.host}:${SERVIDOR.puerto}`
 async function EstadoServidor () {
   const e = await estadoServidor()
   if (!e.enLinea) {
-    return <span className='estado-servidor fuera'><span className='punto' aria-hidden='true' />Servidor sin respuesta</span>
+    return <span className='estado-servidor fuera'><span className='punto' aria-hidden='true' /><strong>Server caído</strong></span>
   }
   const humanos = Math.max(0, e.jugadores - e.bots)
   return (
     <span className='estado-servidor'>
-      <span className={`punto${humanos > 0 ? ' con-gente' : ''}`} aria-hidden='true' />
+      <span className='punto' aria-hidden='true' />
+      <strong className='en-linea'>En línea</strong>
+      <span className='separador'>·</span>
       <strong className='numero'>{humanos}/{e.maximo}</strong> jugando
       <span className='separador'>·</span>
       <span className='numero'>{e.mapa}</span>
