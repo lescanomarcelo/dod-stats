@@ -427,3 +427,33 @@ tr.fila-clave td:first-child { font-weight: 600; }
 .historial-barra.por-kills.eje { stroke: var(--eje); }
 .historial-marcador { fill: var(--texto); font-family: var(--font-geist-mono), monospace; font-size: 12px; }
 .historial-eje-x { fill: var(--tenue); font-size: 12px; }
+
+/* Encabezado: IP y estado del server */
+.marca-bloque { display: flex; flex-direction: column; gap: 0.3rem; padding: 0.55rem 0; }
+.marca-fila { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+.ip-servidor {
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  font: inherit; font-size: 0.78rem; color: var(--texto); cursor: pointer;
+  background: var(--panel); border: 1px solid var(--borde); border-radius: 999px; padding: 0.15rem 0.65rem;
+}
+.ip-servidor:hover { border-color: var(--acento); }
+.ip-accion { color: var(--acento); font-size: 0.72rem; }
+.estado-servidor { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; color: var(--tenue); font-size: 0.8rem; }
+.estado-servidor strong { color: var(--texto); }
+.estado-servidor .separador { opacity: 0.5; }
+.estado-servidor .punto { width: 8px; height: 8px; border-radius: 50%; background: var(--aliados); box-shadow: 0 0 0 3px rgba(134, 168, 98, 0.18); }
+.estado-servidor .punto.con-gente { background: #6fdc5a; box-shadow: 0 0 0 3px rgba(111, 220, 90, 0.25); }
+.estado-servidor.fuera .punto { background: var(--eje); box-shadow: 0 0 0 3px rgba(224, 65, 47, 0.2); }
+.estado-servidor.cargando .punto { background: var(--tenue); box-shadow: none; }
+.estado-servidor .conectar { color: var(--acento); }
+.estado-servidor .conectar:hover { text-decoration: underline; }
+
+/* Links */
+.enlaces { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.9rem; }
+.enlace { display: flex; flex-direction: column; gap: 0.3rem; transition: border-color 0.15s; }
+.enlace strong { font-family: var(--font-oswald), sans-serif; font-weight: 500; font-size: 1.1rem; letter-spacing: 0.02em; }
+.enlace span { color: var(--tenue); font-size: 0.86rem; }
+.enlace .enlace-ir { margin-top: auto; padding-top: 0.5rem; color: var(--acento); font-size: 0.8rem; }
+a.enlace:hover { border-color: var(--acento); }
+.enlace.pendiente { opacity: 0.55; border-style: dashed; }
+.enlace.pendiente .enlace-ir { color: var(--tenue); }

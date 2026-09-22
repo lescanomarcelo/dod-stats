@@ -5,6 +5,8 @@ import { Geist, Geist_Mono, Oswald } from 'next/font/google'
 import { resumenGeneral } from '@/lib/consultas'
 import { Hace } from '@/components/Hace'
 import { BanderaArgentina } from '@/components/Banderas'
+import { CopiarIp } from '@/components/CopiarIp'
+import { estadoServidor, SERVIDOR } from '@/lib/estado'
 import './globals.css'
 
 const geist = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
@@ -29,26 +31,56 @@ async function UltimaActualizacion () {
   return <span>Actualizado <Hace fecha={actualizado} /></span>
 }
 
+const DIRECCION = `${SERVIDOR.host}:${SERVIDOR.puerto}`
+
+/* Jugadores y mapa en este momento (cacheado un minuto: ver lib/estado.ts) */
+async function EstadoServidor () {
+  const e = await estadoServidor()
+  if (!e.enLinea) {
+    return <span className='estado-servidor fuera'><span className='punto' aria-hidden='true' />Servidor sin respuesta</span>
+  }
+  const humanos = Math.max(0, e.jugadores - e.bots)
+  return (
+    <span className='estado-servidor'>
+      <span className={`punto${humanos > 0 ? ' con-gente' : ''}`} aria-hidden='true' />
+      <strong className='numero'>{humanos}/{e.maximo}</strong> jugando
+      <span className='separador'>·</span>
+      <span className='numero'>{e.mapa}</span>
+      <span className='separador'>·</span>
+      <a href={`steam://connect/${DIRECCION}`} className='conectar'>Entrar al server</a>
+    </span>
+  )
+}
+
 export default function RootLayout ({ children }: LayoutProps<'/'>) {
   return (
     <html lang='es' className={`${geist.variable} ${geistMono.variable} ${oswald.variable}`}>
       <body>
         <header className='cabecera'>
           <div className='contenedor'>
-            <Link href='/' className='marca'>
-              <span className='banderas' aria-hidden='true'>
-                <BanderaArgentina className='bandera' />
-                {/* eslint-disable-next-line @next/next/no-img-element -- icono de 64 px, no hace falta optimizarlo */}
-                <img src='/dod.png' alt='' width={64} height={64} className='logo-dod' />
-              </span>
-              <span className='titular'>Tributo</span>
-              <small>DoD 1.3 · Estadísticas</small>
-            </Link>
+            <div className='marca-bloque'>
+              <div className='marca-fila'>
+                <Link href='/' className='marca'>
+                  <span className='banderas' aria-hidden='true'>
+                    <BanderaArgentina className='bandera' />
+                    {/* eslint-disable-next-line @next/next/no-img-element -- icono de 64 px, no hace falta optimizarlo */}
+                    <img src='/dod.png' alt='' width={64} height={64} className='logo-dod' />
+                  </span>
+                  <span className='titular'>Tributo</span>
+                  <small>DoD 1.3 · Estadísticas</small>
+                </Link>
+                <CopiarIp direccion={DIRECCION} />
+              </div>
+              <Suspense fallback={<span className='estado-servidor cargando'><span className='punto' aria-hidden='true' />Consultando el server…</span>}>
+                <EstadoServidor />
+              </Suspense>
+            </div>
             <nav className='nav'>
               <Link href='/'>Ranking</Link>
               <Link href='/equipos'>Eje vs Aliados</Link>
               <Link href='/armas'>Armas</Link>
               <Link href='/comparar'>Comparar</Link>
+              <Link href='/links'>Links</Link>
             </nav>
           </div>
         </header>
