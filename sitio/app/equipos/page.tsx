@@ -2,7 +2,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Suspense } from 'react'
 import {
-  duelo, figurasPorBando, armasPorBando, balancePorMapa, mapasConMuertes, type Bando
+  duelo, figurasPorBando, armasPorBando, balancePorMapa, mapasConMuertes, PERIODOS,
+  type Bando, type Periodo
 } from '@/lib/consultas'
 import { kd, porcentaje, formatoKd, formatoPorcentaje, formatoNumero, nombreArma } from '@/lib/calculos'
 import { Barras, EnlaceJugador, Cargando } from '@/components/Ui'
@@ -78,7 +79,7 @@ function Figuras ({ titulo, filas }: { titulo: string, filas: { id: number, nick
   )
 }
 
-function BalancePorMapa ({ filas }: { filas: { mapa: string, aliados: number, eje: number, veces: number }[] }) {
+function BalancePorMapa ({ filas, periodo }: { filas: { mapa: string, aliados: number, eje: number, veces: number }[], periodo: Periodo }) {
   return (
     <section className='seccion'>
       <h2>Mapa por mapa</h2>
@@ -99,7 +100,7 @@ function BalancePorMapa ({ filas }: { filas: { mapa: string, aliados: number, ej
               const parte = total ? (m.aliados / total) * 100 : 50
               return (
                 <tr key={m.mapa}>
-                  <td><Link href={`/equipos?mapa=${encodeURIComponent(m.mapa)}`} className='jugador'>{m.mapa}</Link></td>
+                  <td><Link href={enlace(m.mapa, periodo)} className='jugador'>{m.mapa}</Link></td>
                   <td className='num'>{m.veces}</td>
                   <td className={`num${m.aliados > m.eje ? ' gana-aliados' : ''}`}>{formatoNumero(m.aliados)}</td>
                   <td className={`num${m.eje > m.aliados ? ' gana-eje' : ''}`}>{formatoNumero(m.eje)}</td>
@@ -119,34 +120,77 @@ function BalancePorMapa ({ filas }: { filas: { mapa: string, aliados: number, ej
   )
 }
 
+const NOMBRE_PERIODO: Record<Periodo, { pestana: string, texto: string, vacio: string }> = {
+  semana: { pestana: 'Semana', texto: 'Últimos 7 días', vacio: 'No hubo muertes en los últimos 7 días.' },
+  mes: { pestana: 'Mes', texto: 'Últimos 30 días', vacio: 'No hubo muertes en los últimos 30 días.' },
+  global: { pestana: 'Global', texto: 'Desde el principio', vacio: 'Todavía no hay muertes registradas.' }
+}
+
+/* Enlace a /equipos conservando lo que no cambia. Global y "todos los mapas" no van en la URL */
+function enlace (mapa: string | null, periodo: Periodo) {
+  const q = new URLSearchParams()
+  if (periodo !== 'global') q.set('periodo', periodo)
+  if (mapa) q.set('mapa', mapa)
+  const texto = q.toString()
+  return texto ? `/equipos?${texto}` : '/equipos'
+}
+
 async function Contenido ({ busqueda }: { busqueda: Busqueda }) {
   const p = await busqueda
-  const mapas = await mapasConMuertes()
+  const periodo: Periodo = PERIODOS.find((x) => x === p.periodo) ?? 'global'
+  const mapas = await mapasConMuertes(periodo)
   const pedido = typeof p.mapa === 'string' ? p.mapa.toLowerCase() : ''
   const mapa = mapas.some((m) => m.mapa === pedido) ? pedido : null
 
   const [resultado, figuras, armas, balance] = await Promise.all([
-    duelo(mapa),
-    figurasPorBando(mapa),
-    armasPorBando(mapa),
-    mapa ? null : balancePorMapa()
+    duelo(mapa, periodo),
+    figurasPorBando(mapa, periodo),
+    armasPorBando(mapa, periodo),
+    mapa ? null : balancePorMapa(periodo)
   ])
 
-  if (resultado.aliados.kills + resultado.eje.kills === 0) {
-    return <p className='vacio'>Todavía no hay muertes registradas.</p>
-  }
+  const hayDatos = resultado.aliados.kills + resultado.eje.kills > 0
 
   return (
     <>
-      <SelectorMapa
-        etiqueta='Mostrar'
-        actual={mapa ?? ''}
-        opciones={[
-          { valor: '', etiqueta: 'General (todos los mapas)', href: '/equipos' },
-          ...mapas.map((m) => ({ valor: m.mapa, etiqueta: `${m.mapa} (${m.muertes})`, href: `/equipos?mapa=${encodeURIComponent(m.mapa)}` }))
-        ]}
-      />
+      <div className='controles-equipos'>
+        <nav className='pestanas' aria-label='Período'>
+          {PERIODOS.map((x) => (
+            <Link key={x} href={enlace(mapa, x)} scroll={false} className={x === periodo ? 'activa' : ''}>
+              {NOMBRE_PERIODO[x].pestana}
+            </Link>
+          ))}
+        </nav>
+        {hayDatos && (
+          <SelectorMapa
+            etiqueta='Mapa'
+            actual={mapa ?? ''}
+            opciones={[
+              { valor: '', etiqueta: 'Todos los mapas', href: enlace(null, periodo) },
+              ...mapas.map((m) => ({ valor: m.mapa, etiqueta: `${m.mapa} (${m.muertes})`, href: enlace(m.mapa, periodo) }))
+            ]}
+          />
+        )}
+        <span className='periodo-texto'>{NOMBRE_PERIODO[periodo].texto}</span>
+      </div>
 
+      {!hayDatos
+        ? <p className='vacio'>{NOMBRE_PERIODO[periodo].vacio}</p>
+        : <Resultados mapa={mapa} periodo={periodo} resultado={resultado} figuras={figuras} armas={armas} balance={balance} />}
+    </>
+  )
+}
+
+function Resultados ({ mapa, periodo, resultado, figuras, armas, balance }: {
+  mapa: string | null
+  periodo: Periodo
+  resultado: Awaited<ReturnType<typeof duelo>>
+  figuras: Awaited<ReturnType<typeof figurasPorBando>>
+  armas: Awaited<ReturnType<typeof armasPorBando>>
+  balance: Awaited<ReturnType<typeof balancePorMapa>> | null
+}) {
+  return (
+    <>
       <Cinchada aliados={resultado.aliados.kills} eje={resultado.eje.kills} />
 
       <section className='seccion tabla-envoltorio'>
@@ -192,7 +236,7 @@ async function Contenido ({ busqueda }: { busqueda: Busqueda }) {
         </div>
       </section>
 
-      {balance && <BalancePorMapa filas={balance} />}
+      {balance && <BalancePorMapa filas={balance} periodo={periodo} />}
     </>
   )
 }

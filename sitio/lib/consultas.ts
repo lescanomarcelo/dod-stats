@@ -304,28 +304,46 @@ export async function enfrentamiento (a: number, b: number) {
 export type Bando = { kills: number, muertes: number, headshots: number, teamkills: number, suicidios: number }
 const bandoVacio = (): Bando => ({ kills: 0, muertes: 0, headshots: 0, teamkills: 0, suicidios: 0 })
 
-/* Filtro de mapa como fragmento fijo + parametro: el nombre nunca entra al SQL */
-const filtroMapa = (mapa: string | null) => ({
-  sql: mapa ? 'AND LOWER(mapa) = ?' : '',
-  valores: mapa ? [mapa.toLowerCase()] : []
-})
+/*
+ *  Periodo: ventana movil hacia atras desde ahora. Los momentos se guardan en UTC
+ *  (timezone 'Z' en la conexion), por eso se compara contra UTC_TIMESTAMP().
+ */
+export const PERIODOS = ['semana', 'mes', 'global'] as const
+export type Periodo = typeof PERIODOS[number]
+const DIAS_PERIODO: Record<Periodo, number | null> = { semana: 7, mes: 30, global: null }
 
-export async function mapasConMuertes () {
+/*
+ *  Filtro de mapa y periodo como fragmentos fijos + parametros: el nombre del mapa
+ *  nunca entra al SQL y los dias salen de una tabla propia, no de la URL.
+ *  alias = prefijo de tabla cuando la consulta tiene JOIN.
+ */
+function filtro (mapa: string | null, periodo: Periodo, alias = '', columnaFecha = 'momento') {
+  const dias = DIAS_PERIODO[periodo]
+  const partes: string[] = []
+  const valores: (string | number)[] = []
+  if (mapa) { partes.push(`AND LOWER(${alias}mapa) = ?`); valores.push(mapa.toLowerCase()) }
+  if (dias) { partes.push(`AND ${alias}${columnaFecha} >= UTC_TIMESTAMP() - INTERVAL ? DAY`); valores.push(dias) }
+  return { sql: partes.join(' '), valores }
+}
+
+export async function mapasConMuertes (periodo: Periodo = 'global') {
   'use cache'
   cacheLife('minutes')
 
+  const f = filtro(null, periodo)
   const filas = await consultar(`
     SELECT LOWER(mapa) AS mapa, COUNT(*) AS muertes FROM {p}muertes
+    WHERE 1 = 1 ${f.sql}
     GROUP BY LOWER(mapa) ORDER BY muertes DESC
-  `)
+  `, f.valores)
   return filas.map((f) => ({ mapa: String(f.mapa), muertes: n(f.muertes) }))
 }
 
-export async function duelo (mapa: string | null): Promise<{ aliados: Bando, eje: Bando }> {
+export async function duelo (mapa: string | null, periodo: Periodo = 'global'): Promise<{ aliados: Bando, eje: Bando }> {
   'use cache'
   cacheLife('minutes')
 
-  const f = filtroMapa(mapa)
+  const f = filtro(mapa, periodo)
   const [ataque, defensa] = await Promise.all([
     consultar(`
       SELECT matador_equipo AS equipo,
@@ -357,16 +375,16 @@ export async function duelo (mapa: string | null): Promise<{ aliados: Bando, eje
 }
 
 /** Los que mas mataron jugando para cada bando */
-export async function figurasPorBando (mapa: string | null) {
+export async function figurasPorBando (mapa: string | null, periodo: Periodo = 'global') {
   'use cache'
   cacheLife('minutes')
 
-  const f = filtroMapa(mapa)
+  const f = filtro(mapa, periodo, 'm.')
   const filas = await consultar(`
     SELECT m.matador_equipo AS equipo, j.id, j.nick, COUNT(*) AS kills
     FROM {p}muertes m
     JOIN {p}jugadores j ON j.id = m.matador_id
-    WHERE m.teamkill = 0 AND m.matador_equipo IN (1, 2) ${f.sql.replace('mapa', 'm.mapa')}
+    WHERE m.teamkill = 0 AND m.matador_equipo IN (1, 2) ${f.sql}
     GROUP BY m.matador_equipo, j.id, j.nick
     ORDER BY kills DESC
   `, f.valores)
@@ -375,11 +393,11 @@ export async function figurasPorBando (mapa: string | null) {
   return { aliados: top(1), eje: top(2) }
 }
 
-export async function armasPorBando (mapa: string | null) {
+export async function armasPorBando (mapa: string | null, periodo: Periodo = 'global') {
   'use cache'
   cacheLife('minutes')
 
-  const f = filtroMapa(mapa)
+  const f = filtro(mapa, periodo)
   const filas = await consultar(`
     SELECT matador_equipo AS equipo, arma, COUNT(*) AS kills
     FROM {p}muertes
@@ -393,22 +411,26 @@ export async function armasPorBando (mapa: string | null) {
 }
 
 /** Mapa por mapa: veces jugado y kills de cada bando */
-export async function balancePorMapa () {
+export async function balancePorMapa (periodo: Periodo = 'global') {
   'use cache'
   cacheLife('minutes')
 
+  const fm = filtro(null, periodo)
+  const fj = filtro(null, periodo, '', 'inicio')
   const filas = await consultar(`
     SELECT k.mapa, k.aliados, k.eje, COALESCE(p.veces, 0) AS veces
     FROM (
       SELECT LOWER(mapa) AS mapa,
              SUM(matador_equipo = 1 AND teamkill = 0 AND matador_id IS NOT NULL) AS aliados,
              SUM(matador_equipo = 2 AND teamkill = 0 AND matador_id IS NOT NULL) AS eje
-      FROM {p}muertes GROUP BY LOWER(mapa)
+      FROM {p}muertes WHERE 1 = 1 ${fm.sql} GROUP BY LOWER(mapa)
     ) k
-    LEFT JOIN (SELECT LOWER(mapa) AS mapa, COUNT(*) AS veces FROM {p}mapas_jugados GROUP BY LOWER(mapa)) p
-      ON p.mapa = k.mapa
+    LEFT JOIN (
+      SELECT LOWER(mapa) AS mapa, COUNT(*) AS veces FROM {p}mapas_jugados
+      WHERE 1 = 1 ${fj.sql} GROUP BY LOWER(mapa)
+    ) p ON p.mapa = k.mapa
     ORDER BY (k.aliados + k.eje) DESC
-  `)
+  `, [...fm.valores, ...fj.valores])
   return filas.map((r) => ({ mapa: String(r.mapa), aliados: n(r.aliados), eje: n(r.eje), veces: n(r.veces) }))
 }
 
