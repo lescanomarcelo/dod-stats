@@ -7,7 +7,8 @@ import {
 } from '@/lib/consultas'
 import { rangoDe, rangoDesdeBusqueda, ultimosPeriodos, veredicto, type Periodo, type Rango } from '@/lib/periodos'
 import { ControlPeriodo } from '@/components/Periodo'
-import { kd, porcentaje, formatoKd, formatoPorcentaje, formatoNumero, nombreArma } from '@/lib/calculos'
+import { kd, porcentaje, formatoKd, formatoPorcentaje, formatoNumero } from '@/lib/calculos'
+import { nombreDeArma } from '@/lib/armas'
 import { Barras, EnlaceJugador, Cargando } from '@/components/Ui'
 import { EscudoAliados, EscudoEje } from '@/components/Banderas'
 import { Desplegable } from '@/components/Desplegable'
@@ -307,11 +308,11 @@ async function Contenido ({ busqueda }: { busqueda: Busqueda }) {
           <section className='seccion columnas'>
             <div className='panel'>
               <h2>Armas de los Aliados</h2>
-              <Barras filas={armas.aliados.map((a) => ({ clave: a.arma, nombre: nombreArma(a.arma), valor: a.kills, texto: formatoNumero(a.kills) }))} />
+              <Barras filas={armas.aliados.map((a) => ({ clave: a.arma, nombre: nombreDeArma(a.arma), valor: a.kills, texto: formatoNumero(a.kills) }))} />
             </div>
             <div className='panel'>
               <h2>Armas del Eje</h2>
-              <Barras filas={armas.eje.map((a) => ({ clave: a.arma, nombre: nombreArma(a.arma), valor: a.kills, texto: formatoNumero(a.kills) }))} />
+              <Barras filas={armas.eje.map((a) => ({ clave: a.arma, nombre: nombreDeArma(a.arma), valor: a.kills, texto: formatoNumero(a.kills) }))} />
             </div>
           </section>
 

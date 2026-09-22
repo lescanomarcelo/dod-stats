@@ -1,5 +1,4 @@
-import { imagenDeArma } from '@/lib/armas'
-import { nombreArma } from '@/lib/calculos'
+import { imagenDeArma, nombreDeArma } from '@/lib/armas'
 
 /*
  *  El dibujo del arma, tal como se ve en el juego. Si no hay dibujo para esa arma,
@@ -14,7 +13,7 @@ export function ImagenArma ({ arma, grande = false }: { arma: string, grande?: b
     // eslint-disable-next-line @next/next/no-img-element -- imagen fija ya optimizada a webp
     <img
       src={imagen}
-      alt={grande ? nombreArma(arma) : ''}
+      alt={grande ? nombreDeArma(arma) : ''}
       className={grande ? 'arma-dibujo grande' : 'arma-dibujo'}
       loading='lazy'
       width={grande ? 320 : 90}

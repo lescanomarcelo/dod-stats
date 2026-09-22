@@ -569,3 +569,7 @@ a.figurita:hover img { transform: scale(1.03); }
 .arma-dibujo.grande { height: 84px; width: auto; }
 a.jugador.con-dibujo { display: inline-flex; align-items: center; gap: 0.6rem; }
 .arma-retrato { display: flex; justify-content: center; padding: 0.5rem 0 1rem; }
+
+/* Armas que todavia no mataron a nadie */
+tbody tr.sin-uso { color: var(--tenue); }
+tbody tr.sin-uso .arma-dibujo { opacity: 0.45; filter: grayscale(1); }

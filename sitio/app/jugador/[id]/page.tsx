@@ -8,8 +8,9 @@ import {
 } from '@/lib/consultas'
 import {
   kd, porcentaje, formatoKd, formatoPorcentaje, formatoNumero, formatoTiempo,
-  nombreArma, camper
+  camper
 } from '@/lib/calculos'
+import { nombreDeArma } from '@/lib/armas'
 import { overviewDe, imagenDe } from '@/lib/mapas'
 import { puntosAImagen } from '@/lib/overview'
 import { Tarjeta, Barras, EnlaceJugador, Cargando } from '@/components/Ui'
@@ -186,7 +187,7 @@ async function Perfil ({ parametros, busqueda }: { parametros: PageProps<'/jugad
           <h2>Armas favoritas</h2>
           <Barras filas={armas.map((a) => ({
             clave: a.arma,
-            nombre: nombreArma(a.arma),
+            nombre: nombreDeArma(a.arma),
             valor: a.kills,
             texto: formatoNumero(a.kills)
           }))}

@@ -59,53 +59,8 @@ export function tiempoRelativo (fecha: Date, ahora: Date = new Date()): string {
 
 /* Nombres que devuelve xmod_get_wpnname() de dodx -> nombre para mostrar.
    Si aparece un arma que no esta aca, se muestra el nombre crudo. */
-const ARMAS: Record<string, string> = {
-  amerknife: 'Cuchillo (EE.UU.)',
-  gerknife: 'Cuchillo (alemán)',
-  brit_knife: 'Cuchillo (británico)',
-  spade: 'Pala',
-  colt: 'Colt .45',
-  luger: 'Luger P08',
-  webley: 'Webley',
-  garand: 'M1 Garand',
-  garandbutt: 'Culatazo M1 Garand',
-  kar: 'Kar98k',
-  scopedkar: 'Kar98k con mira',
-  k43: 'Gewehr 43',
-  k43butt: 'Culatazo Gewehr 43',
-  spring: 'Springfield',
-  enfield: 'Lee-Enfield',
-  scoped_enfield: 'Lee-Enfield con mira',
-  bayonet: 'Bayoneta',
-  enf_bayonet: 'Bayoneta Lee-Enfield',
-  thompson: 'Thompson',
-  greasegun: 'M3 Grease Gun',
-  mp40: 'MP40',
-  mp44: 'StG 44',
-  sten: 'Sten',
-  m1carbine: 'M1 Carbine',
-  bar: 'BAR',
-  fg42: 'FG 42',
-  scoped_fg42: 'FG 42 con mira',
-  bren: 'Bren',
-  mg42: 'MG 42',
-  mg34: 'MG 34',
-  '30cal': '.30 cal',
-  handgrenade: 'Granada',
-  handgrenade_ex: 'Granada',
-  stickgrenade: 'Granada de palo',
-  stickgrenade_ex: 'Granada de palo',
-  mills_bomb: 'Granada Mills',
-  bazooka: 'Bazooka',
-  pschreck: 'Panzerschreck',
-  piat: 'PIAT',
-  mortar: 'Mortero',
-  world: 'Caída / mapa'
-}
+/* Los nombres de las armas viven en lib/armas.ts, junto con sus dibujos */
 
-export function nombreArma (codigo: string): string {
-  return ARMAS[codigo] ?? codigo
-}
 
 /* hitplace del motor HL1 */
 const HITBOXES = ['Genérico', 'Cabeza', 'Pecho', 'Estómago', 'Brazo izq.', 'Brazo der.', 'Pierna izq.', 'Pierna der.']
