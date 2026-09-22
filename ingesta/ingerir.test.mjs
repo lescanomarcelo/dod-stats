@@ -365,6 +365,15 @@ test('el tiempo acostado se suma por jugador entre pasadas y llega al ranking', 
   assert.deepEqual(filas.map((f) => [f.mapa, Number(f.segundos)]), [['dod_avalanche', 25], ['dod_kalt', 45]])
 })
 
+test('el tiempo acostado se separa por dia argentino, para poder filtrarlo por periodo', async () => {
+  /* 1790045999 = 2026-09-21 23:59:59 en Argentina; 31 segundos despues ya es el dia 22 */
+  await escribir([A(1790045999, TREVOR, 'Trevor', 30), A(1790046030, TREVOR, 'Trevor', 20)])
+  await correr()
+  const filas = await base.consultar('SELECT dia, segundos FROM {p}acostado ORDER BY dia')
+  assert.deepEqual(filas.map((f) => [f.dia.toISOString(), Number(f.segundos)]),
+    [['2026-09-21T03:00:00.000Z', 30], ['2026-09-22T03:00:00.000Z', 20]])
+})
+
 test('el marcador de una partida queda con el ultimo valor', async () => {
   await escribir([
     E(1030, 1000, 1, 0),

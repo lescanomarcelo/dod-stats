@@ -24,6 +24,13 @@ const FILAS_POR_INSERT = 500
 const recortar = (texto, largo) => String(texto ?? '').slice(0, largo)
 const fecha = (ts) => new Date(ts * 1000)
 
+/* Argentina es UTC-3 todo el año (igual que sitio/lib/periodos.ts) */
+const MS_DESFASE_ARGENTINA = -3 * 3600 * 1000
+const MS_DIA = 86400 * 1000
+/* Medianoche argentina del dia en que cayo ts, como instante UTC */
+const diaArgentino = (ts) =>
+  new Date(Math.floor((ts * 1000 + MS_DESFASE_ARGENTINA) / MS_DIA) * MS_DIA - MS_DESFASE_ARGENTINA)
+
 export function configDesdeEntorno () {
   return {
     host: process.env.DB_HOST,
@@ -156,7 +163,7 @@ export async function conectar (config, prefijo = '') {
   async function acumularAcostado (filas) {
     for (let i = 0; i < filas.length; i += FILAS_POR_INSERT) {
       await conexion.query(
-        `INSERT INTO ${t('acostado')} (jugador_id, mapa, segundos, actualizado) VALUES ?
+        `INSERT INTO ${t('acostado')} (jugador_id, mapa, dia, segundos, actualizado) VALUES ?
          ON DUPLICATE KEY UPDATE segundos = segundos + VALUES(segundos), actualizado = GREATEST(actualizado, VALUES(actualizado))`,
         [filas.slice(i, i + FILAS_POR_INSERT)])
     }
@@ -218,7 +225,7 @@ export async function conectar (config, prefijo = '') {
         if (e.tipo === 'acostado') {
           const id = await asegurarJugador(cache, e.steamid, e.nick, e.ts)
           if (!id) { resumen.ignorados++; continue }
-          acostado.push([id, recortar(e.mapa, 40).toLowerCase(), e.segundos, fecha(e.ts)])
+          acostado.push([id, recortar(e.mapa, 40).toLowerCase(), diaArgentino(e.ts), e.segundos, fecha(e.ts)])
           continue
         }
 

@@ -9,7 +9,7 @@
  *  Sin dependencias del servidor: se usa en paginas y en tests.
  */
 
-export const PERIODOS = ['semana', 'mes', 'global'] as const
+export const PERIODOS = ['dia', 'semana', 'mes', 'global'] as const
 export type Periodo = typeof PERIODOS[number]
 
 export type Ventana = { desde: string | null, hasta: string | null }
@@ -68,6 +68,13 @@ function leerFecha (texto: unknown): [number, number, number] | null {
   return [anio, mes, dia]
 }
 
+const DIAS_SEMANA = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
+
+function etiquetaDia (instante: Date) {
+  const d = aLocal(instante)
+  return `${DIAS_SEMANA[d.getUTCDay()]} ${d.getUTCDate()} de ${MESES[d.getUTCMonth()]}`
+}
+
 function etiquetaSemana (lunes: Date) {
   const domingo = new Date(lunes.getTime() + 6 * DIA)
   const [a, b] = [aLocal(lunes), aLocal(domingo)]
@@ -86,6 +93,31 @@ export function rangoDe (periodo: Periodo, referencia?: unknown, ahora: Date = n
   }
 
   const pedida = leerFecha(referencia)
+
+  /*
+   *  Dia: por defecto ayer, que es el ultimo dia completo. Con las flechas se llega
+   *  hasta hoy (en curso) y hacia atras sin limite.
+   */
+  if (periodo === 'dia') {
+    const l = aLocal(ahora)
+    const hoy: [number, number, number] = [l.getUTCFullYear(), l.getUTCMonth(), l.getUTCDate()]
+    const ayer: [number, number, number] = [hoy[0], hoy[1], hoy[2] - 1]
+    let [anio, mes, dia] = pedida ?? ayer
+    if (medianoche(anio, mes, dia) > medianoche(...hoy)) [anio, mes, dia] = hoy
+    const desde = medianoche(anio, mes, dia)
+    const esHoy = desde.getTime() === medianoche(...hoy).getTime()
+    const esAyer = desde.getTime() === medianoche(...ayer).getTime()
+    return {
+      periodo,
+      desde: desde.toISOString(),
+      hasta: medianoche(anio, mes, dia + 1).toISOString(),
+      clave: claveDia(anio, mes, dia),
+      etiqueta: esHoy ? 'Hoy' : esAyer ? 'Ayer' : etiquetaDia(desde),
+      anterior: claveDia(anio, mes, dia - 1),
+      siguiente: esHoy ? null : claveDia(anio, mes, dia + 1),
+      actual: esHoy
+    }
+  }
 
   if (periodo === 'semana') {
     const actual = lunesDe(ahora)
@@ -121,6 +153,12 @@ export function rangoDe (periodo: Periodo, referencia?: unknown, ahora: Date = n
     siguiente: esActual ? null : claveMes(anio, mes + 1),
     actual: esActual
   }
+}
+
+/** Periodo que pide la URL: ?periodo=dia|semana|mes|global y ?fecha=2026-09-21 */
+export function rangoDesdeBusqueda (busqueda: Record<string, string | string[] | undefined>): Rango {
+  const periodo = PERIODOS.find((x) => x === busqueda.periodo) ?? 'global'
+  return rangoDe(periodo, busqueda.fecha)
 }
 
 /** Claves de las ultimas n semanas o meses, de la mas vieja a la actual */

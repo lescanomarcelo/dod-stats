@@ -3,19 +3,36 @@ import { Suspense } from 'react'
 import { armas } from '@/lib/consultas'
 import { porcentaje, formatoPorcentaje, formatoNumero, nombreArma } from '@/lib/calculos'
 import { Barras, Cargando } from '@/components/Ui'
+import { ControlPeriodo } from '@/components/Periodo'
+import { rangoDesdeBusqueda, type Periodo } from '@/lib/periodos'
+
+type Busqueda = PageProps<'/armas'>['searchParams']
+
+function enlace (periodo: Periodo, fecha: string | null) {
+  const q = new URLSearchParams()
+  if (periodo !== 'global') q.set('periodo', periodo)
+  if (fecha) q.set('fecha', fecha)
+  const texto = q.toString()
+  return texto ? `/armas?${texto}` : '/armas'
+}
 
 export const metadata: Metadata = { title: 'Armas' }
 
-async function TablaArmas () {
-  const filas = await armas()
+async function TablaArmas ({ parametros }: { parametros: Busqueda }) {
+  const rango = rangoDesdeBusqueda(await parametros)
+  const filas = await armas({ desde: rango.desde, hasta: rango.hasta })
   const total = filas.reduce((s, a) => s + a.kills, 0)
 
+  const control = <ControlPeriodo rango={rango} enlace={enlace} />
+
   if (filas.length === 0) {
-    return <p className='vacio'>Todavía no hay muertes registradas.</p>
+    return <>{control}<p className='vacio'>No hay muertes registradas en este período.</p></>
   }
 
   return (
     <>
+      {control}
+      <section className='seccion'>
       <div className='panel'>
         <h2>Las más letales</h2>
         <Barras filas={filas.slice(0, 10).map((a) => ({
@@ -26,6 +43,7 @@ async function TablaArmas () {
         }))}
         />
       </div>
+      </section>
 
       <section className='seccion tabla-envoltorio'>
         <table>
@@ -55,7 +73,7 @@ async function TablaArmas () {
   )
 }
 
-export default function PaginaArmas () {
+export default function PaginaArmas (props: PageProps<'/armas'>) {
   return (
     <>
       <div className='encabezado-pagina'>
@@ -63,7 +81,7 @@ export default function PaginaArmas () {
         <p>Qué se usa en el server y qué tan efectivo es. Sin contar teamkills.</p>
       </div>
       <Suspense fallback={<Cargando />}>
-        <TablaArmas />
+        <TablaArmas parametros={props.searchParams} />
       </Suspense>
     </>
   )

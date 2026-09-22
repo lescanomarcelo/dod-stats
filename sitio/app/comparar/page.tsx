@@ -1,10 +1,23 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
-import { jugador, listaJugadores, enfrentamiento, type JugadorDetalle } from '@/lib/consultas'
+import { jugadorEnPeriodo, listaJugadores, enfrentamiento, type JugadorDetalle } from '@/lib/consultas'
+import { rangoDesdeBusqueda, type Periodo } from '@/lib/periodos'
+import { ControlPeriodo } from '@/components/Periodo'
 import {
   kd, porcentaje, formatoKd, formatoPorcentaje, formatoNumero, formatoTiempo
 } from '@/lib/calculos'
 import { EnlaceJugador, Cargando } from '@/components/Ui'
+
+/* Enlace a /comparar conservando los jugadores elegidos */
+function enlace (p: { periodo: Periodo, fecha?: string | null, a?: number | null, b?: number | null }) {
+  const q = new URLSearchParams()
+  if (p.periodo !== 'global') q.set('periodo', p.periodo)
+  if (p.fecha) q.set('fecha', p.fecha)
+  if (p.a) q.set('a', String(p.a))
+  if (p.b) q.set('b', String(p.b))
+  const texto = q.toString()
+  return texto ? `/comparar?${texto}` : '/comparar'
+}
 
 export const metadata: Metadata = { title: 'Comparar jugadores' }
 
@@ -38,14 +51,23 @@ async function Comparacion ({ parametros }: { parametros: PageProps<'/comparar'>
   const idA = leerId(p.a)
   const idB = leerId(p.b)
 
+  const rango = rangoDesdeBusqueda(p)
+  const ventana = { desde: rango.desde, hasta: rango.hasta }
+
   const [jugadores, a, b] = await Promise.all([
     listaJugadores(),
-    idA ? jugador(idA) : null,
-    idB ? jugador(idB) : null
+    idA ? jugadorEnPeriodo(idA, ventana) : null,
+    idB ? jugadorEnPeriodo(idB, ventana) : null
   ])
+
+  const control = (
+    <ControlPeriodo rango={rango} enlace={(periodo, fecha) => enlace({ periodo, fecha, a: idA, b: idB })} />
+  )
 
   const formulario = (
     <form className='formulario-comparar' method='get' action='/comparar'>
+      {rango.periodo !== 'global' && <input type='hidden' name='periodo' value={rango.periodo} />}
+      {rango.clave && <input type='hidden' name='fecha' value={rango.clave} />}
       <Selector nombre='a' elegido={a?.id ?? null} jugadores={jugadores} />
       <span className='vs'>VS</span>
       <Selector nombre='b' elegido={b?.id ?? null} jugadores={jugadores} />
@@ -56,6 +78,7 @@ async function Comparacion ({ parametros }: { parametros: PageProps<'/comparar'>
   if (!a || !b) {
     return (
       <>
+        {control}
         {formulario}
         <p className='vacio'>Elegí dos jugadores para compararlos.</p>
       </>
@@ -65,16 +88,18 @@ async function Comparacion ({ parametros }: { parametros: PageProps<'/comparar'>
   if (a.id === b.id) {
     return (
       <>
+        {control}
         {formulario}
         <p className='vacio'>Elegiste el mismo jugador dos veces.</p>
       </>
     )
   }
 
-  const duelo = await enfrentamiento(a.id, b.id)
+  const duelo = await enfrentamiento(a.id, b.id, ventana)
 
   return (
     <>
+      {control}
       {formulario}
 
       <div className='panel'>

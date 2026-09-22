@@ -6,6 +6,7 @@ import { resumenGeneral } from '@/lib/consultas'
 import { Hace } from '@/components/Hace'
 import { BanderaArgentina } from '@/components/Banderas'
 import { CopiarIp } from '@/components/CopiarIp'
+import { Menu } from '@/components/Menu'
 import { estadoServidor, SERVIDOR } from '@/lib/estado'
 import './globals.css'
 
@@ -69,19 +70,15 @@ export default function RootLayout ({ children }: LayoutProps<'/'>) {
                   <span className='titular'>Tributo</span>
                   <small>DoD 1.3 · Estadísticas</small>
                 </Link>
-                <CopiarIp direccion={DIRECCION} />
               </div>
               <Suspense fallback={<span className='estado-servidor cargando'><span className='punto' aria-hidden='true' />Consultando el server…</span>}>
                 <EstadoServidor />
               </Suspense>
+              <CopiarIp direccion={DIRECCION} />
             </div>
-            <nav className='nav'>
-              <Link href='/'>Ranking</Link>
-              <Link href='/equipos'>Eje vs Aliados</Link>
-              <Link href='/armas'>Armas</Link>
-              <Link href='/comparar'>Comparar</Link>
-              <Link href='/links'>Links</Link>
-            </nav>
+            <Suspense fallback={<div className='menu-boton' aria-hidden='true' />}>
+              <Menu />
+            </Suspense>
           </div>
         </header>
 

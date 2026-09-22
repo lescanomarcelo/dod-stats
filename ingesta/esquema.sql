@@ -89,13 +89,17 @@ CREATE TABLE IF NOT EXISTS {p}impactos (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tiempo acostado (prone) de cada jugador, para la estadistica "Camper". Una fila
--- por jugador y mapa que se va sumando: las lineas A traen diferencias. Desde la 0.4.
+-- por jugador, mapa y dia que se va sumando: las lineas A traen diferencias. El dia
+-- permite filtrar por periodo; es la medianoche argentina de ese dia, en UTC, igual
+-- que los limites de los periodos del sitio. Desde la 0.4.
 CREATE TABLE IF NOT EXISTS {p}acostado (
   jugador_id   INT UNSIGNED    NOT NULL,
   mapa         VARCHAR(40)     NOT NULL,
+  dia          DATETIME        NOT NULL,
   segundos     BIGINT UNSIGNED NOT NULL DEFAULT 0,
   actualizado  DATETIME        NOT NULL,
-  PRIMARY KEY (jugador_id, mapa),
+  PRIMARY KEY (jugador_id, mapa, dia),
+  KEY ix_dia (dia),
   CONSTRAINT fk_{p}acostado_jugador FOREIGN KEY (jugador_id) REFERENCES {p}jugadores (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

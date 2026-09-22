@@ -9,6 +9,28 @@ import { rangoDe, ultimosPeriodos, etiquetaCorta, veredicto, type Balance } from
 /* Martes 22/9/2026 a las 10 de la mañana en Argentina (13 UTC) */
 const AHORA = new Date('2026-09-22T13:00:00Z')
 
+test('el dia por defecto es ayer, y con la flecha se llega a hoy', () => {
+  const r = rangoDe('dia', undefined, AHORA)
+  assert.equal(r.clave, '2026-09-21')
+  assert.equal(r.etiqueta, 'Ayer')
+  assert.equal(r.desde, '2026-09-21T03:00:00.000Z')
+  assert.equal(r.hasta, '2026-09-22T03:00:00.000Z')
+  assert.equal(r.anterior, '2026-09-20')
+  assert.equal(r.siguiente, '2026-09-22')
+  assert.equal(rangoDe('dia', '2026-09-22', AHORA).etiqueta, 'Hoy')
+  assert.equal(rangoDe('dia', '2026-09-22', AHORA).siguiente, null)
+})
+
+test('un dia viejo se muestra con su nombre', () => {
+  const r = rangoDe('dia', '2026-09-14', AHORA)
+  assert.equal(r.etiqueta, 'lunes 14 de septiembre')
+  assert.equal(r.actual, false)
+})
+
+test('un dia futuro cae en hoy', () => {
+  assert.equal(rangoDe('dia', '2027-03-04', AHORA).clave, '2026-09-22')
+})
+
 test('la semana va de lunes a domingo, en hora argentina', () => {
   const r = rangoDe('semana', undefined, AHORA)
   assert.equal(r.clave, '2026-09-21')

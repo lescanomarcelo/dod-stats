@@ -15,6 +15,24 @@ import { HORAS_ARGENTINA, type Ventana, type Balance } from './periodos'
  *  se cachean por separado.
  */
 
+/*
+ *  Filtro de mapa y fechas como fragmentos fijos + parametros: nada de la URL entra
+ *  al SQL. alias = prefijo de tabla cuando la consulta tiene JOIN.
+ */
+function filtro (mapa: string | null, v: Ventana, alias = '', columnaFecha = 'momento') {
+  const partes: string[] = []
+  const valores: (string | Date)[] = []
+  if (mapa) { partes.push(`AND LOWER(${alias}mapa) = ?`); valores.push(mapa.toLowerCase()) }
+  if (v.desde) { partes.push(`AND ${alias}${columnaFecha} >= ?`); valores.push(new Date(v.desde)) }
+  if (v.hasta) { partes.push(`AND ${alias}${columnaFecha} < ?`); valores.push(new Date(v.hasta)) }
+  return { sql: partes.join(' '), valores }
+}
+
+const TODO: Ventana = { desde: null, hasta: null }
+
+/** Una ventana sin limites: la consulta mira todo el historico */
+export const esTodo = (v: Ventana) => !v.desde && !v.hasta
+
 const n = (valor: unknown) => Number(valor ?? 0)
 const iso = (valor: unknown) => (valor instanceof Date ? valor.toISOString() : null)
 
@@ -98,7 +116,50 @@ export function esOrden (valor: unknown): valor is Orden {
   return typeof valor === 'string' && valor in ORDENES
 }
 
-export async function ranking (orden: Orden): Promise<Jugador[]> {
+/*
+ *  Totales de cada jugador dentro de una ventana, calculados desde los eventos.
+ *  Es la vista ranking pero acotada en el tiempo; para "global" se usa la vista, que
+ *  ya esta lista. El tiempo jugado sale de las sesiones que TERMINARON dentro de la
+ *  ventana, asi que una partida a caballo de la medianoche cuenta el dia que termino.
+ */
+function sqlTotales (v: Ventana) {
+  const fm = filtro(null, v)
+  const fs = filtro(null, v, '', 'desconexion')
+  const fp = filtro(null, v)
+  const fa = filtro(null, v, '', 'dia')
+  return {
+    sql: `
+      SELECT j.id, j.identidad, j.steamid, j.nick, j.primera_vez, j.ultima_vez,
+             SUM(x.kills) AS kills, SUM(x.headshots) AS headshots, SUM(x.teamkills) AS teamkills,
+             SUM(x.muertes) AS muertes, SUM(x.suicidios) AS suicidios,
+             SUM(x.segundos_jugados) AS segundos_jugados, SUM(x.puntos) AS puntos,
+             SUM(x.segundos_acostado) AS segundos_acostado
+      FROM (
+        SELECT matador_id AS jugador_id, SUM(teamkill = 0) AS kills,
+               SUM(teamkill = 0 AND headshot = 1) AS headshots, SUM(teamkill = 1) AS teamkills,
+               0 AS muertes, 0 AS suicidios, 0 AS segundos_jugados, 0 AS puntos, 0 AS segundos_acostado
+        FROM {p}muertes WHERE matador_id IS NOT NULL ${fm.sql} GROUP BY matador_id
+        UNION ALL
+        SELECT victima_id, 0, 0, 0, COUNT(*), SUM(matador_id IS NULL), 0, 0, 0
+        FROM {p}muertes WHERE 1 = 1 ${fm.sql} GROUP BY victima_id
+        UNION ALL
+        SELECT jugador_id, 0, 0, 0, 0, 0, SUM(segundos), 0, 0
+        FROM {p}sesiones WHERE 1 = 1 ${fs.sql} GROUP BY jugador_id
+        UNION ALL
+        SELECT jugador_id, 0, 0, 0, 0, 0, 0, SUM(puntos), 0
+        FROM {p}puntos WHERE 1 = 1 ${fp.sql} GROUP BY jugador_id
+        UNION ALL
+        SELECT jugador_id, 0, 0, 0, 0, 0, 0, 0, SUM(segundos)
+        FROM {p}acostado WHERE 1 = 1 ${fa.sql} GROUP BY jugador_id
+      ) x
+      JOIN {p}jugadores j ON j.id = x.jugador_id
+      GROUP BY j.id, j.identidad, j.steamid, j.nick, j.primera_vez, j.ultima_vez
+    `,
+    valores: [...fm.valores, ...fm.valores, ...fs.valores, ...fp.valores, ...fa.valores]
+  }
+}
+
+export async function ranking (orden: Orden, v: Ventana = TODO): Promise<Jugador[]> {
   'use cache'
   cacheLife('minutes')
 
@@ -106,12 +167,13 @@ export async function ranking (orden: Orden): Promise<Jugador[]> {
   /* Camper: solo con tiempo acostado registrado (plugin 0.4) y un minimo de tiempo jugado */
   const condicion = soloConMinimo ? 'AND kills >= ?' : soloCamper ? 'AND segundos_acostado > 0 AND segundos_jugados >= ?' : ''
   const valores = soloConMinimo ? [MIN_KILLS_PORCENTAJES] : soloCamper ? [MIN_SEGUNDOS_CAMPER] : []
+  const base = esTodo(v) ? { sql: 'SELECT * FROM {p}ranking', valores: [] as unknown[] } : sqlTotales(v)
   const filas = await consultar(`
-    SELECT * FROM {p}ranking
+    SELECT * FROM (${base.sql}) t
     WHERE kills + muertes + puntos > 0 ${condicion}
     ORDER BY ${sql}, id
     LIMIT 200
-  `, valores)
+  `, [...base.valores, ...valores])
 
   return filas.map(aJugador)
 }
@@ -135,6 +197,19 @@ export async function jugador (id: number): Promise<JugadorDetalle | null> {
   cacheLife('minutes')
 
   const [fila] = await consultar(`SELECT * FROM {p}ranking WHERE id = ?`, [id])
+  if (!fila) return null
+  return { ...aJugador(fila), primeraVez: iso(fila.primera_vez), ultimaVez: iso(fila.ultima_vez) }
+}
+
+/** Totales de un jugador dentro de una ventana. Para comparar por periodo. */
+export async function jugadorEnPeriodo (id: number, v: Ventana): Promise<JugadorDetalle | null> {
+  'use cache'
+  cacheLife('minutes')
+
+  if (esTodo(v)) return jugador(id)
+
+  const base = sqlTotales(v)
+  const [fila] = await consultar(`SELECT * FROM (${base.sql}) t WHERE id = ?`, [...base.valores, id])
   if (!fila) return null
   return { ...aJugador(fila), primeraVez: iso(fila.primera_vez), ultimaVez: iso(fila.ultima_vez) }
 }
@@ -287,18 +362,108 @@ export async function puntosDeCalor (id: number, mapa: string, tipo: TipoCalor):
 /* ------------------------------------------------------------------ */
 
 /** Cuantas veces a mato a b y b mato a a */
-export async function enfrentamiento (a: number, b: number) {
+export async function enfrentamiento (a: number, b: number, v: Ventana = TODO) {
   'use cache'
   cacheLife('minutes')
 
+  const f = filtro(null, v)
   const [fila] = await consultar(`
     SELECT
       SUM(matador_id = ? AND victima_id = ?) AS a_sobre_b,
       SUM(matador_id = ? AND victima_id = ?) AS b_sobre_a
     FROM {p}muertes
-    WHERE teamkill = 0 AND matador_id IN (?, ?) AND victima_id IN (?, ?)
-  `, [a, b, b, a, a, b, a, b])
+    WHERE teamkill = 0 AND matador_id IN (?, ?) AND victima_id IN (?, ?) ${f.sql}
+  `, [a, b, b, a, a, b, a, b, ...f.valores])
   return { aSobreB: n(fila?.a_sobre_b), bSobreA: n(fila?.b_sobre_a) }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Destacados del ranking                                             */
+/* ------------------------------------------------------------------ */
+
+/* Armas que son granadas, para "El Aero-Player" */
+const GRANADAS = ['handgrenade', 'stickgrenade', 'mills_bomb', 'grenade']
+
+export type Destacado = { id: number, nick: string, valor: number } | null
+
+export type Destacados = {
+  camper: Destacado
+  granadas: Destacado
+  banderas: Destacado
+  teamkills: Destacado
+  headshots: Destacado
+}
+
+/* Minimos para que un porcentaje signifique algo */
+const MIN_KILLS_HEADSHOTS = 20
+
+/**
+ * El que mas se destaca en cada categoria dentro de la ventana. Cada consulta
+ * devuelve una sola fila: el primero de su rubro.
+ */
+export async function destacados (v: Ventana = TODO): Promise<Destacados> {
+  'use cache'
+  cacheLife('minutes')
+
+  const fm = filtro(null, v)
+  const fp = filtro(null, v)
+  const fa = filtro(null, v, 'a.', 'dia')
+  const fse = filtro(null, v, 's.', 'desconexion')
+  const marcadores = GRANADAS.map(() => '?').join(', ')
+
+  const [camper, granadas, banderas, teamkills, headshots] = await Promise.all([
+    /* Camper: mayor parte del tiempo jugado acostado, con un minimo de tiempo jugado */
+    consultar(`
+      SELECT j.id, j.nick, ROUND(100 * a.segundos / s.segundos) AS valor
+      FROM (SELECT jugador_id, SUM(segundos) AS segundos FROM {p}acostado a WHERE 1 = 1 ${fa.sql} GROUP BY jugador_id) a
+      JOIN (SELECT jugador_id, SUM(segundos) AS segundos FROM {p}sesiones s WHERE 1 = 1 ${fse.sql} GROUP BY jugador_id) s
+        ON s.jugador_id = a.jugador_id
+      JOIN {p}jugadores j ON j.id = a.jugador_id
+      WHERE s.segundos >= ? AND a.segundos > 0
+      ORDER BY a.segundos / s.segundos DESC LIMIT 1
+    `, [...fa.valores, ...fse.valores, MIN_SEGUNDOS_CAMPER]),
+
+    consultar(`
+      SELECT j.id, j.nick, COUNT(*) AS valor
+      FROM {p}muertes m JOIN {p}jugadores j ON j.id = m.matador_id
+      WHERE m.teamkill = 0 AND m.arma IN (${marcadores}) ${filtro(null, v, 'm.').sql}
+      GROUP BY j.id, j.nick ORDER BY valor DESC LIMIT 1
+    `, [...GRANADAS, ...fm.valores]),
+
+    consultar(`
+      SELECT j.id, j.nick, COUNT(*) AS valor
+      FROM {p}puntos p JOIN {p}jugadores j ON j.id = p.jugador_id
+      WHERE 1 = 1 ${filtro(null, v, 'p.').sql}
+      GROUP BY j.id, j.nick ORDER BY valor DESC LIMIT 1
+    `, fp.valores),
+
+    consultar(`
+      SELECT j.id, j.nick, COUNT(*) AS valor
+      FROM {p}muertes m JOIN {p}jugadores j ON j.id = m.matador_id
+      WHERE m.teamkill = 1 ${filtro(null, v, 'm.').sql}
+      GROUP BY j.id, j.nick ORDER BY valor DESC LIMIT 1
+    `, fm.valores),
+
+    consultar(`
+      SELECT j.id, j.nick, ROUND(100 * SUM(m.headshot) / COUNT(*)) AS valor
+      FROM {p}muertes m JOIN {p}jugadores j ON j.id = m.matador_id
+      WHERE m.teamkill = 0 ${filtro(null, v, 'm.').sql}
+      GROUP BY j.id, j.nick
+      HAVING COUNT(*) >= ?
+      ORDER BY SUM(m.headshot) / COUNT(*) DESC, COUNT(*) DESC LIMIT 1
+    `, [...fm.valores, MIN_KILLS_HEADSHOTS])
+  ])
+
+  const uno = (filas: Record<string, unknown>[]): Destacado =>
+    filas.length ? { id: n(filas[0].id), nick: String(filas[0].nick), valor: n(filas[0].valor) } : null
+
+  return {
+    camper: uno(camper),
+    granadas: uno(granadas),
+    banderas: uno(banderas),
+    teamkills: uno(teamkills),
+    headshots: uno(headshots)
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -318,21 +483,6 @@ export async function enfrentamiento (a: number, b: number) {
 
 export type Bando = { kills: number, muertes: number, headshots: number, teamkills: number, suicidios: number }
 const bandoVacio = (): Bando => ({ kills: 0, muertes: 0, headshots: 0, teamkills: 0, suicidios: 0 })
-
-/*
- *  Filtro de mapa y fechas como fragmentos fijos + parametros: nada de la URL entra
- *  al SQL. alias = prefijo de tabla cuando la consulta tiene JOIN.
- */
-function filtro (mapa: string | null, v: Ventana, alias = '', columnaFecha = 'momento') {
-  const partes: string[] = []
-  const valores: (string | Date)[] = []
-  if (mapa) { partes.push(`AND LOWER(${alias}mapa) = ?`); valores.push(mapa.toLowerCase()) }
-  if (v.desde) { partes.push(`AND ${alias}${columnaFecha} >= ?`); valores.push(new Date(v.desde)) }
-  if (v.hasta) { partes.push(`AND ${alias}${columnaFecha} < ?`); valores.push(new Date(v.hasta)) }
-  return { sql: partes.join(' '), valores }
-}
-
-const TODO: Ventana = { desde: null, hasta: null }
 
 /** Mapas con actividad en la ventana: muertes o partidas con marcador */
 export async function mapasConActividad (v: Ventana = TODO) {
@@ -558,20 +708,21 @@ export async function historial (tipo: 'semana' | 'mes', mapa: string | null, de
 /*  Armas                                                              */
 /* ------------------------------------------------------------------ */
 
-export async function armas () {
+export async function armas (v: Ventana = TODO) {
   'use cache'
   cacheLife('minutes')
 
+  const f = filtro(null, v)
   const filas = await consultar(`
     SELECT arma,
            COUNT(*)                   AS kills,
            SUM(headshot)              AS headshots,
            COUNT(DISTINCT matador_id) AS jugadores
     FROM {p}muertes
-    WHERE matador_id IS NOT NULL AND teamkill = 0
+    WHERE matador_id IS NOT NULL AND teamkill = 0 ${f.sql}
     GROUP BY arma
     ORDER BY kills DESC
-  `)
+  `, f.valores)
   return filas.map((f) => ({
     arma: String(f.arma),
     kills: n(f.kills),

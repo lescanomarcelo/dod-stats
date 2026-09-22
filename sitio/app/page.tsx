@@ -1,11 +1,14 @@
 import Link from 'next/link'
 import { Suspense } from 'react'
-import { esOrden, ranking, resumenGeneral, type Orden } from '@/lib/consultas'
+import { esOrden, ranking, destacados, type Orden } from '@/lib/consultas'
+import { rangoDesdeBusqueda, type Periodo } from '@/lib/periodos'
 import {
   kd, porcentaje, formatoKd, formatoPorcentaje, formatoNumero, formatoTiempo,
   MIN_KILLS_PORCENTAJES, MIN_SEGUNDOS_CAMPER, camper
 } from '@/lib/calculos'
-import { Tarjeta, EnlaceJugador, Cargando } from '@/components/Ui'
+import { EnlaceJugador, Cargando } from '@/components/Ui'
+import { ControlPeriodo } from '@/components/Periodo'
+import { Destacados } from '@/components/Destacados'
 
 const PESTANAS: { orden: Orden, texto: string }[] = [
   { orden: 'puntos', texto: 'Puntos' },
@@ -16,92 +19,104 @@ const PESTANAS: { orden: Orden, texto: string }[] = [
   { orden: 'camper', texto: 'Camper' }
 ]
 
-async function Resumen () {
-  const r = await resumenGeneral()
-  return (
-    <div className='tarjetas'>
-      <Tarjeta etiqueta='Jugadores' valor={formatoNumero(r.jugadores)} />
-      <Tarjeta etiqueta='Muertes registradas' valor={formatoNumero(r.muertes)} destacada />
-      <Tarjeta etiqueta='Headshots' valor={formatoPorcentaje(porcentaje(r.headshots, r.kills))} />
-      <Tarjeta etiqueta='Mapas jugados' valor={formatoNumero(r.mapas)} />
-    </div>
-  )
+type Busqueda = PageProps<'/'>['searchParams']
+
+/* Enlace al ranking conservando lo que no cambia */
+function enlace (p: { orden: Orden, periodo: Periodo, fecha?: string | null }) {
+  const q = new URLSearchParams()
+  if (p.orden !== 'puntos') q.set('orden', p.orden)
+  if (p.periodo !== 'global') q.set('periodo', p.periodo)
+  if (p.fecha) q.set('fecha', p.fecha)
+  const texto = q.toString()
+  return texto ? `/?${texto}` : '/'
 }
 
-async function TablaRanking ({ parametros }: { parametros: PageProps<'/'>['searchParams'] }) {
-  const { orden: crudo } = await parametros
-  const orden: Orden = esOrden(crudo) ? crudo : 'puntos'
-  const filas = await ranking(orden)
+async function Contenido ({ parametros }: { parametros: Busqueda }) {
+  const p = await parametros
+  const orden: Orden = esOrden(p.orden) ? p.orden : 'puntos'
+  const rango = rangoDesdeBusqueda(p)
+  const ventana = { desde: rango.desde, hasta: rango.hasta }
+
+  const [filas, figuras] = await Promise.all([ranking(orden, ventana), destacados(ventana)])
 
   return (
     <>
-      <nav className='pestanas' aria-label='Ordenar ranking'>
-        {PESTANAS.map((p) => (
-          <Link
-            key={p.orden}
-            href={p.orden === 'puntos' ? '/' : `/?orden=${p.orden}`}
-            className={p.orden === orden ? 'activa' : ''}
-            aria-current={p.orden === orden ? 'page' : undefined}
-          >
-            {p.texto}
-          </Link>
-        ))}
-      </nav>
+      <ControlPeriodo rango={rango} enlace={(periodo, fecha) => enlace({ orden, periodo, fecha })} />
 
-      <div className='tabla-envoltorio'>
-        {filas.length === 0
-          ? (
-            <p className='vacio'>
-              {orden === 'camper'
-                ? 'Todavía no hay tiempo acostado registrado: se guarda desde la versión 0.4 del plugin.'
-                : 'Todavía no hay muertes registradas. Aparecen en cuanto se juegue.'}
-            </p>
-            )
-          : (
-            <table>
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Jugador</th>
-                  <th className='num'>Puntos</th>
-                  <th className='num'>Kills</th>
-                  <th className='num'>Muertes</th>
-                  <th className='num'>K/D</th>
-                  <th className='num'>HS %</th>
-                  <th className='num'>TK</th>
-                  <th className='num'>Tiempo</th>
-                  {orden === 'camper' && <th className='num'>Acostado</th>}
-                  {orden === 'camper' && <th className='num'>Camper</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {filas.map((j, i) => (
-                  <tr key={j.id}>
-                    <td className='posicion numero'>{i + 1}</td>
-                    <td><EnlaceJugador id={j.id} nick={j.nick} /></td>
-                    <td className='num destacado'>{formatoNumero(j.puntos)}</td>
-                    <td className='num'>{formatoNumero(j.kills)}</td>
-                    <td className='num'>{formatoNumero(j.muertes)}</td>
-                    <td className='num'>{formatoKd(kd(j.kills, j.muertes))}</td>
-                    <td className='num'>{formatoPorcentaje(porcentaje(j.headshots, j.kills))}</td>
-                    <td className='num'>{j.teamkills}</td>
-                    <td className='num'>{formatoTiempo(j.segundos)}</td>
-                    {orden === 'camper' && <td className='num'>{formatoTiempo(j.segundosAcostado)}</td>}
-                    {orden === 'camper' && <td className='num destacado'>{formatoPorcentaje(camper(j.segundosAcostado, j.segundos))}</td>}
+      <section className='seccion'>
+        <Destacados datos={figuras} />
+      </section>
+
+      <section className='seccion'>
+        <nav className='pestanas' aria-label='Ordenar ranking'>
+          {PESTANAS.map((x) => (
+            <Link
+              key={x.orden}
+              href={enlace({ orden: x.orden, periodo: rango.periodo, fecha: rango.clave })}
+              className={x.orden === orden ? 'activa' : ''}
+              aria-current={x.orden === orden ? 'page' : undefined}
+              scroll={false}
+            >
+              {x.texto}
+            </Link>
+          ))}
+        </nav>
+
+        <div className='tabla-envoltorio'>
+          {filas.length === 0
+            ? (
+              <p className='vacio'>
+                {orden === 'camper'
+                  ? 'Todavía no hay tiempo acostado registrado: se guarda desde la versión 0.4 del plugin.'
+                  : 'No hay partidas registradas en este período.'}
+              </p>
+              )
+            : (
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Jugador</th>
+                    <th className='num'>Puntos</th>
+                    <th className='num'>Kills</th>
+                    <th className='num'>Muertes</th>
+                    <th className='num'>K/D</th>
+                    <th className='num'>HS %</th>
+                    <th className='num'>TK</th>
+                    <th className='num'>Tiempo</th>
+                    {orden === 'camper' && <th className='num'>Acostado</th>}
+                    {orden === 'camper' && <th className='num'>Camper</th>}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            )}
-      </div>
+                </thead>
+                <tbody>
+                  {filas.map((j, i) => (
+                    <tr key={j.id}>
+                      <td className='posicion numero'>{i + 1}</td>
+                      <td><EnlaceJugador id={j.id} nick={j.nick} /></td>
+                      <td className='num destacado'>{formatoNumero(j.puntos)}</td>
+                      <td className='num'>{formatoNumero(j.kills)}</td>
+                      <td className='num'>{formatoNumero(j.muertes)}</td>
+                      <td className='num'>{formatoKd(kd(j.kills, j.muertes))}</td>
+                      <td className='num'>{formatoPorcentaje(porcentaje(j.headshots, j.kills))}</td>
+                      <td className='num'>{j.teamkills}</td>
+                      <td className='num'>{formatoTiempo(j.segundos)}</td>
+                      {orden === 'camper' && <td className='num'>{formatoTiempo(j.segundosAcostado)}</td>}
+                      {orden === 'camper' && <td className='num destacado'>{formatoPorcentaje(camper(j.segundosAcostado, j.segundos))}</td>}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              )}
+        </div>
 
-      {orden === 'camper' && (
-        <p className='nota'>Camper = porcentaje del tiempo jugado que pasó acostado. Solo jugadores con al menos {MIN_SEGUNDOS_CAMPER / 60} minutos jugados.</p>
-      )}
+        {orden === 'camper' && (
+          <p className='nota'>Camper = porcentaje del tiempo jugado que pasó acostado. Solo jugadores con al menos {MIN_SEGUNDOS_CAMPER / 60} minutos jugados.</p>
+        )}
 
-      {(orden === 'kd' || orden === 'hs') && (
-        <p className='nota'>Solo jugadores con al menos {MIN_KILLS_PORCENTAJES} kills, para que el porcentaje sea representativo.</p>
-      )}
+        {(orden === 'kd' || orden === 'hs') && (
+          <p className='nota'>Solo jugadores con al menos {MIN_KILLS_PORCENTAJES} kills, para que el porcentaje sea representativo.</p>
+        )}
+      </section>
     </>
   )
 }
@@ -114,15 +129,9 @@ export default function PaginaRanking (props: PageProps<'/'>) {
         <p>Los puntos se ganan tomando banderas y objetivos. Los teamkills no suman como kill. Los suicidios cuentan como muerte. Las partidas contra bots no se registran.</p>
       </div>
 
-      <Suspense fallback={<Cargando />}>
-        <Resumen />
+      <Suspense fallback={<Cargando texto='Cargando ranking…' />}>
+        <Contenido parametros={props.searchParams} />
       </Suspense>
-
-      <section className='seccion'>
-        <Suspense fallback={<Cargando texto='Cargando ranking…' />}>
-          <TablaRanking parametros={props.searchParams} />
-        </Suspense>
-      </section>
     </>
   )
 }

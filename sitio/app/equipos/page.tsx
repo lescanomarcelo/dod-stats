@@ -5,7 +5,8 @@ import {
   duelo, figurasPorBando, armasPorBando, balancePorMapa, mapasConActividad, marcadorDeBandos,
   puntosDeJugadoresPorBando, historial, type Bando, type Figura
 } from '@/lib/consultas'
-import { PERIODOS, rangoDe, ultimosPeriodos, veredicto, type Periodo, type Rango } from '@/lib/periodos'
+import { rangoDe, rangoDesdeBusqueda, ultimosPeriodos, veredicto, type Periodo, type Rango } from '@/lib/periodos'
+import { ControlPeriodo } from '@/components/Periodo'
 import { kd, porcentaje, formatoKd, formatoPorcentaje, formatoNumero, nombreArma } from '@/lib/calculos'
 import { Barras, EnlaceJugador, Cargando } from '@/components/Ui'
 import { EscudoAliados, EscudoEje } from '@/components/Banderas'
@@ -16,7 +17,6 @@ export const metadata: Metadata = { title: 'Eje vs Aliados' }
 
 type Busqueda = PageProps<'/equipos'>['searchParams']
 
-const PESTANA: Record<Periodo, string> = { semana: 'Semana', mes: 'Mes', global: 'Global' }
 const SEMANAS_HISTORIAL = 12
 const MESES_HISTORIAL = 12
 
@@ -175,8 +175,8 @@ const FILAS: { etiqueta: string, valor: (t: Totales) => number, texto: (v: numbe
 
 async function Contenido ({ busqueda }: { busqueda: Busqueda }) {
   const p = await busqueda
-  const periodo: Periodo = PERIODOS.find((x) => x === p.periodo) ?? 'global'
-  const rango = rangoDe(periodo, p.fecha)
+  const rango = rangoDesdeBusqueda(p)
+  const periodo = rango.periodo
   const ventana = { desde: rango.desde, hasta: rango.hasta }
 
   const mapas = await mapasConActividad(ventana)
@@ -209,14 +209,7 @@ async function Contenido ({ busqueda }: { busqueda: Busqueda }) {
 
   return (
     <>
-      <div className='controles-equipos'>
-        <nav className='pestanas' aria-label='Período'>
-          {PERIODOS.map((x) => (
-            <Link key={x} href={enlace({ periodo: x, mapa })} scroll={false} className={x === periodo ? 'activa' : ''}>
-              {PESTANA[x]}
-            </Link>
-          ))}
-        </nav>
+      <ControlPeriodo rango={rango} enlace={(x, fecha) => enlace({ periodo: x, fecha, mapa })}>
         {mapas.length > 0 && (
           <SelectorMapa
             etiqueta='Mapa'
@@ -231,17 +224,7 @@ async function Contenido ({ busqueda }: { busqueda: Busqueda }) {
             ]}
           />
         )}
-      </div>
-
-      <div className='navegador-periodo'>
-        {rango.anterior
-          ? <Link href={enlace({ periodo, fecha: rango.anterior, mapa })} scroll={false} aria-label='Período anterior'>‹</Link>
-          : <span />}
-        <strong>{rango.etiqueta}{rango.actual && periodo !== 'global' && <small> (en curso)</small>}</strong>
-        {rango.siguiente
-          ? <Link href={enlace({ periodo, fecha: rango.siguiente, mapa })} scroll={false} aria-label='Período siguiente'>›</Link>
-          : <span />}
-      </div>
+      </ControlPeriodo>
 
       {!hayKills && !hayMarcadores
         ? <p className='vacio'>No hubo partidas en este período.</p>
