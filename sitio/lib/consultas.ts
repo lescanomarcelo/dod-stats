@@ -195,6 +195,38 @@ export async function mapasDeJugador (id: number) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Donde pega: todos los impactos                                     */
+/* ------------------------------------------------------------------ */
+
+/** Suma de impactos por zona en todos los mapas, mas danio y disparos */
+export async function impactosDeJugador (id: number) {
+  'use cache'
+  cacheLife('minutes')
+
+  const [f] = await consultar(`
+    SELECT SUM(cabeza) AS cabeza, SUM(pecho) AS pecho, SUM(estomago) AS estomago,
+           SUM(brazo_izq) AS brazo_izq, SUM(brazo_der) AS brazo_der,
+           SUM(pierna_izq) AS pierna_izq, SUM(pierna_der) AS pierna_der,
+           SUM(generico) AS generico, SUM(danio) AS danio, SUM(disparos) AS disparos
+    FROM {p}impactos WHERE jugador_id = ?
+  `, [id])
+  return {
+    zonas: {
+      cabeza: n(f?.cabeza),
+      pecho: n(f?.pecho),
+      estomago: n(f?.estomago),
+      brazo_izq: n(f?.brazo_izq),
+      brazo_der: n(f?.brazo_der),
+      pierna_izq: n(f?.pierna_izq),
+      pierna_der: n(f?.pierna_der)
+    },
+    generico: n(f?.generico),
+    danio: n(f?.danio),
+    disparos: n(f?.disparos)
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /*  Mapa de calor                                                      */
 /* ------------------------------------------------------------------ */
 
@@ -257,6 +289,127 @@ export async function enfrentamiento (a: number, b: number) {
     WHERE teamkill = 0 AND matador_id IN (?, ?) AND victima_id IN (?, ?)
   `, [a, b, b, a, a, b, a, b])
   return { aSobreB: n(fila?.a_sobre_b), bSobreA: n(fila?.b_sobre_a) }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Eje vs Aliados                                                     */
+/* ------------------------------------------------------------------ */
+
+/*
+ *  El equipo sale de cada muerte (matador_equipo, victima_equipo): un jugador puede
+ *  jugar de los dos lados, y cada kill cuenta para el bando con el que la hizo.
+ *  1 = Aliados, 2 = Eje. mapa null = todos los mapas.
+ */
+
+export type Bando = { kills: number, muertes: number, headshots: number, teamkills: number, suicidios: number }
+const bandoVacio = (): Bando => ({ kills: 0, muertes: 0, headshots: 0, teamkills: 0, suicidios: 0 })
+
+/* Filtro de mapa como fragmento fijo + parametro: el nombre nunca entra al SQL */
+const filtroMapa = (mapa: string | null) => ({
+  sql: mapa ? 'AND LOWER(mapa) = ?' : '',
+  valores: mapa ? [mapa.toLowerCase()] : []
+})
+
+export async function mapasConMuertes () {
+  'use cache'
+  cacheLife('minutes')
+
+  const filas = await consultar(`
+    SELECT LOWER(mapa) AS mapa, COUNT(*) AS muertes FROM {p}muertes
+    GROUP BY LOWER(mapa) ORDER BY muertes DESC
+  `)
+  return filas.map((f) => ({ mapa: String(f.mapa), muertes: n(f.muertes) }))
+}
+
+export async function duelo (mapa: string | null): Promise<{ aliados: Bando, eje: Bando }> {
+  'use cache'
+  cacheLife('minutes')
+
+  const f = filtroMapa(mapa)
+  const [ataque, defensa] = await Promise.all([
+    consultar(`
+      SELECT matador_equipo AS equipo,
+             SUM(teamkill = 0)                  AS kills,
+             SUM(teamkill = 0 AND headshot = 1) AS headshots,
+             SUM(teamkill = 1)                  AS teamkills
+      FROM {p}muertes
+      WHERE matador_id IS NOT NULL AND matador_equipo IN (1, 2) ${f.sql}
+      GROUP BY matador_equipo
+    `, f.valores),
+    consultar(`
+      SELECT victima_equipo AS equipo, COUNT(*) AS muertes, SUM(matador_id IS NULL) AS suicidios
+      FROM {p}muertes
+      WHERE victima_equipo IN (1, 2) ${f.sql}
+      GROUP BY victima_equipo
+    `, f.valores)
+  ])
+
+  const bandos = { 1: bandoVacio(), 2: bandoVacio() } as Record<number, Bando>
+  for (const r of ataque) {
+    const b = bandos[n(r.equipo)]
+    if (b) { b.kills = n(r.kills); b.headshots = n(r.headshots); b.teamkills = n(r.teamkills) }
+  }
+  for (const r of defensa) {
+    const b = bandos[n(r.equipo)]
+    if (b) { b.muertes = n(r.muertes); b.suicidios = n(r.suicidios) }
+  }
+  return { aliados: bandos[1], eje: bandos[2] }
+}
+
+/** Los que mas mataron jugando para cada bando */
+export async function figurasPorBando (mapa: string | null) {
+  'use cache'
+  cacheLife('minutes')
+
+  const f = filtroMapa(mapa)
+  const filas = await consultar(`
+    SELECT m.matador_equipo AS equipo, j.id, j.nick, COUNT(*) AS kills
+    FROM {p}muertes m
+    JOIN {p}jugadores j ON j.id = m.matador_id
+    WHERE m.teamkill = 0 AND m.matador_equipo IN (1, 2) ${f.sql.replace('mapa', 'm.mapa')}
+    GROUP BY m.matador_equipo, j.id, j.nick
+    ORDER BY kills DESC
+  `, f.valores)
+  const top = (equipo: number) => filas.filter((r) => n(r.equipo) === equipo).slice(0, 5)
+    .map((r) => ({ id: n(r.id), nick: String(r.nick), kills: n(r.kills) }))
+  return { aliados: top(1), eje: top(2) }
+}
+
+export async function armasPorBando (mapa: string | null) {
+  'use cache'
+  cacheLife('minutes')
+
+  const f = filtroMapa(mapa)
+  const filas = await consultar(`
+    SELECT matador_equipo AS equipo, arma, COUNT(*) AS kills
+    FROM {p}muertes
+    WHERE matador_id IS NOT NULL AND teamkill = 0 AND matador_equipo IN (1, 2) ${f.sql}
+    GROUP BY matador_equipo, arma
+    ORDER BY kills DESC
+  `, f.valores)
+  const top = (equipo: number) => filas.filter((r) => n(r.equipo) === equipo).slice(0, 6)
+    .map((r) => ({ arma: String(r.arma), kills: n(r.kills) }))
+  return { aliados: top(1), eje: top(2) }
+}
+
+/** Mapa por mapa: veces jugado y kills de cada bando */
+export async function balancePorMapa () {
+  'use cache'
+  cacheLife('minutes')
+
+  const filas = await consultar(`
+    SELECT k.mapa, k.aliados, k.eje, COALESCE(p.veces, 0) AS veces
+    FROM (
+      SELECT LOWER(mapa) AS mapa,
+             SUM(matador_equipo = 1 AND teamkill = 0 AND matador_id IS NOT NULL) AS aliados,
+             SUM(matador_equipo = 2 AND teamkill = 0 AND matador_id IS NOT NULL) AS eje
+      FROM {p}muertes GROUP BY LOWER(mapa)
+    ) k
+    LEFT JOIN (SELECT LOWER(mapa) AS mapa, COUNT(*) AS veces FROM {p}mapas_jugados GROUP BY LOWER(mapa)) p
+      ON p.mapa = k.mapa
+    ORDER BY (k.aliados + k.eje) DESC
+  `)
+  return filas.map((r) => ({ mapa: String(r.mapa), aliados: n(r.aliados), eje: n(r.eje), veces: n(r.veces) }))
 }
 
 /* ------------------------------------------------------------------ */

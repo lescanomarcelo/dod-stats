@@ -34,3 +34,14 @@ amarillo banderas), para revisarla a ojo.
 | `validar.mjs` | Verifica la conversión con los spawns y banderas de los `.bsp` |
 | `imagenes.mjs` | Lee BMP y TGA, escribe PNG. Sin dependencias |
 | `bsp.mjs` | Lee las entidades de un `.bsp` de GoldSrc |
+| `soldado.mjs` | Le quita el fondo a `fuentes/soldado.jpg` para el muñeco de "Dónde pega". Con `--control` deja en `validacion/` el recorte y las zonas pintadas encima |
+
+## El soldado de "Dónde pega"
+
+```bash
+node soldado.mjs --control
+```
+
+Genera `sitio/public/soldado.webp` (sin fondo) y `sitio/lib/soldado.json` (dónde quedó el recorte).
+Las zonas del cuerpo están en `sitio/lib/zonasSoldado.ts`, en píxeles de la imagen original:
+si se cambia la imagen, hay que ajustarlas y revisar `validacion/soldado-zonas.png`.

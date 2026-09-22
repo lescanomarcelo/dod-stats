@@ -78,6 +78,25 @@ test('coordenadas negativas se leen bien', () => {
 /*  Otros eventos                                                      */
 /* ------------------------------------------------------------------ */
 
+test('impactos: zonas del cuerpo, danio y disparos', () => {
+  /* H ts mapa steam nick  generico cabeza pecho estomago brazo_izq brazo_der pierna_izq pierna_der  danio disparos */
+  const e = parsearLinea(linea('H', 1789999999, 'dod_kalt', 'STEAM_0:1:111', 'Trevor', 2, 11, 21, 4, 33, 19, 11, 2, 2450, 140))
+  assert.equal(e.tipo, 'impactos')
+  assert.equal(e.mapa, 'dod_kalt')
+  assert.equal(e.steamid, 'STEAM_0:1:111')
+  assert.deepEqual(e.impactos, {
+    generico: 2, cabeza: 11, pecho: 21, estomago: 4, brazo_izq: 33, brazo_der: 19, pierna_izq: 11, pierna_der: 2
+  })
+  assert.equal(e.danio, 2450)
+  assert.equal(e.disparos, 140)
+})
+
+test('impactos con numeros negativos o invalidos se descartan', () => {
+  assert.equal(parsearLinea(linea('H', 1789999999, 'dod_kalt', 'STEAM_0:1:111', 'T', 0, -1, 0, 0, 0, 0, 0, 0, 0, 0)), null)
+  assert.equal(parsearLinea(linea('H', 1789999999, 'dod_kalt', 'STEAM_0:1:111', 'T', 0, 'x', 0, 0, 0, 0, 0, 0, 0, 0)), null)
+  assert.equal(parsearLinea(linea('H', 1789999999, 'dod_kalt', 'STEAM_0:1:111', 'T', 0, 0, 0)), null, 'faltan campos')
+})
+
 test('conexion, desconexion e inicio de mapa', () => {
   assert.deepEqual(parsearLinea(linea('P', 1789999999, 'dod_kalt')),
     { tipo: 'inicio_mapa', ts: 1789999999, mapa: 'dod_kalt' })

@@ -4,17 +4,18 @@ import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
 import {
   jugador, armasDeJugador, hitboxesDeJugador, rivales, mapasDeJugador,
-  mapasJugadosPor, puntosDeCalor, MAX_PUNTOS_CALOR, type TipoCalor
+  mapasJugadosPor, puntosDeCalor, impactosDeJugador, MAX_PUNTOS_CALOR, type TipoCalor
 } from '@/lib/consultas'
 import {
   kd, porcentaje, formatoKd, formatoPorcentaje, formatoNumero, formatoTiempo,
-  nombreArma, nombreHitbox
+  nombreArma
 } from '@/lib/calculos'
 import { overviewDe, imagenDe } from '@/lib/mapas'
 import { puntosAImagen } from '@/lib/overview'
 import { Tarjeta, Barras, EnlaceJugador, Cargando } from '@/components/Ui'
 import { Hace } from '@/components/Hace'
 import { MapaDeCalor } from '@/components/MapaDeCalor'
+import { Cuerpo, type Zonas } from '@/components/Cuerpo'
 
 /** El id llega por la URL: solo enteros positivos, cualquier otra cosa es 404 */
 function leerId (crudo: string): number | null {
@@ -49,6 +50,42 @@ function ListaRivales ({ titulo, filas, vacio }: { titulo: string, filas: { id: 
 }
 
 type Busqueda = PageProps<'/jugador/[id]'>['searchParams']
+
+/* hitplace del motor -> zona del muñeco. El 0 (generico: granadas, explosiones) no se dibuja */
+const ZONA_DE_HITBOX: Record<number, keyof Zonas> = {
+  1: 'cabeza', 2: 'pecho', 3: 'estomago', 4: 'brazo_izq', 5: 'brazo_der', 6: 'pierna_izq', 7: 'pierna_der'
+}
+
+/**
+ * Datos para el muñeco. Lo ideal son todos los impactos (plugin 0.2 en adelante).
+ * Si el jugador todavia no tiene, se usa el tiro que mato de cada muerte, que ya se
+ * registraba desde el principio, y se aclara con una nota.
+ */
+function zonasParaElMuneco (
+  impactos: Awaited<ReturnType<typeof impactosDeJugador>>,
+  hitboxes: { hitbox: number, veces: number }[]
+): { zonas: Zonas, precision: number | null, nota?: string } {
+  const pegados = Object.values(impactos.zonas).reduce((s, v) => s + v, 0)
+  if (pegados > 0) {
+    const conGenerico = pegados + impactos.generico
+    return {
+      zonas: impactos.zonas,
+      precision: impactos.disparos > 0 ? Math.min(1, conGenerico / impactos.disparos) : null,
+      nota: `Sobre ${formatoNumero(pegados)} impactos, sin contar fuego amigo.`
+    }
+  }
+
+  const zonas: Zonas = { cabeza: 0, pecho: 0, estomago: 0, brazo_izq: 0, brazo_der: 0, pierna_izq: 0, pierna_der: 0 }
+  for (const h of hitboxes) {
+    const zona = ZONA_DE_HITBOX[h.hitbox]
+    if (zona) zonas[zona] += h.veces
+  }
+  return {
+    zonas,
+    precision: null,
+    nota: 'Según el tiro que mató. Con la versión 0.2 del plugin se cuentan todos los impactos y la precisión.'
+  }
+}
 
 async function SeccionCalor ({ id, busqueda }: { id: number, busqueda: Busqueda }) {
   const p = await busqueda
@@ -103,15 +140,16 @@ async function Perfil ({ parametros, busqueda }: { parametros: PageProps<'/jugad
   const j = await jugador(id)
   if (!j) notFound()
 
-  const [armas, hitboxes, nemesis, victimas, mapas] = await Promise.all([
+  const [armas, hitboxes, impactos, nemesis, victimas, mapas] = await Promise.all([
     armasDeJugador(id),
     hitboxesDeJugador(id),
+    impactosDeJugador(id),
     rivales(id, 'nemesis'),
     rivales(id, 'victimas'),
     mapasDeJugador(id)
   ])
 
-  const totalImpactos = hitboxes.reduce((s, h) => s + h.veces, 0)
+  const dondePega = zonasParaElMuneco(impactos, hitboxes)
 
   return (
     <>
@@ -137,6 +175,11 @@ async function Perfil ({ parametros, busqueda }: { parametros: PageProps<'/jugad
         <Tarjeta etiqueta='Suicidios' valor={j.suicidios} />
       </div>
 
+      <section className='seccion panel'>
+        <h2>Dónde pega</h2>
+        <Cuerpo zonas={dondePega.zonas} precision={dondePega.precision} nota={dondePega.nota} />
+      </section>
+
       <section className='seccion columnas'>
         <div className='panel'>
           <h2>Armas favoritas</h2>
@@ -148,18 +191,8 @@ async function Perfil ({ parametros, busqueda }: { parametros: PageProps<'/jugad
           }))}
           />
         </div>
-
-        <div className='panel'>
-          <h2>Dónde pega</h2>
-          <Barras filas={hitboxes.map((h) => ({
-            clave: String(h.hitbox),
-            nombre: nombreHitbox(h.hitbox),
-            valor: h.veces,
-            texto: formatoPorcentaje(porcentaje(h.veces, totalImpactos)),
-            variante: h.hitbox === 1 ? 'cabeza' : undefined
-          }))}
-          />
-        </div>
+        <ListaRivales titulo='Su némesis' filas={nemesis} vacio='Nadie lo mató todavía.' />
+        <ListaRivales titulo='Sus víctimas favoritas' filas={victimas} vacio='Todavía no mató a nadie.' />
       </section>
 
       <section className='seccion' id='calor'>
@@ -167,11 +200,6 @@ async function Perfil ({ parametros, busqueda }: { parametros: PageProps<'/jugad
         <Suspense fallback={<Cargando texto='Cargando mapa de calor…' />}>
           <SeccionCalor id={id} busqueda={busqueda} />
         </Suspense>
-      </section>
-
-      <section className='seccion columnas'>
-        <ListaRivales titulo='Su némesis' filas={nemesis} vacio='Nadie lo mató todavía.' />
-        <ListaRivales titulo='Sus víctimas favoritas' filas={victimas} vacio='Todavía no mató a nadie.' />
       </section>
 
       <section className='seccion'>

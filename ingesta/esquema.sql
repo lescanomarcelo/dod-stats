@@ -66,6 +66,28 @@ CREATE TABLE IF NOT EXISTS {p}mapas_jugados (
   KEY ix_mapa (mapa)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Donde pega cada jugador: todos los impactos (no solo el tiro que mata), por zona
+-- del cuerpo, mas el danio y los disparos para la precision. Una fila por jugador y
+-- mapa que se va sumando: las lineas H del plugin traen diferencias, no totales.
+-- Sin fuego amigo. El mapa se guarda en minuscula para no duplicar filas.
+CREATE TABLE IF NOT EXISTS {p}impactos (
+  jugador_id   INT UNSIGNED    NOT NULL,
+  mapa         VARCHAR(40)     NOT NULL,
+  generico     INT UNSIGNED    NOT NULL DEFAULT 0,
+  cabeza       INT UNSIGNED    NOT NULL DEFAULT 0,
+  pecho        INT UNSIGNED    NOT NULL DEFAULT 0,
+  estomago     INT UNSIGNED    NOT NULL DEFAULT 0,
+  brazo_izq    INT UNSIGNED    NOT NULL DEFAULT 0,
+  brazo_der    INT UNSIGNED    NOT NULL DEFAULT 0,
+  pierna_izq   INT UNSIGNED    NOT NULL DEFAULT 0,
+  pierna_der   INT UNSIGNED    NOT NULL DEFAULT 0,
+  danio        BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  disparos     BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  actualizado  DATETIME        NOT NULL,
+  PRIMARY KEY (jugador_id, mapa),
+  CONSTRAINT fk_{p}impactos_jugador FOREIGN KEY (jugador_id) REFERENCES {p}jugadores (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Hasta que byte de cada archivo ya se cargo. Se actualiza en la MISMA transaccion
 -- que los eventos: o entran los eventos y avanza el offset, o no pasa ninguna de las dos.
 CREATE TABLE IF NOT EXISTS {p}ingesta_estado (

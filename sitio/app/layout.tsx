@@ -4,6 +4,7 @@ import { Suspense } from 'react'
 import { Geist, Geist_Mono, Oswald } from 'next/font/google'
 import { resumenGeneral } from '@/lib/consultas'
 import { Hace } from '@/components/Hace'
+import { BanderaArgentina, BanderaAliados, BanderaEje } from '@/components/Banderas'
 import './globals.css'
 
 const geist = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
@@ -31,11 +32,17 @@ export default function RootLayout ({ children }: LayoutProps<'/'>) {
         <header className='cabecera'>
           <div className='contenedor'>
             <Link href='/' className='marca'>
+              <span className='banderas' aria-hidden='true'>
+                <BanderaArgentina className='bandera' />
+                <BanderaAliados className='bandera' />
+                <BanderaEje className='bandera' />
+              </span>
               <span className='titular'>Tributo</span>
               <small>DoD 1.3 · Estadísticas</small>
             </Link>
             <nav className='nav'>
               <Link href='/'>Ranking</Link>
+              <Link href='/equipos'>Eje vs Aliados</Link>
               <Link href='/armas'>Armas</Link>
               <Link href='/comparar'>Comparar</Link>
             </nav>

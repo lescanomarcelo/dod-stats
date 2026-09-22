@@ -280,3 +280,68 @@ td.gana { color: var(--acento); font-weight: 700; }
   background: linear-gradient(90deg, #1e3a8a, #2563eb, #06b6d4, #84cc16, #facc15, #dc2626);
 }
 .leyenda-calor .cuenta { margin-left: auto; }
+
+/* ------------------------------------------------------------------ */
+/*  Donde pega (muñeco)                                                */
+/* ------------------------------------------------------------------ */
+
+.cuerpo { margin: 0; }
+.cuerpo > svg { width: 100%; display: block; margin: 0 auto; }
+.cuerpo-etiqueta { fill: var(--texto); font-family: var(--font-oswald), sans-serif; font-size: 17px; font-weight: 600; letter-spacing: 0.02em; }
+.cuerpo-valor { fill: var(--tenue); font-family: var(--font-geist-mono), monospace; font-size: 16px; }
+.cuerpo-precision { fill: var(--acento); font-family: var(--font-geist-mono), monospace; font-size: 17px; font-weight: 700; }
+.cuerpo-subtitulo { fill: var(--tenue); font-size: 11px; }
+.cuerpo path { transition: opacity 0.15s; }
+.cuerpo path:hover { opacity: 0.8; }
+
+/* ------------------------------------------------------------------ */
+/*  Banderas                                                           */
+/* ------------------------------------------------------------------ */
+
+.marca { align-items: center; }
+.banderas { display: inline-flex; gap: 4px; align-items: center; margin-right: 0.2rem; }
+.bandera { height: 16px; width: auto; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45); display: block; }
+.bandera-grande { height: 44px; width: auto; border-radius: 3px; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5); }
+
+/* ------------------------------------------------------------------ */
+/*  Eje vs Aliados                                                     */
+/* ------------------------------------------------------------------ */
+
+.duelo { margin-top: 0.5rem; }
+.duelo-lados { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+.duelo-lado { display: flex; align-items: center; gap: 0.9rem; }
+.duelo-lado.eje { justify-content: flex-end; text-align: right; }
+.duelo-nombre { font-family: var(--font-oswald), sans-serif; text-transform: uppercase; letter-spacing: 0.04em; font-size: 1.05rem; }
+.duelo-lado.aliados .duelo-nombre { color: var(--aliados); }
+.duelo-lado.eje .duelo-nombre { color: var(--eje); }
+.duelo-cifra { font-size: 2.2rem; font-weight: 700; line-height: 1.1; }
+.duelo-vs { color: var(--tenue); font-family: var(--font-oswald), sans-serif; text-transform: uppercase; letter-spacing: 0.05em; text-align: center; }
+
+.tira { display: flex; height: 14px; border-radius: 999px; overflow: hidden; background: var(--panel-alto); }
+.tira.chica { height: 8px; min-width: 120px; }
+.tira-aliados { background: var(--aliados); }
+.tira-eje { background: var(--eje); flex: 1; }
+.tira-leyenda { display: flex; justify-content: space-between; color: var(--tenue); font-size: 0.8rem; margin-top: 0.4rem; }
+.celda-tira { width: 30%; }
+
+td.gana-aliados { color: var(--aliados); font-weight: 700; }
+td.gana-eje { color: var(--eje); font-weight: 700; }
+
+@media (max-width: 600px) {
+  .duelo-lados { grid-template-columns: 1fr 1fr; }
+  .duelo-vs { grid-column: 1 / -1; order: 3; }
+  .duelo-cifra { font-size: 1.6rem; }
+}
+
+/* Etiquetas del soldado: el SVG trabaja en pixeles de la imagen original (~1300 de
+   ancho) y se achica al ancho disponible, por eso los tamaños son grandes */
+.cuerpo > svg { max-width: 620px; }
+.soldado-etiqueta { fill: var(--texto); font-family: var(--font-oswald), sans-serif; font-size: 38px; font-weight: 600; letter-spacing: 0.02em; }
+.soldado-valor { fill: var(--acento); font-family: var(--font-geist-mono), monospace; font-size: 36px; font-weight: 600; }
+.soldado-precision { fill: var(--acento); font-family: var(--font-geist-mono), monospace; font-size: 40px; font-weight: 700; }
+.soldado-subtitulo { fill: var(--tenue); font-size: 24px; }
+.pie-cuerpo { display: flex; align-items: center; justify-content: center; gap: 1.25rem; flex-wrap: wrap; margin-top: 0.5rem; }
+.pie-cuerpo .nota { margin: 0; }
+.precision { display: inline-flex; align-items: center; gap: 0.55rem; color: var(--tenue); }
+.precision strong { color: var(--acento); font-size: 1.35rem; }
+.cuerpo .blanco { width: 34px; height: 34px; flex: none; display: inline-block; margin: 0; }

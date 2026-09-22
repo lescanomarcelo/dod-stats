@@ -11,9 +11,11 @@ import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import mysql from 'mysql2/promise'
 import { identidadDe } from './identidad.mjs'
+import { ZONAS } from './parsear.mjs'
 
 const RUTA_ESQUEMA = fileURLToPath(new URL('./esquema.sql', import.meta.url))
-const TABLAS = ['muertes', 'sesiones', 'mapas_jugados', 'ingesta_estado', 'jugadores']
+/* En orden de borrado: las que apuntan a jugadores, antes que jugadores */
+const TABLAS = ['muertes', 'sesiones', 'impactos', 'mapas_jugados', 'ingesta_estado', 'jugadores']
 const FILAS_POR_INSERT = 500
 
 /* Recorta a lo que entra en la columna. Un dato raro no puede trabar la ingesta:
@@ -133,6 +135,21 @@ export async function conectar (config, prefijo = '') {
     }
   }
 
+  /* Las lineas H traen diferencias: se suman a la fila (jugador, mapa). Si en el
+     mismo INSERT vienen dos filas con la misma clave, MySQL las aplica en orden y
+     la segunda suma sobre la primera. */
+  const COLUMNAS_IMPACTOS = ['jugador_id', 'mapa', ...ZONAS, 'danio', 'disparos', 'actualizado']
+  const SUMAS_IMPACTOS = [...ZONAS, 'danio', 'disparos'].map((c) => `${c} = ${c} + VALUES(${c})`).join(', ')
+
+  async function acumularImpactos (filas) {
+    for (let i = 0; i < filas.length; i += FILAS_POR_INSERT) {
+      await conexion.query(
+        `INSERT INTO ${t('impactos')} (${COLUMNAS_IMPACTOS.join(', ')}) VALUES ?
+         ON DUPLICATE KEY UPDATE ${SUMAS_IMPACTOS}, actualizado = GREATEST(actualizado, VALUES(actualizado))`,
+        [filas.slice(i, i + FILAS_POR_INSERT)])
+    }
+  }
+
   /**
    * Guarda un lote de eventos y el nuevo offset del archivo, todo o nada.
    * Devuelve cuantos eventos se guardaron y cuantos se ignoraron (bots).
@@ -140,7 +157,7 @@ export async function conectar (config, prefijo = '') {
    * opciones.fallarAntesDeConfirmar: solo para tests, simula un corte justo antes del COMMIT.
    */
   async function guardarLote (archivo, nuevoOffset, eventos, descartadas, opciones = {}) {
-    const resumen = { muertes: 0, sesiones: 0, mapas: 0, ignorados: 0 }
+    const resumen = { muertes: 0, sesiones: 0, mapas: 0, impactos: 0, ignorados: 0 }
 
     await conexion.beginTransaction()
     try {
@@ -148,10 +165,19 @@ export async function conectar (config, prefijo = '') {
       const muertes = []
       const sesiones = []
       const mapas = []
+      const impactos = []
 
       for (const e of eventos) {
         if (e.tipo === 'inicio_mapa') {
           mapas.push([recortar(e.mapa, 40), fecha(e.ts)])
+          continue
+        }
+
+        if (e.tipo === 'impactos') {
+          const id = await asegurarJugador(cache, e.steamid, e.nick, e.ts)
+          if (!id) { resumen.ignorados++; continue }
+          impactos.push([id, recortar(e.mapa, 40).toLowerCase(), ...ZONAS.map((z) => e.impactos[z]),
+            e.danio, e.disparos, fecha(e.ts)])
           continue
         }
 
@@ -204,6 +230,7 @@ export async function conectar (config, prefijo = '') {
       ], muertes)
       await insertarEnTandas('sesiones', ['jugador_id', 'desconexion', 'segundos'], sesiones)
       await insertarEnTandas('mapas_jugados', ['mapa', 'inicio'], mapas)
+      await acumularImpactos(impactos)
 
       await conexion.query(
         `INSERT INTO ${t('ingesta_estado')}
@@ -223,6 +250,7 @@ export async function conectar (config, prefijo = '') {
       resumen.muertes = muertes.length
       resumen.sesiones = sesiones.length
       resumen.mapas = mapas.length
+      resumen.impactos = impactos.length
       return resumen
     } catch (error) {
       await conexion.rollback()

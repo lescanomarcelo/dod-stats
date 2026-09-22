@@ -20,19 +20,29 @@
  *    D  ts  steamid  nick  segundos_jugados                        desconexion
  *    M  ts  mapa  m_steam  m_nick  m_equipo  v_steam  v_nick  v_equipo
  *           arma  hitbox  teamkill  vx vy vz  mx my mz              muerte
+ *    H  ts  mapa  steamid  nick  generico cabeza pecho estomago
+ *           brazo_izq brazo_der pierna_izq pierna_der  danio  disparos    impactos
  *
  *    ts = segundos unix.  m_ = matador, v_ = victima.  equipo: 1 aliados, 2 eje.
  *    Si no hay matador (suicidio, caida, mundo) los campos m_ van vacios.
  *    vx/vy/vz = donde murio la victima. mx/my/mz = desde donde disparo el matador.
+ *
+ *    H trae los impactos y disparos del jugador desde la linea H anterior (no un
+ *    total): se suman al cargarlos. Se escribe cada 30s solo para quien disparo o
+ *    pego algo, al desconectarse y al terminar el mapa. No cuenta el fuego amigo.
  */
 
 #include <amxmodx>
 #include <amxmisc>
 #include <dodx>
+#include <dodstats>
 
 #define PLUGIN_NAME     "DoD Stats - Registro"
-#define PLUGIN_VERSION  "0.1.0"
+#define PLUGIN_VERSION  "0.2.0"
 #define PLUGIN_AUTHOR   "Marcelo Lescano"
+
+#define PARTES_CUERPO   8   /* generico + las 7 zonas: igual a MAX_BODYHITS */
+#define CAMPO_DISPAROS  4   /* posicion de "shots" en los stats de dodx */
 
 #define PREFIJO         "[STATS]"
 #define LARGO_LINEA     384
@@ -43,6 +53,12 @@ new Array:g_pendientes;
 new g_carpeta[128];
 new g_mapa[32];
 new g_conectadoDesde[33];
+
+/* Impactos acumulados desde la ultima linea H de cada jugador */
+new g_impactos[33][PARTES_CUERPO];
+new g_danio[33];
+/* Total de disparos de dodx que ya se informo: la linea H lleva la diferencia */
+new g_disparosInformados[33];
 
 new g_escritas;
 new g_fallos;
@@ -77,6 +93,7 @@ public plugin_cfg()
 public plugin_end()
 {
     /* Cambio de mapa o apagado: no perder lo que quedo en memoria */
+    registrarImpactosDeTodos();
     volcar();
     ArrayDestroy(g_pendientes);
 }
@@ -87,6 +104,7 @@ public plugin_end()
 
 public tareaVolcar()
 {
+    registrarImpactosDeTodos();
     volcar();
 }
 
@@ -146,6 +164,77 @@ datosJugador(id, steam[], largoSteam, nick[], largoNick)
 }
 
 /* ------------------------------------------------------------------ */
+/*  Impactos y disparos                                                */
+/* ------------------------------------------------------------------ */
+
+disparosTotales(id)
+{
+    new stats[DODX_MAX_STATS], cuerpo[MAX_BODYHITS];
+    get_user_wstats(id, 0, stats, cuerpo);      /* arma 0 = todas las armas */
+    return stats[CAMPO_DISPAROS];
+}
+
+limpiarImpactos(id)
+{
+    for (new i = 0; i < PARTES_CUERPO; i++)
+        g_impactos[id][i] = 0;
+    g_danio[id] = 0;
+}
+
+registrarImpactos(id)
+{
+    if (!is_user_connected(id) || is_user_bot(id) || is_user_hltv(id))
+        return;
+
+    new total = disparosTotales(id);
+    new disparos = total - g_disparosInformados[id];
+
+    /* dodx reinicio sus contadores (por ejemplo, al entrar al mapa despues de que
+       tomamos la base): lo que marca ahora son todos disparos nuevos */
+    if (disparos < 0)
+        disparos = total;
+    g_disparosInformados[id] = total;
+
+    new impactos = 0;
+    for (new i = 0; i < PARTES_CUERPO; i++)
+        impactos += g_impactos[id][i];
+
+    if (!impactos && !disparos)
+        return;
+
+    new steam[35], nick[32], linea[LARGO_LINEA];
+    datosJugador(id, steam, charsmax(steam), nick, charsmax(nick));
+
+    formatex(linea, charsmax(linea), "H^t%d^t%s^t%s^t%s^t%d^t%d^t%d^t%d^t%d^t%d^t%d^t%d^t%d^t%d",
+        get_systime(), g_mapa, steam, nick,
+        g_impactos[id][0], g_impactos[id][1], g_impactos[id][2], g_impactos[id][3],
+        g_impactos[id][4], g_impactos[id][5], g_impactos[id][6], g_impactos[id][7],
+        g_danio[id], disparos);
+    ArrayPushString(g_pendientes, linea);
+
+    limpiarImpactos(id);
+}
+
+registrarImpactosDeTodos()
+{
+    for (new id = 1; id <= 32; id++)
+        registrarImpactos(id);
+}
+
+public client_damage(atacante, victima, danio, indiceArma, lugarImpacto, TA)
+{
+    /* Sin atacante (caida, mapa), a uno mismo o fuego amigo: no cuenta */
+    if (TA || atacante < 1 || atacante > 32 || atacante == victima)
+        return;
+
+    if (lugarImpacto < 0 || lugarImpacto >= PARTES_CUERPO)
+        lugarImpacto = 0;
+
+    g_impactos[atacante][lugarImpacto]++;
+    g_danio[atacante] += danio;
+}
+
+/* ------------------------------------------------------------------ */
 /*  Eventos                                                            */
 /* ------------------------------------------------------------------ */
 
@@ -155,6 +244,8 @@ public client_putinserver(id)
         return;
 
     g_conectadoDesde[id] = get_systime();
+    limpiarImpactos(id);
+    g_disparosInformados[id] = disparosTotales(id);
 
     new steam[35], nick[32], linea[LARGO_LINEA];
     datosJugador(id, steam, charsmax(steam), nick, charsmax(nick));
@@ -167,6 +258,9 @@ public client_disconnected(id, bool:drop, message[], maxlen)
 {
     if (!g_conectadoDesde[id])
         return;
+
+    /* Lo que disparo y pego desde la ultima tanda, antes de que se vaya */
+    registrarImpactos(id);
 
     new segundos = get_systime() - g_conectadoDesde[id];
     g_conectadoDesde[id] = 0;

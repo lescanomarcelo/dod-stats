@@ -10,9 +10,9 @@ Plugin .amxx  →  archivo TSV en el server  →  ingesta por SFTP  →  MySQL  
 
 | Carpeta | Qué hay |
 |---|---|
-| `plugin/` | `dod_stats_registro.sma` — registra muertes, conexiones y desconexiones. Compilado en `plugin/compilado/` con AMXX 1.9.0.5281 |
-| `ingesta/` | Baja los archivos del server por SFTP, los parsea y los carga en MySQL. 36 tests |
-| `sitio/` | El sitio en Next.js 16: ranking, perfiles con mapa de calor, comparación y armas. Se despliega en Vercel |
+| `plugin/` | `dod_stats_registro.sma` — registra muertes, impactos por zona del cuerpo, disparos, conexiones y desconexiones. Compilado en `plugin/compilado/` con AMXX 1.9.0.5281 |
+| `ingesta/` | Baja los archivos del server por SFTP, los parsea y los carga en MySQL. 42 tests |
+| `sitio/` | El sitio en Next.js 16: ranking, perfiles (muñeco de impactos y mapa de calor), Eje vs Aliados, comparación y armas. Se despliega en Vercel |
 | `mapas/` | Genera las imágenes de los mapas de calor y valida la conversión de coordenadas contra los `.bsp` (902/902) |
 | `.github/workflows/` | Corre la ingesta cada 15 minutos en GitHub Actions |
 | `fase0/` | Pruebas de viabilidad iniciales. `dod_stats_prueba.sma` quedó obsoleto: usaba el módulo MySQL, que el hosting no deja instalar |

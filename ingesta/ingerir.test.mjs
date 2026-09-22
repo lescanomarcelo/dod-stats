@@ -31,6 +31,10 @@ const M = ({ ts, mapa = 'dod_kalt', mS = '', mN = '', mE = 0, vS, vN, vE = 2,
   arma = 'kar', hb = 2, tk = 0, v = [100, 200, 36], m = [0, 0, 0] }) =>
   ['M', ts, mapa, mS, mN, mE, vS, vN, vE, arma, hb, tk, ...v, ...m].join('\t')
 
+/* H ts mapa steam nick  generico cabeza pecho estomago brazo_izq brazo_der pierna_izq pierna_der  danio disparos */
+const H = (ts, steam, nick, zonas, danio, disparos, mapa = 'dod_kalt') =>
+  ['H', ts, mapa, steam, nick, ...zonas, danio, disparos].join('\t')
+
 const TREVOR = 'STEAM_0:1:111'
 const PEPE = 'STEAM_0:0:222'
 
@@ -273,6 +277,57 @@ test('las muertes con bots se ignoran enteras', async () => {
   assert.equal(r.muertes, 0)
   assert.equal(r.ignorados, 3)
   assert.equal(await base.contar('jugadores'), 0, 'ni los bots ni Pepe entran por jugar solo contra bots')
+})
+
+/* ------------------------------------------------------------------ */
+/*  Impactos (donde pega)                                              */
+/* ------------------------------------------------------------------ */
+
+test('las lineas de impactos se suman por jugador y mapa', async () => {
+  await escribir([
+    H(1000, TREVOR, 'Trevor', [1, 5, 10, 2, 8, 6, 3, 1], 900, 80),
+    H(1030, TREVOR, 'Trevor', [0, 2, 4, 1, 3, 2, 1, 0], 400, 35),
+    H(1060, TREVOR, 'Trevor', [0, 1, 1, 0, 0, 0, 0, 0], 100, 10, 'dod_avalanche')
+  ])
+  const r = await correr()
+  assert.equal(r.impactos, 3)
+
+  const filas = await base.consultar('SELECT * FROM {p}impactos ORDER BY mapa')
+  assert.equal(filas.length, 2, 'una fila por mapa')
+  const kalt = filas.find((f) => f.mapa === 'dod_kalt')
+  assert.deepEqual(
+    [kalt.generico, kalt.cabeza, kalt.pecho, kalt.estomago, kalt.brazo_izq, kalt.brazo_der, kalt.pierna_izq, kalt.pierna_der],
+    [1, 7, 14, 3, 11, 8, 4, 1])
+  assert.equal(Number(kalt.danio), 1300)
+  assert.equal(Number(kalt.disparos), 115)
+})
+
+test('los impactos se acumulan entre pasadas sin duplicarse', async () => {
+  await escribir([H(1000, TREVOR, 'Trevor', [0, 5, 5, 0, 0, 0, 0, 0], 500, 50)])
+  await correr()
+  await agregar([H(1030, TREVOR, 'Trevor', [0, 1, 1, 0, 0, 0, 0, 0], 100, 10)])
+  await correr()
+  await correr()
+
+  const [f] = await base.consultar('SELECT cabeza, pecho, disparos FROM {p}impactos')
+  assert.deepEqual([f.cabeza, f.pecho, Number(f.disparos)], [6, 6, 60])
+})
+
+test('el nombre del mapa se unifica en minuscula', async () => {
+  await escribir([
+    H(1000, TREVOR, 'Trevor', [0, 1, 0, 0, 0, 0, 0, 0], 100, 5, 'dod_Assault2'),
+    H(1030, TREVOR, 'Trevor', [0, 1, 0, 0, 0, 0, 0, 0], 100, 5, 'dod_assault2')
+  ])
+  await correr()
+  const filas = await base.consultar('SELECT mapa, cabeza FROM {p}impactos')
+  assert.deepEqual(filas.map((f) => [f.mapa, f.cabeza]), [['dod_assault2', 2]])
+})
+
+test('los impactos de bots se ignoran', async () => {
+  await escribir([H(1000, 'BOT', '[BOT] Sturm', [0, 9, 9, 0, 0, 0, 0, 0], 900, 40)])
+  const r = await correr()
+  assert.equal(r.impactos, 0)
+  assert.equal(await base.contar('impactos'), 0)
 })
 
 /* ------------------------------------------------------------------ */

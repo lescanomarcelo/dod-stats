@@ -6,7 +6,10 @@
  */
 
 /* Cantidad de campos por tipo de evento, incluyendo el propio tipo */
-const CAMPOS = { P: 3, C: 4, D: 5, M: 18 }
+const CAMPOS = { P: 3, C: 4, D: 5, M: 18, H: 15 }
+
+/* Orden de las zonas en la linea H: el hitplace del motor, de 0 a 7 */
+export const ZONAS = ['generico', 'cabeza', 'pecho', 'estomago', 'brazo_izq', 'brazo_der', 'pierna_izq', 'pierna_der']
 
 /* Valores de hitplace del motor HL1 */
 export const HITBOX = {
@@ -51,6 +54,22 @@ export function parsearLinea (linea) {
     const segundos = entero(campos[4])
     if (segundos === null) return null
     return { tipo: 'desconexion', ts, steamid: campos[2], nick: campos[3], segundos }
+  }
+
+  if (tipo === 'H') {
+    const valores = campos.slice(5).map(entero)
+    if (valores.some((v) => v === null || v < 0)) return null
+    const impactos = Object.fromEntries(ZONAS.map((zona, i) => [zona, valores[i]]))
+    return {
+      tipo: 'impactos',
+      ts,
+      mapa: campos[2],
+      steamid: campos[3],
+      nick: campos[4],
+      impactos,
+      danio: valores[8],
+      disparos: valores[9]
+    }
   }
 
   /* M: muerte */

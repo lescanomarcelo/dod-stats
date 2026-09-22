@@ -106,6 +106,22 @@ function posicionMatador ([vx, vy, vz]) {
   return [Math.round(vx + Math.cos(angulo) * distancia), Math.round(vy + Math.sin(angulo) * distancia), vz]
 }
 
+/* Impactos de un jugador en un mapa, como la linea H del plugin. La punteria del
+   jugador sube la proporcion de cabeza y la precision; cada uno tiene ademas un
+   brazo/pierna "favorito" para que los muñecos no salgan todos iguales. */
+function lineaImpactos (momento, mapa, j, segundos) {
+  const pegados = Math.round((segundos / 60) * j.habilidad * entre(6, 11))
+  const favorito = 4 + (j.steam.charCodeAt(j.steam.length - 1) % 4)   /* 4..7: un brazo o una pierna */
+  const pesos = [2, 8 + j.punteria * 120, 26, 11, 13, 13, 9, 9]
+  pesos[favorito] += 9
+  const zonas = new Array(8).fill(0)
+  for (let i = 0; i < pegados; i++) zonas[elegirPonderado([0, 1, 2, 3, 4, 5, 6, 7], (z) => pesos[z])]++
+  const precision = Math.min(0.45, 0.12 + j.punteria * 1.3 + azar() * 0.05)
+  const disparos = Math.round(pegados / precision)
+  const danio = pegados * entre(28, 42)
+  return ['H', momento, mapa, j.steam, j.nick, ...zonas, danio, disparos].join(T)
+}
+
 function generarDia (inicioDia) {
   const lineas = []
   let ts = inicioDia
@@ -150,6 +166,7 @@ function generarDia (inicioDia) {
 
     for (const j of presentes) {
       const jugado = entre(300, SEGUNDOS_POR_MAPA)
+      lineas.push(lineaImpactos(ts + jugado - 1, mapa, j, jugado))
       lineas.push(['D', ts + jugado, j.steam, j.nick, jugado].join(T))
     }
 
