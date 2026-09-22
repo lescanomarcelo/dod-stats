@@ -384,34 +384,42 @@ export async function enfrentamiento (a: number, b: number, v: Ventana = TODO) {
   return { aSobreB: n(fila?.a_sobre_b), bSobreA: n(fila?.b_sobre_a) }
 }
 
-/** Los mejores con un arma: top por kills, con sus headshots */
-export async function rankingDeArma (arma: string, v: Ventana = TODO, limite = 10) {
+/**
+ * Los mejores con un arma: top por kills, con sus headshots.
+ * Recibe todos los nombres con los que la base guarda esa arma (el culatazo del
+ * Garand, por ejemplo, viene aparte) y los suma.
+ */
+export async function rankingDeArma (nombres: string[], v: Ventana = TODO, limite = 10) {
   'use cache'
   cacheLife(VIDA_CACHE)
 
+  if (nombres.length === 0) return []
   const f = filtro(null, v, 'm.')
+  const marcadores = nombres.map(() => '?').join(', ')
   const filas = await consultar(`
     SELECT j.id, j.nick, COUNT(*) AS kills, SUM(m.headshot) AS headshots
     FROM {p}muertes m JOIN {p}jugadores j ON j.id = m.matador_id
-    WHERE m.teamkill = 0 AND m.arma = ? ${f.sql}
+    WHERE m.teamkill = 0 AND m.arma IN (${marcadores}) ${f.sql}
     GROUP BY j.id, j.nick
     ORDER BY kills DESC, headshots DESC
     LIMIT ?
-  `, [arma, ...f.valores, limite])
+  `, [...nombres, ...f.valores, limite])
   return filas.map((r) => ({ id: n(r.id), nick: String(r.nick), kills: n(r.kills), headshots: n(r.headshots) }))
 }
 
-/** Totales de un arma en la ventana */
-export async function resumenDeArma (arma: string, v: Ventana = TODO) {
+/** Totales de un arma en la ventana, sumando todos sus nombres en la base */
+export async function resumenDeArma (nombres: string[], v: Ventana = TODO) {
   'use cache'
   cacheLife(VIDA_CACHE)
 
+  if (nombres.length === 0) return { kills: 0, headshots: 0, jugadores: 0 }
   const f = filtro(null, v)
+  const marcadores = nombres.map(() => '?').join(', ')
   const [fila] = await consultar(`
     SELECT COUNT(*) AS kills, SUM(headshot) AS headshots, COUNT(DISTINCT matador_id) AS jugadores
     FROM {p}muertes
-    WHERE matador_id IS NOT NULL AND teamkill = 0 AND arma = ? ${f.sql}
-  `, [arma, ...f.valores])
+    WHERE matador_id IS NOT NULL AND teamkill = 0 AND arma IN (${marcadores}) ${f.sql}
+  `, [...nombres, ...f.valores])
   return { kills: n(fila?.kills), headshots: n(fila?.headshots), jugadores: n(fila?.jugadores) }
 }
 

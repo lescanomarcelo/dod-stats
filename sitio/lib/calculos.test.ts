@@ -6,8 +6,9 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   kd, porcentaje, formatoKd, formatoPorcentaje, formatoTiempo,
-  tiempoRelativo, nombreArma, nombreHitbox, nombreEquipo, camper
+  tiempoRelativo, nombreHitbox, nombreEquipo, camper
 } from './calculos.ts'
+import { nombreDeArma, armaDe, imagenDeArma } from './armas.ts'
 
 test('K/D: kills sobre muertes', () => {
   assert.equal(kd(30, 10), 3)
@@ -56,10 +57,10 @@ test('tiempo relativo en singular y plural', () => {
 })
 
 test('nombres de armas conocidas y fallback para las desconocidas', () => {
-  assert.equal(nombreArma('kar'), 'Kar98k')
-  assert.equal(nombreArma('garand'), 'M1 Garand')
-  assert.equal(nombreArma('30cal'), '.30 cal')
-  assert.equal(nombreArma('arma_nueva_rara'), 'arma_nueva_rara')
+  assert.equal(nombreDeArma('kar'), 'Kar98k')
+  assert.equal(nombreDeArma('garand'), 'M1 Garand')
+  assert.equal(nombreDeArma('30cal'), '.30 cal')
+  assert.equal(nombreDeArma('arma_nueva_rara'), 'arma_nueva_rara')
 })
 
 test('nombres de hitbox y equipo', () => {
@@ -75,4 +76,20 @@ test('Camper: porcentaje del tiempo jugado acostado, sin dividir por cero ni pas
   assert.equal(camper(900, 3600), 25)
   assert.equal(camper(100, 0), 0)
   assert.equal(camper(5000, 3600), 100)
+})
+
+test('el catálogo entiende los dos nombres del juego: el de la muerte y el del log', () => {
+  assert.equal(nombreDeArma('K98'), 'Kar98k')
+  assert.equal(nombreDeArma('scoped K98'), 'Kar98k con mira')
+  assert.equal(nombreDeArma('STG44'), 'StG 44')
+  assert.equal(nombreDeArma('.30 cal'), '.30 cal')
+  assert.equal(nombreDeArma('bazooka'), 'Bazooka')
+})
+
+test('cada arma conocida tiene su dibujo, y una desconocida no rompe nada', () => {
+  assert.equal(imagenDeArma('K98'), '/armas/kar.webp')
+  assert.equal(imagenDeArma('Bazooka'), '/armas/bazooka.webp')
+  assert.equal(imagenDeArma('arma_nueva_rara'), null)
+  assert.equal(armaDe('arma_nueva_rara'), undefined)
+  assert.equal(armaDe('  MP40  ')?.bando, 'eje')
 })

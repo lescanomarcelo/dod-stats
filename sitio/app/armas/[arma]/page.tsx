@@ -5,7 +5,8 @@ import { Suspense } from 'react'
 import { armas, rankingDeArma, resumenDeArma } from '@/lib/consultas'
 import { rangoDesdeBusqueda } from '@/lib/periodos'
 import { enlaceDeArma } from '@/lib/enlaces'
-import { porcentaje, formatoPorcentaje, formatoNumero, nombreArma } from '@/lib/calculos'
+import { porcentaje, formatoPorcentaje, formatoNumero } from '@/lib/calculos'
+import { armaDe, nombreDeArma, NOMBRE_BANDO } from '@/lib/armas'
 import { Tarjeta, EnlaceJugador, Cargando } from '@/components/Ui'
 import { ControlPeriodo } from '@/components/Periodo'
 import { ImagenArma } from '@/components/ImagenArma'
@@ -21,7 +22,7 @@ function leerArma (crudo: string): string {
 
 export async function generateMetadata (props: PageProps<'/armas/[arma]'>): Promise<Metadata> {
   const arma = leerArma((await props.params).arma)
-  return { title: arma ? nombreArma(arma) : 'Arma' }
+  return { title: nombreDeArma(arma) }
 }
 
 async function Contenido ({ parametros, busqueda }: {
@@ -29,15 +30,27 @@ async function Contenido ({ parametros, busqueda }: {
   busqueda: PageProps<'/armas/[arma]'>['searchParams']
 }) {
   const pedida = leerArma((await parametros).arma)
+  const delCatalogo = armaDe(pedida)
 
-  /* Que el arma exista de verdad: si nadie mató nunca con ella, es 404 */
+  /*
+   *  Vale cualquier arma del catalogo (aunque nadie haya matado con ella) y
+   *  cualquiera que aparezca en la base. Lo que no es ninguna de las dos, es 404.
+   */
   const todas = await armas()
-  const arma = todas.find((a) => a.arma.toLowerCase() === pedida.toLowerCase())?.arma
-  if (!arma) notFound()
+  const enLaBase = todas
+    .map((a) => a.arma)
+    .filter((nombre) => delCatalogo
+      ? armaDe(nombre)?.nombre === delCatalogo.nombre
+      : nombre.toLowerCase() === pedida.toLowerCase())
+  if (!delCatalogo && enLaBase.length === 0) notFound()
 
+  const arma = delCatalogo?.alias[0] ?? enLaBase[0]
   const rango = rangoDesdeBusqueda(await busqueda)
   const ventana = { desde: rango.desde, hasta: rango.hasta }
-  const [mejores, resumen] = await Promise.all([rankingDeArma(arma, ventana), resumenDeArma(arma, ventana)])
+  const [mejores, resumen] = await Promise.all([
+    rankingDeArma(enLaBase, ventana),
+    resumenDeArma(enLaBase, ventana)
+  ])
 
   return (
     <>
@@ -51,6 +64,7 @@ async function Contenido ({ parametros, busqueda }: {
         <Tarjeta etiqueta='Kills' valor={formatoNumero(resumen.kills)} destacada />
         <Tarjeta etiqueta='Headshots' valor={formatoPorcentaje(porcentaje(resumen.headshots, resumen.kills))} />
         <Tarjeta etiqueta='La usaron' valor={`${formatoNumero(resumen.jugadores)} jugadores`} />
+        {delCatalogo && <Tarjeta etiqueta='Bando' valor={NOMBRE_BANDO[delCatalogo.bando]} />}
       </div>
 
       <section className='seccion'>
@@ -91,7 +105,7 @@ async function Contenido ({ parametros, busqueda }: {
 
 /* El nombre del arma sale de la URL, que es dato de la visita: va dentro del Suspense */
 async function Titulo ({ parametros }: { parametros: PageProps<'/armas/[arma]'>['params'] }) {
-  return <h1>{nombreArma(leerArma((await parametros).arma))}</h1>
+  return <h1>{nombreDeArma(leerArma((await parametros).arma))}</h1>
 }
 
 export default function PaginaArma (props: PageProps<'/armas/[arma]'>) {
