@@ -446,8 +446,6 @@ tr.fila-clave td:first-child { font-weight: 600; }
 .estado-servidor.fuera .punto { background: #ef3b2d; box-shadow: 0 0 0 3px rgba(239, 59, 45, 0.22), 0 0 8px rgba(239, 59, 45, 0.6); }
 .estado-servidor.fuera strong { color: #ef3b2d; }
 .estado-servidor.cargando .punto { background: var(--tenue); box-shadow: none; }
-.estado-servidor .conectar { color: var(--acento); }
-.estado-servidor .conectar:hover { text-decoration: underline; }
 
 /* Links */
 .enlaces { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.9rem; }

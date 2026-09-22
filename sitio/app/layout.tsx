@@ -48,8 +48,6 @@ async function EstadoServidor () {
       <strong className='numero'>{humanos}/{e.maximo}</strong> jugando
       <span className='separador'>·</span>
       <span className='numero'>{e.mapa}</span>
-      <span className='separador'>·</span>
-      <a href={`steam://connect/${DIRECCION}`} className='conectar'>Entrar al server</a>
     </span>
   )
 }
