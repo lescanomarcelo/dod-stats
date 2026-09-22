@@ -6,7 +6,7 @@
  */
 
 /* Cantidad de campos por tipo de evento, incluyendo el propio tipo */
-const CAMPOS = { P: 3, C: 4, D: 5, M: 18, H: 15 }
+const CAMPOS = { P: 3, C: 4, D: 5, M: 18, H: 15, S: 7, E: 6 }
 
 /* Orden de las zonas en la linea H: el hitplace del motor, de 0 a 7 */
 export const ZONAS = ['generico', 'cabeza', 'pecho', 'estomago', 'brazo_izq', 'brazo_der', 'pierna_izq', 'pierna_der']
@@ -70,6 +70,20 @@ export function parsearLinea (linea) {
       danio: valores[8],
       disparos: valores[9]
     }
+  }
+
+  if (tipo === 'S') {
+    const equipo = entero(campos[5])
+    const puntos = entero(campos[6])
+    if (equipo !== 1 && equipo !== 2) return null
+    if (puntos === null || puntos <= 0) return null
+    return { tipo: 'puntos', ts, mapa: campos[2], steamid: campos[3], nick: campos[4], equipo, puntos }
+  }
+
+  if (tipo === 'E') {
+    const [inicio, aliados, eje] = campos.slice(3).map(entero)
+    if (inicio === null || aliados === null || eje === null) return null
+    return { tipo: 'marcador', ts, mapa: campos[2], inicio, aliados, eje }
   }
 
   /* M: muerte */

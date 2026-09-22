@@ -40,7 +40,7 @@ const MARGEN = 235   /* espacio a cada lado de la figura para las etiquetas */
 
 /* Lado de cada etiqueta y altura del texto, en coordenadas de la imagen original */
 const ETIQUETAS: { zona: NombreZona, texto: string, lado: 'izq' | 'der', y: number }[] = [
-  { zona: 'cabeza', texto: 'Cabeza', lado: 'izq', y: 150 },
+  { zona: 'cabeza', texto: 'Trompa', lado: 'izq', y: 150 },
   { zona: 'brazo_der', texto: 'Brazo der.', lado: 'izq', y: 300 },
   { zona: 'pierna_der', texto: 'Pierna der.', lado: 'izq', y: 700 },
   /* Del lado derecho el orden sigue la altura de cada zona, asi las lineas no se
@@ -94,7 +94,7 @@ export function Cuerpo ({ zonas, precision, nota }: Props) {
         <g mask='url(#silueta-soldado)' style={{ mixBlendMode: 'color' }}>
           {(Object.keys(ZONAS_SOLDADO) as NombreZona[]).map((zona) => (
             <polygon key={zona} points={ZONAS_SOLDADO[zona].map((p) => p.join(',')).join(' ')} fill={colorPara(zonas[zona] / maximo)}>
-              <title>{`${zona.replace('_', ' ')}: ${porcentaje(zonas[zona])}`}</title>
+              <title>{`${ETIQUETAS.find((e) => e.zona === zona)?.texto ?? zona}: ${porcentaje(zonas[zona])}`}</title>
             </polygon>
           ))}
         </g>

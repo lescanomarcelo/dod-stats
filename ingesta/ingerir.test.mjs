@@ -35,6 +35,10 @@ const M = ({ ts, mapa = 'dod_kalt', mS = '', mN = '', mE = 0, vS, vN, vE = 2,
 const H = (ts, steam, nick, zonas, danio, disparos, mapa = 'dod_kalt') =>
   ['H', ts, mapa, steam, nick, ...zonas, danio, disparos].join('\t')
 
+/* S ts mapa steam nick equipo puntos  /  E ts mapa inicio aliados eje */
+const S = (ts, steam, nick, equipo, puntos, mapa = 'dod_kalt') => ['S', ts, mapa, steam, nick, equipo, puntos].join('	')
+const E = (ts, inicio, aliados, eje, mapa = 'dod_kalt') => ['E', ts, mapa, inicio, aliados, eje].join('	')
+
 const TREVOR = 'STEAM_0:1:111'
 const PEPE = 'STEAM_0:0:222'
 
@@ -328,6 +332,45 @@ test('los impactos de bots se ignoran', async () => {
   const r = await correr()
   assert.equal(r.impactos, 0)
   assert.equal(await base.contar('impactos'), 0)
+})
+
+test('los puntos de cada jugador suman en el ranking', async () => {
+  await escribir([
+    S(1000, TREVOR, 'Trevor', 1, 2),
+    S(1100, TREVOR, 'Trevor', 2, 1),
+    S(1200, PEPE, 'Pepe', 2, 3),
+    S(1300, 'BOT', '[BOT] Sturm', 2, 5)
+  ])
+  const r = await correr()
+  assert.equal(r.puntos, 3)
+  assert.equal(r.ignorados, 1)
+  assert.equal((await jugador('Trevor')).puntos, 3)
+  assert.equal((await jugador('Pepe')).puntos, 3)
+  const porBando = await base.consultar('SELECT equipo, SUM(puntos) AS p FROM {p}puntos GROUP BY equipo ORDER BY equipo')
+  assert.deepEqual(porBando.map((f) => [f.equipo, Number(f.p)]), [[1, 2], [2, 4]])
+})
+
+test('el marcador de una partida queda con el ultimo valor', async () => {
+  await escribir([
+    E(1030, 1000, 1, 0),
+    E(1060, 1000, 3, 2),
+    E(1090, 1000, 5, 2),
+    E(2030, 2000, 0, 4, 'dod_Avalanche')
+  ])
+  const r = await correr()
+  assert.equal(r.marcadores, 4)
+  const filas = await base.consultar('SELECT mapa, aliados, eje, fin FROM {p}partidas ORDER BY inicio')
+  assert.deepEqual(filas.map((f) => [f.mapa, f.aliados, f.eje, f.fin.getTime() / 1000]),
+    [['dod_kalt', 5, 2, 1090], ['dod_avalanche', 0, 4, 2030]])
+})
+
+test('un marcador mas viejo no pisa al mas nuevo aunque llegue despues', async () => {
+  await escribir([E(1090, 1000, 5, 2)])
+  await correr()
+  await agregar([E(1060, 1000, 3, 2)])
+  await correr()
+  const [f] = await base.consultar('SELECT aliados, eje FROM {p}partidas')
+  assert.deepEqual([f.aliados, f.eje], [5, 2])
 })
 
 /* ------------------------------------------------------------------ */

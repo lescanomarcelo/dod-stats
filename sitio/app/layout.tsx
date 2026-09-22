@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { Geist, Geist_Mono, Oswald } from 'next/font/google'
@@ -16,8 +16,12 @@ export const metadata: Metadata = {
     default: 'Tributo Server — Estadísticas',
     template: '%s · Tributo Server'
   },
-  description: 'Ranking y estadísticas de los jugadores del server DoD 1.3 :::aU::: Tributo.'
+  description: 'Ranking y estadísticas de los jugadores del server DoD 1.3 :::aU::: Tributo.',
+  /* Instalada en iPhone: pantalla completa y nombre corto bajo el icono */
+  appleWebApp: { capable: true, title: 'Tributo Stats', statusBarStyle: 'black-translucent' }
 }
+
+export const viewport: Viewport = { themeColor: '#13150f' }
 
 async function UltimaActualizacion () {
   const { actualizado } = await resumenGeneral()

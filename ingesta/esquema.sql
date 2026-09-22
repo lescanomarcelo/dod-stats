@@ -88,6 +88,34 @@ CREATE TABLE IF NOT EXISTS {p}impactos (
   CONSTRAINT fk_{p}impactos_jugador FOREIGN KEY (jugador_id) REFERENCES {p}jugadores (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Puntos de cada jugador (tomar banderas y objetivos): una fila por vez que sumo,
+-- con el bando con el que jugaba en ese momento. Desde la version 0.3 del plugin.
+CREATE TABLE IF NOT EXISTS {p}puntos (
+  id          BIGINT UNSIGNED   NOT NULL AUTO_INCREMENT,
+  momento     DATETIME          NOT NULL,
+  mapa        VARCHAR(40)       NOT NULL,
+  jugador_id  INT UNSIGNED      NOT NULL,
+  equipo      TINYINT UNSIGNED  NOT NULL,
+  puntos      SMALLINT UNSIGNED NOT NULL,
+  PRIMARY KEY (id),
+  KEY ix_jugador (jugador_id),
+  KEY ix_momento (momento),
+  CONSTRAINT fk_{p}puntos_jugador FOREIGN KEY (jugador_id) REFERENCES {p}jugadores (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Resultado de cada partida (un mapa jugado): el marcador de equipos. La identifica
+-- el momento en que empezo el mapa; cada linea E del plugin la pisa con el marcador
+-- mas nuevo, asi que al terminar queda el resultado final.
+CREATE TABLE IF NOT EXISTS {p}partidas (
+  mapa     VARCHAR(40)       NOT NULL,
+  inicio   DATETIME          NOT NULL,
+  fin      DATETIME          NOT NULL,
+  aliados  SMALLINT UNSIGNED NOT NULL,
+  eje      SMALLINT UNSIGNED NOT NULL,
+  PRIMARY KEY (inicio, mapa),
+  KEY ix_mapa (mapa)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Hasta que byte de cada archivo ya se cargo. Se actualiza en la MISMA transaccion
 -- que los eventos: o entran los eventos y avanza el offset, o no pasa ninguna de las dos.
 CREATE TABLE IF NOT EXISTS {p}ingesta_estado (
@@ -114,7 +142,8 @@ SELECT
   COALESCE(k.teamkills, 0)  AS teamkills,
   COALESCE(d.muertes, 0)    AS muertes,
   COALESCE(d.suicidios, 0)  AS suicidios,
-  COALESCE(s.segundos, 0)   AS segundos_jugados
+  COALESCE(s.segundos, 0)   AS segundos_jugados,
+  COALESCE(pt.puntos, 0)    AS puntos
 FROM {p}jugadores j
 LEFT JOIN (
   SELECT matador_id,
@@ -136,4 +165,9 @@ LEFT JOIN (
   SELECT jugador_id, SUM(segundos) AS segundos
   FROM {p}sesiones
   GROUP BY jugador_id
-) s ON s.jugador_id = j.id;
+) s ON s.jugador_id = j.id
+LEFT JOIN (
+  SELECT jugador_id, SUM(puntos) AS puntos
+  FROM {p}puntos
+  GROUP BY jugador_id
+) pt ON pt.jugador_id = j.id;

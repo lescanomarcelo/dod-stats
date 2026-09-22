@@ -8,6 +8,7 @@ import {
 import { Tarjeta, EnlaceJugador, Cargando } from '@/components/Ui'
 
 const PESTANAS: { orden: Orden, texto: string }[] = [
+  { orden: 'puntos', texto: 'Puntos' },
   { orden: 'kills', texto: 'Kills' },
   { orden: 'kd', texto: 'K/D' },
   { orden: 'hs', texto: 'Headshots %' },
@@ -28,7 +29,7 @@ async function Resumen () {
 
 async function TablaRanking ({ parametros }: { parametros: PageProps<'/'>['searchParams'] }) {
   const { orden: crudo } = await parametros
-  const orden: Orden = esOrden(crudo) ? crudo : 'kills'
+  const orden: Orden = esOrden(crudo) ? crudo : 'puntos'
   const filas = await ranking(orden)
 
   return (
@@ -37,7 +38,7 @@ async function TablaRanking ({ parametros }: { parametros: PageProps<'/'>['searc
         {PESTANAS.map((p) => (
           <Link
             key={p.orden}
-            href={p.orden === 'kills' ? '/' : `/?orden=${p.orden}`}
+            href={p.orden === 'puntos' ? '/' : `/?orden=${p.orden}`}
             className={p.orden === orden ? 'activa' : ''}
             aria-current={p.orden === orden ? 'page' : undefined}
           >
@@ -55,6 +56,7 @@ async function TablaRanking ({ parametros }: { parametros: PageProps<'/'>['searc
                 <tr>
                   <th>#</th>
                   <th>Jugador</th>
+                  <th className='num'>Puntos</th>
                   <th className='num'>Kills</th>
                   <th className='num'>Muertes</th>
                   <th className='num'>K/D</th>
@@ -68,6 +70,7 @@ async function TablaRanking ({ parametros }: { parametros: PageProps<'/'>['searc
                   <tr key={j.id}>
                     <td className='posicion numero'>{i + 1}</td>
                     <td><EnlaceJugador id={j.id} nick={j.nick} /></td>
+                    <td className='num destacado'>{formatoNumero(j.puntos)}</td>
                     <td className='num'>{formatoNumero(j.kills)}</td>
                     <td className='num'>{formatoNumero(j.muertes)}</td>
                     <td className='num'>{formatoKd(kd(j.kills, j.muertes))}</td>
@@ -93,7 +96,7 @@ export default function PaginaRanking (props: PageProps<'/'>) {
     <>
       <div className='encabezado-pagina'>
         <h1>Ranking</h1>
-        <p>Los teamkills no suman como kill. Los suicidios cuentan como muerte. Las partidas contra bots no se registran.</p>
+        <p>Los puntos se ganan tomando banderas y objetivos. Los teamkills no suman como kill. Los suicidios cuentan como muerte. Las partidas contra bots no se registran.</p>
       </div>
 
       <Suspense fallback={<Cargando />}>

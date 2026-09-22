@@ -23,6 +23,9 @@
  *    H  ts  mapa  steamid  nick  generico cabeza pecho estomago
  *           brazo_izq brazo_der pierna_izq pierna_der  danio  disparos    impactos
  *
+ *    S  ts  mapa  steamid  nick  equipo  puntos                    puntos de un jugador
+ *    E  ts  mapa  inicio  puntos_aliados  puntos_eje               marcador de equipos
+ *
  *    ts = segundos unix.  m_ = matador, v_ = victima.  equipo: 1 aliados, 2 eje.
  *    Si no hay matador (suicidio, caida, mundo) los campos m_ van vacios.
  *    vx/vy/vz = donde murio la victima. mx/my/mz = desde donde disparo el matador.
@@ -30,6 +33,13 @@
  *    H trae los impactos y disparos del jugador desde la linea H anterior (no un
  *    total): se suman al cargarlos. Se escribe cada 30s solo para quien disparo o
  *    pego algo, al desconectarse y al terminar el mapa. No cuenta el fuego amigo.
+ *
+ *    S se escribe cada vez que un jugador suma puntos (tomar banderas y objetivos),
+ *    con los puntos ganados en ese momento, no el total.
+ *
+ *    E es el marcador de la partida: inicio = ts de la linea P de este mapa, que
+ *    identifica la partida. Cada E reemplaza a la anterior de la misma partida; la
+ *    ultima es el resultado final. Se escribe cada 30s si cambio y al terminar el mapa.
  */
 
 #include <amxmodx>
@@ -38,7 +48,7 @@
 #include <dodstats>
 
 #define PLUGIN_NAME     "DoD Stats - Registro"
-#define PLUGIN_VERSION  "0.2.0"
+#define PLUGIN_VERSION  "0.3.0"
 #define PLUGIN_AUTHOR   "Marcelo Lescano"
 
 #define PARTES_CUERPO   8   /* generico + las 7 zonas: igual a MAX_BODYHITS */
@@ -59,6 +69,12 @@ new g_impactos[33][PARTES_CUERPO];
 new g_danio[33];
 /* Total de disparos de dodx que ya se informo: la linea H lleva la diferencia */
 new g_disparosInformados[33];
+
+/* Marcador de equipos: la partida se identifica por el momento en que empezo el mapa */
+new g_inicioMapa;
+new g_marcadorBase[3];      /* lo que marcaba dodx al empezar: puede venir del mapa anterior */
+new g_marcadorInformado[3];
+new bool:g_marcadorValido;  /* ya cambio desde el comienzo: es de esta partida */
 
 new g_escritas;
 new g_fallos;
@@ -84,9 +100,17 @@ public plugin_cfg()
         mkdir(g_carpeta);
 
     get_mapname(g_mapa, charsmax(g_mapa));
+    g_inicioMapa = get_systime();
+
+    for (new equipo = 1; equipo <= 2; equipo++)
+    {
+        g_marcadorBase[equipo] = dod_get_team_score(equipo);
+        g_marcadorInformado[equipo] = g_marcadorBase[equipo];
+    }
+    g_marcadorValido = false;
 
     new linea[LARGO_LINEA];
-    formatex(linea, charsmax(linea), "P^t%d^t%s", get_systime(), g_mapa);
+    formatex(linea, charsmax(linea), "P^t%d^t%s", g_inicioMapa, g_mapa);
     ArrayPushString(g_pendientes, linea);
 }
 
@@ -94,6 +118,7 @@ public plugin_end()
 {
     /* Cambio de mapa o apagado: no perder lo que quedo en memoria */
     registrarImpactosDeTodos();
+    registrarMarcador();
     volcar();
     ArrayDestroy(g_pendientes);
 }
@@ -105,6 +130,7 @@ public plugin_end()
 public tareaVolcar()
 {
     registrarImpactosDeTodos();
+    registrarMarcador();
     volcar();
 }
 
@@ -232,6 +258,55 @@ public client_damage(atacante, victima, danio, indiceArma, lugarImpacto, TA)
 
     g_impactos[atacante][lugarImpacto]++;
     g_danio[atacante] += danio;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Puntos                                                             */
+/* ------------------------------------------------------------------ */
+
+/*
+ *  Marcador de los equipos. dodx guarda el ultimo valor que mando el juego, y al
+ *  empezar un mapa puede seguir teniendo el del mapa anterior: hasta que no cambia
+ *  por primera vez no se escribe, para no atribuirle a esta partida un resultado ajeno.
+ */
+registrarMarcador()
+{
+    new aliados = dod_get_team_score(1);
+    new eje = dod_get_team_score(2);
+
+    if (!g_marcadorValido)
+    {
+        if (aliados == g_marcadorBase[1] && eje == g_marcadorBase[2])
+            return;
+        g_marcadorValido = true;
+    }
+    else if (aliados == g_marcadorInformado[1] && eje == g_marcadorInformado[2])
+        return;
+
+    g_marcadorInformado[1] = aliados;
+    g_marcadorInformado[2] = eje;
+
+    new linea[LARGO_LINEA];
+    formatex(linea, charsmax(linea), "E^t%d^t%s^t%d^t%d^t%d", get_systime(), g_mapa, g_inicioMapa, aliados, eje);
+    ArrayPushString(g_pendientes, linea);
+}
+
+/* dodx avisa cada vez que un jugador suma puntos: puntos = lo que gano ahora, total = su nuevo total */
+public client_score(id, puntos, total)
+{
+    /* Al reiniciarse el marcador llega una diferencia negativa: no es un evento */
+    if (puntos <= 0 || !is_user_connected(id) || is_user_bot(id) || is_user_hltv(id))
+        return;
+
+    new equipo = get_user_team(id);
+    if (equipo != 1 && equipo != 2)
+        return;
+
+    new steam[35], nick[32], linea[LARGO_LINEA];
+    datosJugador(id, steam, charsmax(steam), nick, charsmax(nick));
+
+    formatex(linea, charsmax(linea), "S^t%d^t%s^t%s^t%s^t%d^t%d", get_systime(), g_mapa, steam, nick, equipo, puntos);
+    ArrayPushString(g_pendientes, linea);
 }
 
 /* ------------------------------------------------------------------ */

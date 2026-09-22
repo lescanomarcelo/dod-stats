@@ -15,6 +15,7 @@ const leerId = (crudo: unknown): number | null => {
 
 /* Cada fila: como calcular el valor y si gana el mayor o el menor */
 const FILAS: { etiqueta: string, valor: (j: JugadorDetalle) => number, texto: (v: number) => string, ganaMenor?: boolean }[] = [
+  { etiqueta: 'Puntos', valor: (j) => j.puntos, texto: formatoNumero },
   { etiqueta: 'Kills', valor: (j) => j.kills, texto: formatoNumero },
   { etiqueta: 'Muertes', valor: (j) => j.muertes, texto: formatoNumero, ganaMenor: true },
   { etiqueta: 'K/D', valor: (j) => kd(j.kills, j.muertes), texto: formatoKd },

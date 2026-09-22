@@ -24,8 +24,8 @@ import { leerEntidades, puntosDe } from '../mapas/bsp.mjs'
 const CARPETA_BSP = process.env.DOD_MAPS ?? 'C:/Program Files (x86)/Steam/steamapps/common/Half-Life/dod/maps'
 
 const PREFIJO = 'demo_'
-const DIAS = 7
-const MAPAS_POR_DIA = 24
+const DIAS = 120          /* unos 4 meses: alcanza para los graficos semana a semana y mes a mes */
+const MAPAS_POR_DIA = 6
 const SEGUNDOS_POR_MAPA = 900
 
 /* PRNG con semilla (mulberry32): mismas partidas en cada corrida */
@@ -122,7 +122,29 @@ function lineaImpactos (momento, mapa, j, segundos) {
   return ['H', momento, mapa, j.steam, j.nick, ...zonas, danio, disparos].join(T)
 }
 
-function generarDia (inicioDia) {
+/*
+ *  Banderas: cada toma da 1 punto a entre 1 y 3 jugadores del bando que la toma
+ *  (linea S) y mueve el marcador del equipo (linea E). La fuerza de cada bando sale
+ *  de la habilidad de sus jugadores mas una tendencia que cambia lento con los dias,
+ *  para que haya semanas y meses de cada lado.
+ */
+function banderas (lineas, ts, mapa, presentes, equipo, dia) {
+  const fuerza = (eq) => presentes.filter((j) => equipo.get(j) === eq).reduce((s, j) => s + j.habilidad, 0)
+  const tendencia = 1 + Math.sin(dia / 11) * 0.35
+  const pesos = { 1: fuerza(1) * tendencia, 2: fuerza(2) / tendencia }
+  const marcador = { 1: 0, 2: 0 }
+  const tomas = entre(4, 16)
+  for (let k = 0; k < tomas; k++) {
+    const momento = ts + Math.floor(((k + 0.5) / tomas) * SEGUNDOS_POR_MAPA)
+    const eq = elegirPonderado([1, 2], (e) => pesos[e])
+    const bando = presentes.filter((j) => equipo.get(j) === eq).sort(() => azar() - 0.5).slice(0, entre(1, 3))
+    for (const j of bando) lineas.push(['S', momento, mapa, j.steam, j.nick, eq, 1].join(T))
+    marcador[eq] += azar() < 0.2 ? 5 : 1        /* a veces, tomar todas da la ronda: mas puntos */
+    lineas.push(['E', momento + 10, mapa, ts, marcador[1], marcador[2]].join(T))
+  }
+}
+
+function generarDia (inicioDia, dia) {
   const lineas = []
   let ts = inicioDia
 
@@ -164,6 +186,8 @@ function generarDia (inicioDia) {
         arma, hitbox, teamkill ? 1 : 0, ...donde, ...posicionMatador(donde)].join(T))
     }
 
+    banderas(lineas, ts, mapa, presentes, equipo, dia)
+
     for (const j of presentes) {
       const jugado = entre(300, SEGUNDOS_POR_MAPA)
       lineas.push(lineaImpactos(ts + jugado - 1, mapa, j, jugado))
@@ -183,16 +207,17 @@ try {
   await base.borrarTablas()
   await base.aplicarEsquema()
 
-  const hoy = Date.UTC(2026, 8, 21, 21, 0, 0) / 1000
+  /* El ultimo dia es ayer a las 18 de Argentina, asi los graficos llegan hasta hoy */
+  const hoy = Math.floor(Date.now() / 86400000) * 86400 - 3 * 3600
   for (let d = DIAS - 1; d >= 0; d--) {
     const inicio = hoy - d * 86400
     const fecha = new Date(inicio * 1000).toISOString().slice(0, 10).replaceAll('-', '')
-    await writeFile(join(carpeta, `eventos_${fecha}.tsv`), generarDia(inicio).join('\n') + '\n')
+    await writeFile(join(carpeta, `eventos_${fecha}.tsv`), generarDia(inicio, DIAS - d).join('\n') + '\n')
   }
 
   const r = await ingerir({ fuente: crearFuenteLocal(carpeta), base })
   console.log(`Demo cargada en tablas ${PREFIJO}*: ${r.archivos} dias, ${r.muertes} muertes, ` +
-    `${r.sesiones} sesiones, ${r.mapas} mapas, ${r.descartadas} descartadas.`)
+    `${r.sesiones} sesiones, ${r.mapas} mapas, ${r.puntos} lineas de puntos, ${r.marcadores} marcadores, ${r.descartadas} descartadas.`)
 } finally {
   await base.cerrar()
   await rm(carpeta, { recursive: true, force: true })

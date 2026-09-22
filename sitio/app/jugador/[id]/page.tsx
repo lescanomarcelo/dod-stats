@@ -165,7 +165,8 @@ async function Perfil ({ parametros, busqueda }: { parametros: PageProps<'/jugad
       </div>
 
       <div className='tarjetas'>
-        <Tarjeta etiqueta='Kills' valor={formatoNumero(j.kills)} destacada />
+        <Tarjeta etiqueta='Puntos' valor={formatoNumero(j.puntos)} destacada />
+        <Tarjeta etiqueta='Kills' valor={formatoNumero(j.kills)} />
         <Tarjeta etiqueta='Muertes' valor={formatoNumero(j.muertes)} />
         <Tarjeta etiqueta='K/D' valor={formatoKd(kd(j.kills, j.muertes))} />
         <Tarjeta etiqueta='Headshots' valor={formatoPorcentaje(porcentaje(j.headshots, j.kills))} />

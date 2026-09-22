@@ -194,3 +194,19 @@ test('las lineas corruptas se cuentan como descartadas sin frenar el resto', () 
   assert.equal(r.eventos.length, 2)
   assert.equal(r.descartadas, 1)
 })
+
+test('linea S: puntos de un jugador', () => {
+  assert.deepEqual(parsearLinea(linea('S', 1789999999, 'dod_kalt', 'STEAM_0:1:111', 'Trevor', 1, 2)), {
+    tipo: 'puntos', ts: 1789999999, mapa: 'dod_kalt', steamid: 'STEAM_0:1:111', nick: 'Trevor', equipo: 1, puntos: 2
+  })
+  assert.equal(parsearLinea(linea('S', 1789999999, 'dod_kalt', 'STEAM_0:1:111', 'Trevor', 3, 2)), null, 'equipo invalido')
+  assert.equal(parsearLinea(linea('S', 1789999999, 'dod_kalt', 'STEAM_0:1:111', 'Trevor', 1, 0)), null, 'sin puntos')
+  assert.equal(parsearLinea(linea('S', 1789999999, 'dod_kalt', 'STEAM_0:1:111', 'Trevor', 1)), null, 'falta un campo')
+})
+
+test('linea E: marcador de la partida', () => {
+  assert.deepEqual(parsearLinea(linea('E', 1790000300, 'dod_kalt', 1790000000, 7, 3)), {
+    tipo: 'marcador', ts: 1790000300, mapa: 'dod_kalt', inicio: 1790000000, aliados: 7, eje: 3
+  })
+  assert.equal(parsearLinea(linea('E', 1790000300, 'dod_kalt', 'x', 7, 3)), null)
+})
