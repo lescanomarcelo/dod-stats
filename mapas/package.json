@@ -1,0 +1,12 @@
+{
+  "name": "dod-stats-mapas",
+  "private": true,
+  "type": "module",
+  "description": "Genera las imagenes de los mapas para el sitio y valida la conversion de coordenadas",
+  "devDependencies": {
+    "sharp": "^0.35.4"
+  },
+  "dependencies": {
+    "ssh2-sftp-client": "^12.1.1"
+  }
+}

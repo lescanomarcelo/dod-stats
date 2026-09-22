@@ -254,3 +254,29 @@ td.gana { color: var(--acento); font-weight: 700; }
   .barra-fila { grid-template-columns: 5.5rem 1fr 3rem; }
   .cara-a-cara .lado .valor { font-size: 1.8rem; }
 }
+
+/* ------------------------------------------------------------------ */
+/*  Mapa de calor                                                      */
+/* ------------------------------------------------------------------ */
+
+.calor {
+  position: relative;
+  width: 100%;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  overflow: hidden;
+  background: #000;
+}
+/* El overview atenuado, para que el calor resalte encima */
+.calor img { object-fit: fill; filter: saturate(0.45) brightness(0.72); }
+.calor canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+.controles-calor { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
+.controles-calor .pestanas { margin-bottom: 0; }
+
+.leyenda-calor { display: flex; align-items: center; gap: 0.5rem; color: var(--tenue); font-size: 0.8rem; margin-top: 0.6rem; }
+.leyenda-calor .escala {
+  width: 140px; height: 8px; border-radius: 999px;
+  background: linear-gradient(90deg, #1e3a8a, #2563eb, #06b6d4, #84cc16, #facc15, #dc2626);
+}
+.leyenda-calor .cuenta { margin-left: auto; }

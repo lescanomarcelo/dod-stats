@@ -195,6 +195,52 @@ export async function mapasDeJugador (id: number) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Mapa de calor                                                      */
+/* ------------------------------------------------------------------ */
+
+/** Todos los mapas donde el jugador mato o murio, del mas jugado al menos jugado */
+export async function mapasJugadosPor (id: number) {
+  'use cache'
+  cacheLife('minutes')
+
+  const filas = await consultar(`
+    SELECT LOWER(mapa) AS mapa, COUNT(*) AS eventos
+    FROM {p}muertes
+    WHERE matador_id = ? OR victima_id = ?
+    GROUP BY LOWER(mapa)
+    ORDER BY eventos DESC
+  `, [id, id])
+  return filas.map((f) => ({ mapa: String(f.mapa), eventos: n(f.eventos) }))
+}
+
+export type TipoCalor = 'kills' | 'muertes'
+export const MAX_PUNTOS_CALOR = 5000
+
+/**
+ * Coordenadas del mundo para el mapa de calor.
+ *   kills:   desde donde disparaba el jugador cuando mato (sin teamkills)
+ *   muertes: donde estaba cuando lo mataron (incluye suicidios y caidas)
+ * Las mas recientes primero, con tope para no mandar de mas al navegador.
+ */
+export async function puntosDeCalor (id: number, mapa: string, tipo: TipoCalor): Promise<[number, number][]> {
+  'use cache'
+  cacheLife('minutes')
+
+  /* Dos consultas fijas en vez de armar columnas con el tipo: nada del usuario entra al SQL */
+  const filas = tipo === 'kills'
+    ? await consultar(`
+        SELECT matador_x AS x, matador_y AS y FROM {p}muertes
+        WHERE matador_id = ? AND LOWER(mapa) = ? AND teamkill = 0 AND matador_x IS NOT NULL
+        ORDER BY id DESC LIMIT ?`, [id, mapa.toLowerCase(), MAX_PUNTOS_CALOR])
+    : await consultar(`
+        SELECT victima_x AS x, victima_y AS y FROM {p}muertes
+        WHERE victima_id = ? AND LOWER(mapa) = ?
+        ORDER BY id DESC LIMIT ?`, [id, mapa.toLowerCase(), MAX_PUNTOS_CALOR])
+
+  return filas.map((f) => [n(f.x), n(f.y)])
+}
+
+/* ------------------------------------------------------------------ */
 /*  Comparacion                                                        */
 /* ------------------------------------------------------------------ */
 

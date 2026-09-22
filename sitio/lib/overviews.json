@@ -1,0 +1,474 @@
+{
+  "a3": {
+    "zoom": 1,
+    "origenX": 1464,
+    "origenY": -288,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "blitz_cour": {
+    "zoom": 3.19,
+    "origenX": -540,
+    "origenY": -262,
+    "rotado": true,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_7quick": {
+    "zoom": 2.29,
+    "origenX": 0,
+    "origenY": 0,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_aleutian": {
+    "zoom": 1.33,
+    "origenX": 738,
+    "origenY": 24,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_anjou_a5": {
+    "zoom": 1.34,
+    "origenX": 156,
+    "origenY": -236,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_anzio": {
+    "zoom": 1.11,
+    "origenX": 307.06,
+    "origenY": 372.72,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_avalanche": {
+    "zoom": 1.61,
+    "origenX": 424,
+    "origenY": 160,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_bloodyhill_2": {
+    "zoom": 1.07,
+    "origenX": 129,
+    "origenY": 47.5,
+    "rotado": true,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_caen": {
+    "zoom": 0.85,
+    "origenX": 584,
+    "origenY": 260,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_cal_sherman2": {
+    "zoom": 1.38,
+    "origenX": 50,
+    "origenY": -914,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_charlie": {
+    "zoom": 0.74,
+    "origenX": -32,
+    "origenY": 0,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_chemille": {
+    "zoom": 1.29,
+    "origenX": -475.44,
+    "origenY": -557.69,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_clash_v3": {
+    "zoom": 1.51,
+    "origenX": 22,
+    "origenY": -1292.58,
+    "rotado": true,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_donner": {
+    "zoom": 1.11,
+    "origenX": -150.75,
+    "origenY": -1021.05,
+    "rotado": true,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_escape": {
+    "zoom": 1.26,
+    "origenX": -57.78,
+    "origenY": 405.31,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_exposed_b1": {
+    "zoom": 1.85,
+    "origenX": -192,
+    "origenY": -2208,
+    "rotado": true,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_falaise": {
+    "zoom": 0.82,
+    "origenX": 36.5,
+    "origenY": 227,
+    "rotado": true,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_flash": {
+    "zoom": 1.19,
+    "origenX": -295.99,
+    "origenY": -514.16,
+    "rotado": true,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_flugplatz": {
+    "zoom": 0.85,
+    "origenX": 199.5,
+    "origenY": -33,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_forest": {
+    "zoom": 0.86,
+    "origenX": -468,
+    "origenY": 438,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_glider": {
+    "zoom": 1.14,
+    "origenX": 426,
+    "origenY": 308,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_grubb": {
+    "zoom": 1.49,
+    "origenX": -544,
+    "origenY": -1696,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_harrington": {
+    "zoom": 1.47,
+    "origenX": 1.09,
+    "origenY": -675.5,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_hill_classic": {
+    "zoom": 1.17,
+    "origenX": -108,
+    "origenY": -792,
+    "rotado": true,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_jagd": {
+    "zoom": 0.85,
+    "origenX": 180.88,
+    "origenY": 33.13,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_kalt": {
+    "zoom": 1.3,
+    "origenX": 128.91,
+    "origenY": -791.03,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_kort_b4": {
+    "zoom": 1.21,
+    "origenX": -211.5,
+    "origenY": -131,
+    "rotado": true,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_koursk": {
+    "zoom": 1.6,
+    "origenX": 267,
+    "origenY": -200,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_kraftstoff": {
+    "zoom": 1.05,
+    "origenX": 686.94,
+    "origenY": -311.44,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_lennon5_b1": {
+    "zoom": 1.14,
+    "origenX": -217,
+    "origenY": 409,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_lennon_b2": {
+    "zoom": 1.55,
+    "origenX": 170,
+    "origenY": -392,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_madeleine_v04": {
+    "zoom": 1.15,
+    "origenX": -144,
+    "origenY": -376,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_merderet": {
+    "zoom": 1.07,
+    "origenX": -168.59,
+    "origenY": 428.59,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_northbound": {
+    "zoom": 1,
+    "origenX": -101.47,
+    "origenY": 137.91,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_omaha2": {
+    "zoom": 0.99,
+    "origenX": 64,
+    "origenY": 400,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_oslo": {
+    "zoom": 1.35,
+    "origenX": -275.5,
+    "origenY": 438,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_quaint_b1": {
+    "zoom": 1.78,
+    "origenX": -1696,
+    "origenY": -48,
+    "rotado": true,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_railroad2_b2": {
+    "zoom": 1.32,
+    "origenX": 1624,
+    "origenY": 796,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_rennes_b2": {
+    "zoom": 2.35,
+    "origenX": 0,
+    "origenY": 128,
+    "rotado": true,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_rostov": {
+    "zoom": 1.93,
+    "origenX": 0,
+    "origenY": -24,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_saints": {
+    "zoom": 1.25,
+    "origenX": -704,
+    "origenY": 196,
+    "rotado": true,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_saints2_b3e": {
+    "zoom": 1.24,
+    "origenX": 268,
+    "origenY": 342,
+    "rotado": true,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_silver": {
+    "zoom": 1.83,
+    "origenX": 89.63,
+    "origenY": 1200.91,
+    "rotado": true,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_snowmountain": {
+    "zoom": 1.24,
+    "origenX": 32,
+    "origenY": 224,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_snowtown": {
+    "zoom": 1.28,
+    "origenX": 104,
+    "origenY": -440,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_solitude2": {
+    "zoom": 1.16,
+    "origenX": 72,
+    "origenY": 40,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_strom_b2": {
+    "zoom": 1.51,
+    "origenX": -352,
+    "origenY": -192,
+    "rotado": true,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_sturm": {
+    "zoom": 1.06,
+    "origenX": -227.97,
+    "origenY": 555.77,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_switch": {
+    "zoom": 1.16,
+    "origenX": 1146,
+    "origenY": 582.5,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_tensions": {
+    "zoom": 2.67,
+    "origenX": -128,
+    "origenY": 1184,
+    "rotado": true,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_thunder": {
+    "zoom": 1,
+    "origenX": -64,
+    "origenY": -728,
+    "rotado": true,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_tiger2_b2": {
+    "zoom": 1.49,
+    "origenX": -457,
+    "origenY": 248.5,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_veghel_b3": {
+    "zoom": 1.13,
+    "origenX": 0,
+    "origenY": -288,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_vicenza": {
+    "zoom": 1.03,
+    "origenX": -6.75,
+    "origenY": 252.78,
+    "rotado": true,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_warm_up": {
+    "zoom": 3.1,
+    "origenX": 272,
+    "origenY": -288,
+    "rotado": true,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_warsaw": {
+    "zoom": 1.75,
+    "origenX": 968,
+    "origenY": -896,
+    "rotado": true,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_wesel_b3": {
+    "zoom": 1.72,
+    "origenX": 416,
+    "origenY": -90,
+    "rotado": true,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "dod_zalec": {
+    "zoom": 0.74,
+    "origenX": 134.66,
+    "origenY": 34.5,
+    "rotado": false,
+    "ancho": 1024,
+    "alto": 768
+  },
+  "gsr_orange": {
+    "zoom": 2.13,
+    "origenX": 0,
+    "origenY": 0,
+    "rotado": true,
+    "ancho": 1024,
+    "alto": 768
+  }
+}

@@ -12,11 +12,16 @@
  */
 
 import { mkdtemp, writeFile, rm } from 'node:fs/promises'
+import { readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { conectar, configDesdeEntorno } from './base.mjs'
 import { crearFuenteLocal } from './fuentes.mjs'
 import { ingerir } from './ingerir.mjs'
+import { leerEntidades, puntosDe } from '../mapas/bsp.mjs'
+
+/* Carpeta con los .bsp: de ahi salen las banderas y spawns reales de cada mapa */
+const CARPETA_BSP = process.env.DOD_MAPS ?? 'C:/Program Files (x86)/Steam/steamapps/common/Half-Life/dod/maps'
 
 const PREFIJO = 'demo_'
 const DIAS = 7
@@ -74,7 +79,32 @@ const ARMAS = {
 }
 
 const T = '\t'
-const coord = () => [entre(-2000, 2000), entre(-2000, 2000), entre(-60, 300)]
+
+/* Posiciones creibles: las muertes se concentran alrededor de las banderas (donde
+   se pelea) y en menor medida de los spawns, con una dispersion normal. Los puntos
+   salen de las entidades reales de cada .bsp. */
+const PUNTOS_CALIENTES = new Map(MAPAS.map((mapa) => {
+  const puntos = puntosDe(leerEntidades(readFileSync(join(CARPETA_BSP, `${mapa}.bsp`))),
+    ['dod_control_point', 'info_player_allies', 'info_player_axis'])
+  return [mapa, puntos.map((p) => ({ ...p, peso: p.clase === 'dod_control_point' ? 6 : 1 }))]
+}))
+
+function gauss () {
+  const u = 1 - azar()
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * azar())
+}
+
+function posicionVictima (mapa) {
+  const h = elegirPonderado(PUNTOS_CALIENTES.get(mapa), (p) => p.peso)
+  return [Math.round(h.x + gauss() * 180), Math.round(h.y + gauss() * 180), Math.round(h.z)]
+}
+
+/* El matador dispara desde cierta distancia, en cualquier direccion */
+function posicionMatador ([vx, vy, vz]) {
+  const angulo = azar() * 2 * Math.PI
+  const distancia = entre(150, 900)
+  return [Math.round(vx + Math.cos(angulo) * distancia), Math.round(vy + Math.sin(angulo) * distancia), vz]
+}
 
 function generarDia (inicioDia) {
   const lineas = []
@@ -98,7 +128,7 @@ function generarDia (inicioDia) {
       /* 3% suicidio / caida */
       if (azar() < 0.03) {
         lineas.push(['M', momento, mapa, '', '', 0, victima.steam, victima.nick, vEq,
-          'world', 0, 0, ...coord(), 0, 0, 0].join(T))
+          'world', 0, 0, ...posicionVictima(mapa), 0, 0, 0].join(T))
         continue
       }
 
@@ -113,8 +143,9 @@ function generarDia (inicioDia) {
       const headshot = azar() < baseHs + matador.punteria
       const hitbox = headshot ? 1 : entre(2, 7)
 
+      const donde = posicionVictima(mapa)
       lineas.push(['M', momento, mapa, matador.steam, matador.nick, mEq, victima.steam, victima.nick, vEq,
-        arma, hitbox, teamkill ? 1 : 0, ...coord(), ...coord()].join(T))
+        arma, hitbox, teamkill ? 1 : 0, ...donde, ...posicionMatador(donde)].join(T))
     }
 
     for (const j of presentes) {
