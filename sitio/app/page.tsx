@@ -50,7 +50,13 @@ async function TablaRanking ({ parametros }: { parametros: PageProps<'/'>['searc
 
       <div className='tabla-envoltorio'>
         {filas.length === 0
-          ? <p className='vacio'>Todavía no hay muertes registradas. Aparecen en cuanto se juegue.</p>
+          ? (
+            <p className='vacio'>
+              {orden === 'camper'
+                ? 'Todavía no hay tiempo acostado registrado: se guarda desde la versión 0.4 del plugin.'
+                : 'Todavía no hay muertes registradas. Aparecen en cuanto se juegue.'}
+            </p>
+            )
           : (
             <table>
               <thead>
