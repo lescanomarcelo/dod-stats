@@ -43,10 +43,13 @@ const ETIQUETAS: { zona: NombreZona, texto: string, lado: 'izq' | 'der', y: numb
   { zona: 'cabeza', texto: 'Cabeza', lado: 'izq', y: 150 },
   { zona: 'brazo_der', texto: 'Brazo der.', lado: 'izq', y: 300 },
   { zona: 'pierna_der', texto: 'Pierna der.', lado: 'izq', y: 700 },
+  /* Del lado derecho el orden sigue la altura de cada zona, asi las lineas no se
+     cruzan: el brazo a la altura de la manga, y el estomago lo bastante abajo para
+     que su linea pase por debajo de la Thompson */
   { zona: 'pecho', texto: 'Pecho', lado: 'der', y: 250 },
-  { zona: 'brazo_izq', texto: 'Brazo izq.', lado: 'der', y: 590 },
-  { zona: 'estomago', texto: 'Estómago', lado: 'der', y: 480 },
-  { zona: 'pierna_izq', texto: 'Pierna izq.', lado: 'der', y: 760 }
+  { zona: 'brazo_izq', texto: 'Brazo izq.', lado: 'der', y: 340 },
+  { zona: 'estomago', texto: 'Estómago', lado: 'der', y: 560 },
+  { zona: 'pierna_izq', texto: 'Pierna izq.', lado: 'der', y: 770 }
 ]
 
 /* Blanco chico para acompañar la precision, fuera del dibujo principal */

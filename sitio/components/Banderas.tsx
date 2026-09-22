@@ -46,31 +46,33 @@ function estrella (cx: number, cy: number, r: number): string {
   }).join(' ')
 }
 
-export function BanderaAliados ({ className, titulo = 'Aliados' }: Props) {
+/*
+ *  Escudos de los bandos, con el estilo y los colores del icono de Day of Defeat
+ *  (public/dod.png): verde con estrella para los Aliados, rojo con cruz para el Eje.
+ */
+
+export const VERDE_DOD = '#4b7242'
+export const ROJO_DOD = '#c2151c'
+
+export function EscudoAliados ({ className, titulo = 'Aliados' }: Props) {
   return (
-    <svg viewBox='0 0 30 20' className={className} role='img' aria-label={titulo}>
-      <rect width='30' height='20' fill='#4f6130' />
-      <circle cx='15' cy='10' r='7' fill='none' stroke='#f2efe2' strokeWidth='1.2' />
-      <polygon points={estrella(15, 10.4, 6)} fill='#f2efe2' />
+    <svg viewBox='0 0 20 20' className={className} role='img' aria-label={titulo}>
+      <rect width='20' height='20' rx='2.5' fill={VERDE_DOD} />
+      <polygon points={estrella(10, 10.6, 7.6)} fill='#ffffff' />
     </svg>
   )
 }
 
-/* Cruz centrada en (15, 10): brazos de ancho "ancho" y largo total "largo" */
-const cruz = (ancho: number, largo: number) => {
-  const a = ancho / 2; const l = largo / 2
-  return `M${15 - a} ${10 - l}h${ancho}v${l - a}h${l - a}v${ancho}h${a - l}v${l - a}h${-ancho}v${a - l}h${a - l}v${-ancho}h${l - a}z`
-}
-
-/* Balkenkreuz: la cruz negra con borde blanco que usa DoD para el Eje. En dos
-   capas (blanca ancha abajo, negra fina arriba): con un solo trazo, a tamaño chico
-   el borde blanco se comia el negro. */
-export function BanderaEje ({ className, titulo = 'Eje' }: Props) {
+/* Cruz de brazos ensanchados hacia afuera, como la del icono de DoD: un brazo
+   trapezoidal repetido cuatro veces, girado de a 90 grados */
+export function EscudoEje ({ className, titulo = 'Eje' }: Props) {
+  const brazo = 'M8.9 10 L6.6 2.4 L13.4 2.4 L11.1 10 Z'
   return (
-    <svg viewBox='0 0 30 20' className={className} role='img' aria-label={titulo}>
-      <rect width='30' height='20' fill='#5c5a52' />
-      <path d={cruz(6, 15)} fill='#f2efe2' />
-      <path d={cruz(3.4, 12.6)} fill='#111' />
+    <svg viewBox='0 0 20 20' className={className} role='img' aria-label={titulo}>
+      <rect width='20' height='20' rx='2.5' fill={ROJO_DOD} />
+      {[0, 90, 180, 270].map((giro) => (
+        <path key={giro} d={brazo} fill='#ffffff' transform={`rotate(${giro} 10 10)`} />
+      ))}
     </svg>
   )
 }

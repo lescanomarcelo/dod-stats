@@ -6,7 +6,8 @@ import {
 } from '@/lib/consultas'
 import { kd, porcentaje, formatoKd, formatoPorcentaje, formatoNumero, nombreArma } from '@/lib/calculos'
 import { Barras, EnlaceJugador, Cargando } from '@/components/Ui'
-import { BanderaAliados, BanderaEje } from '@/components/Banderas'
+import { EscudoAliados, EscudoEje } from '@/components/Banderas'
+import { SelectorMapa } from '@/components/SelectorMapa'
 
 export const metadata: Metadata = { title: 'Eje vs Aliados' }
 
@@ -30,7 +31,7 @@ function Cinchada ({ aliados, eje }: { aliados: number, eje: number }) {
     <div className='panel duelo'>
       <div className='duelo-lados'>
         <div className='duelo-lado aliados'>
-          <BanderaAliados className='bandera-grande' />
+          <EscudoAliados className='escudo-grande' />
           <div>
             <div className='duelo-nombre'>Aliados</div>
             <div className='duelo-cifra numero'>{formatoNumero(aliados)}</div>
@@ -42,7 +43,7 @@ function Cinchada ({ aliados, eje }: { aliados: number, eje: number }) {
             <div className='duelo-nombre'>Eje</div>
             <div className='duelo-cifra numero'>{formatoNumero(eje)}</div>
           </div>
-          <BanderaEje className='bandera-grande' />
+          <EscudoEje className='escudo-grande' />
         </div>
       </div>
       <div className='tira' role='img' aria-label={`Aliados ${formatoPorcentaje(parteAliados)}, Eje ${formatoPorcentaje(100 - parteAliados)} de las kills`}>
@@ -137,14 +138,14 @@ async function Contenido ({ busqueda }: { busqueda: Busqueda }) {
 
   return (
     <>
-      <nav className='pestanas' aria-label='Mapa'>
-        <Link href='/equipos' className={mapa === null ? 'activa' : ''}>General</Link>
-        {mapas.map((m) => (
-          <Link key={m.mapa} href={`/equipos?mapa=${encodeURIComponent(m.mapa)}`} className={m.mapa === mapa ? 'activa' : ''}>
-            {m.mapa}
-          </Link>
-        ))}
-      </nav>
+      <SelectorMapa
+        etiqueta='Mostrar'
+        actual={mapa ?? ''}
+        opciones={[
+          { valor: '', etiqueta: 'General (todos los mapas)', href: '/equipos' },
+          ...mapas.map((m) => ({ valor: m.mapa, etiqueta: `${m.mapa} (${m.muertes})`, href: `/equipos?mapa=${encodeURIComponent(m.mapa)}` }))
+        ]}
+      />
 
       <Cinchada aliados={resultado.aliados.kills} eje={resultado.eje.kills} />
 

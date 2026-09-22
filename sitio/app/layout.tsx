@@ -4,7 +4,7 @@ import { Suspense } from 'react'
 import { Geist, Geist_Mono, Oswald } from 'next/font/google'
 import { resumenGeneral } from '@/lib/consultas'
 import { Hace } from '@/components/Hace'
-import { BanderaArgentina, BanderaAliados, BanderaEje } from '@/components/Banderas'
+import { BanderaArgentina } from '@/components/Banderas'
 import './globals.css'
 
 const geist = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
@@ -34,8 +34,8 @@ export default function RootLayout ({ children }: LayoutProps<'/'>) {
             <Link href='/' className='marca'>
               <span className='banderas' aria-hidden='true'>
                 <BanderaArgentina className='bandera' />
-                <BanderaAliados className='bandera' />
-                <BanderaEje className='bandera' />
+                {/* eslint-disable-next-line @next/next/no-img-element -- icono de 64 px, no hace falta optimizarlo */}
+                <img src='/dod.png' alt='' width={64} height={64} className='logo-dod' />
               </span>
               <span className='titular'>Tributo</span>
               <small>DoD 1.3 · Estadísticas</small>
