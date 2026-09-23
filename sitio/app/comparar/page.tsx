@@ -4,7 +4,7 @@ import { jugadorEnPeriodo, listaJugadores, enfrentamiento, type JugadorDetalle }
 import { rangoDesdeBusqueda, type Periodo } from '@/lib/periodos'
 import { ControlPeriodo } from '@/components/Periodo'
 import {
-  kd, porcentaje, formatoKd, formatoPorcentaje, formatoNumero, formatoTiempo, tiempoDeJuego
+  kd, porcentaje, formatoKd, formatoPorcentaje, formatoNumero, formatoTiempo
 } from '@/lib/calculos'
 import { EnlaceJugador, Cargando } from '@/components/Ui'
 
@@ -34,7 +34,7 @@ const FILAS: { etiqueta: string, valor: (j: JugadorDetalle) => number, texto: (v
   { etiqueta: 'K/D', valor: (j) => kd(j.kills, j.muertes), texto: formatoKd },
   { etiqueta: 'Headshots %', valor: (j) => porcentaje(j.headshots, j.kills), texto: formatoPorcentaje },
   { etiqueta: 'Teamkills', valor: (j) => j.teamkills, texto: String, ganaMenor: true },
-  { etiqueta: 'Tiempo jugado', valor: tiempoDeJuego, texto: formatoTiempo }
+  { etiqueta: 'Tiempo conectado', valor: (j) => j.segundos, texto: formatoTiempo }
 ]
 
 function Selector ({ nombre, elegido, jugadores }: { nombre: string, elegido: number | null, jugadores: { id: number, nick: string }[] }) {

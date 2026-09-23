@@ -171,7 +171,8 @@ async function Perfil ({ parametros, busqueda }: { parametros: PageProps<'/jugad
         <Tarjeta etiqueta='Muertes' valor={formatoNumero(j.muertes)} />
         <Tarjeta etiqueta='K/D' valor={formatoKd(kd(j.kills, j.muertes))} />
         <Tarjeta etiqueta='Headshots' valor={formatoPorcentaje(porcentaje(j.headshots, j.kills))} />
-        <Tarjeta etiqueta='Tiempo jugado' valor={formatoTiempo(tiempoDeJuego(j))} />
+        <Tarjeta etiqueta='Tiempo conectado' valor={formatoTiempo(j.segundos)} />
+        {j.segundosEnJuego > 0 && <Tarjeta etiqueta='Jugando' valor={formatoTiempo(j.segundosEnJuego)} />}
         <Tarjeta etiqueta='Teamkills' valor={j.teamkills} />
         <Tarjeta etiqueta='Suicidios' valor={j.suicidios} />
         <Tarjeta etiqueta='Camper' valor={j.segundosAcostado > 0 ? formatoPorcentaje(camper(j.segundosAcostado, tiempoDeJuego(j))) : '—'} />

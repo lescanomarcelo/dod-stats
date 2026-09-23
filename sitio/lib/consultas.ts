@@ -40,6 +40,28 @@ const TODO: Ventana = { desde: null, hasta: null }
 /** Una ventana sin limites: la consulta mira todo el historico */
 export const esTodo = (v: Ventana) => !v.desde && !v.hasta
 
+/**
+ * Desde cuando hay tiempo en un bando registrado (plugin 0.5 en adelante).
+ * null si todavia no hay nada.
+ */
+export async function desdeCuandoHayTiempoEnJuego (): Promise<string | null> {
+  'use cache'
+  cacheLife(VIDA_CACHE)
+
+  const [fila] = await consultar('SELECT MIN(actualizado) AS desde FROM {p}jugado')
+  return iso(fila?.desde)
+}
+
+/*
+ *  El tiempo en un bando solo sirve si cubre el periodo entero. Un periodo que
+ *  empieza antes de que el plugin lo registrara mostraria solo el ultimo rato
+ *  (el dia que se instalo, por ejemplo), asi que en ese caso se usa el tiempo
+ *  conectado, que esta desde el principio.
+ */
+function cubreLaVentana (v: Ventana, desde: string | null): boolean {
+  return Boolean(desde && v.desde && new Date(v.desde) >= new Date(desde))
+}
+
 const n = (valor: unknown) => Number(valor ?? 0)
 const iso = (valor: unknown) => (valor instanceof Date ? valor.toISOString() : null)
 
@@ -132,7 +154,7 @@ export function esOrden (valor: unknown): valor is Orden {
  *  ya esta lista. El tiempo jugado sale de las sesiones que TERMINARON dentro de la
  *  ventana, asi que una partida a caballo de la medianoche cuenta el dia que termino.
  */
-function sqlTotales (v: Ventana) {
+function sqlTotales (v: Ventana, conTiempoEnJuego: boolean) {
   const fm = filtro(null, v)
   const fs = filtro(null, v, '', 'desconexion')
   const fp = filtro(null, v)
@@ -163,14 +185,17 @@ function sqlTotales (v: Ventana) {
         UNION ALL
         SELECT jugador_id, 0, 0, 0, 0, 0, 0, 0, SUM(segundos), 0
         FROM {p}acostado WHERE 1 = 1 ${fa.sql} GROUP BY jugador_id
-        UNION ALL
+        ${conTiempoEnJuego
+          ? `UNION ALL
         SELECT jugador_id, 0, 0, 0, 0, 0, 0, 0, 0, SUM(segundos)
-        FROM {p}jugado WHERE 1 = 1 ${fj.sql} GROUP BY jugador_id
+        FROM {p}jugado WHERE 1 = 1 ${fj.sql} GROUP BY jugador_id`
+          : ''}
       ) x
       JOIN {p}jugadores j ON j.id = x.jugador_id
       GROUP BY j.id, j.identidad, j.steamid, j.nick, j.primera_vez, j.ultima_vez
     `,
-    valores: [...fm.valores, ...fm.valores, ...fs.valores, ...fp.valores, ...fa.valores, ...fj.valores]
+    valores: [...fm.valores, ...fm.valores, ...fs.valores, ...fp.valores, ...fa.valores,
+      ...(conTiempoEnJuego ? fj.valores : [])]
   }
 }
 
@@ -182,7 +207,17 @@ export async function ranking (orden: Orden, v: Ventana = TODO): Promise<Jugador
   /* Camper: solo con tiempo acostado registrado (plugin 0.4) y un minimo de tiempo jugado */
   const condicion = soloConMinimo ? 'AND kills >= ?' : soloCamper ? 'AND segundos_acostado > 0 AND IF(segundos_en_juego > 0, segundos_en_juego, segundos_jugados) >= ?' : ''
   const valores = soloConMinimo ? [MIN_KILLS_PORCENTAJES] : soloCamper ? [MIN_SEGUNDOS_CAMPER] : []
-  const base = esTodo(v) ? { sql: 'SELECT * FROM {p}ranking', valores: [] as unknown[] } : sqlTotales(v)
+  const enJuego = cubreLaVentana(v, await desdeCuandoHayTiempoEnJuego())
+  /* Sin periodo cubierto, el tiempo que vale es el conectado: se anula el otro */
+  const base = esTodo(v)
+    ? {
+        sql: `SELECT id, identidad, steamid, nick, primera_vez, ultima_vez, kills, headshots,
+                      teamkills, muertes, suicidios, segundos_jugados, puntos, segundos_acostado,
+                      0 AS segundos_en_juego
+               FROM {p}ranking`,
+        valores: [] as unknown[]
+      }
+    : sqlTotales(v, enJuego)
   const filas = await consultar(`
     SELECT * FROM (${base.sql}) t
     WHERE kills + muertes + puntos > 0 ${condicion}
@@ -223,7 +258,7 @@ export async function jugadorEnPeriodo (id: number, v: Ventana): Promise<Jugador
 
   if (esTodo(v)) return jugador(id)
 
-  const base = sqlTotales(v)
+  const base = sqlTotales(v, cubreLaVentana(v, await desdeCuandoHayTiempoEnJuego()))
   const [fila] = await consultar(`SELECT * FROM (${base.sql}) t WHERE id = ?`, [...base.valores, id])
   if (!fila) return null
   return { ...aJugador(fila), primeraVez: iso(fila.primera_vez), ultimaVez: iso(fila.ultima_vez) }
@@ -460,6 +495,8 @@ export async function destacados (v: Ventana = TODO): Promise<Destacados> {
   'use cache'
   cacheLife(VIDA_CACHE)
 
+  const enJuego = cubreLaVentana(v, await desdeCuandoHayTiempoEnJuego())
+
   const fm = filtro(null, v)
   const fp = filtro(null, v)
   const fa = filtro(null, v, 'a.', 'dia')
@@ -469,36 +506,33 @@ export async function destacados (v: Ventana = TODO): Promise<Destacados> {
 
   const [fiel, camper, granadas, banderas, teamkills, headshots] = await Promise.all([
     /*
-     *  El que mas horas jugo. Con el plugin 0.5 el tiempo es el que estuvo en un
-     *  bando; mientras no haya nada registrado se usa el tiempo conectado.
+     *  El que mas horas jugo: el tiempo en un bando si cubre todo el periodo, y
+     *  si no el tiempo conectado.
      */
     consultar(`
-      SELECT j.id, j.nick, SUM(t.segundos) AS valor FROM (
-        SELECT jugador_id, segundos FROM {p}jugado g WHERE 1 = 1 ${fjg.sql}
-        UNION ALL
-        SELECT jugador_id, IF((SELECT COUNT(*) FROM {p}jugado) > 0, 0, segundos)
-        FROM {p}sesiones s WHERE 1 = 1 ${fse.sql}
-      ) t
+      SELECT j.id, j.nick, SUM(t.segundos) AS valor
+      FROM ${enJuego
+        ? `(SELECT jugador_id, segundos FROM {p}jugado g WHERE 1 = 1 ${fjg.sql}) t`
+        : `(SELECT jugador_id, segundos FROM {p}sesiones s WHERE 1 = 1 ${fse.sql}) t`}
       JOIN {p}jugadores j ON j.id = t.jugador_id
       GROUP BY j.id, j.nick HAVING valor > 0 ORDER BY valor DESC LIMIT 1
-    `, [...fjg.valores, ...fse.valores]),
+    `, enJuego ? fjg.valores : fse.valores),
 
     /* Camper: mayor parte del tiempo jugado acostado, con un minimo de tiempo jugado */
     consultar(`
       SELECT j.id, j.nick, ROUND(100 * a.segundos / s.segundos) AS valor
       FROM (SELECT jugador_id, SUM(segundos) AS segundos FROM {p}acostado a WHERE 1 = 1 ${fa.sql} GROUP BY jugador_id) a
       JOIN (
-        SELECT jugador_id, SUM(segundos) AS segundos FROM (
-          SELECT jugador_id, segundos FROM {p}jugado g WHERE 1 = 1 ${fjg.sql}
-          UNION ALL
-          SELECT jugador_id, IF((SELECT COUNT(*) FROM {p}jugado) > 0, 0, segundos)
-          FROM {p}sesiones s WHERE 1 = 1 ${fse.sql}
-        ) t GROUP BY jugador_id
+        SELECT jugador_id, SUM(segundos) AS segundos
+        FROM ${enJuego
+          ? `(SELECT jugador_id, segundos FROM {p}jugado g WHERE 1 = 1 ${fjg.sql}) t`
+          : `(SELECT jugador_id, segundos FROM {p}sesiones s WHERE 1 = 1 ${fse.sql}) t`}
+        GROUP BY jugador_id
       ) s ON s.jugador_id = a.jugador_id
       JOIN {p}jugadores j ON j.id = a.jugador_id
       WHERE s.segundos >= ? AND a.segundos > 0
       ORDER BY a.segundos / s.segundos DESC LIMIT 1
-    `, [...fa.valores, ...fjg.valores, ...fse.valores, MIN_SEGUNDOS_CAMPER]),
+    `, [...fa.valores, ...(enJuego ? fjg.valores : fse.valores), MIN_SEGUNDOS_CAMPER]),
 
     consultar(`
       SELECT j.id, j.nick, COUNT(*) AS valor

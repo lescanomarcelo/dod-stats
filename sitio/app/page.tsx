@@ -109,7 +109,7 @@ async function Contenido ({ parametros }: { parametros: Busqueda }) {
           <p className='nota'>Camper = porcentaje del tiempo jugado que pasó acostado. Solo jugadores con al menos {MIN_SEGUNDOS_CAMPER / 60} minutos jugados.</p>
         )}
 
-        <p className='nota'>El tiempo es el que estuvo en un bando, sin contar el rato de espectador (desde la versión 0.5 del plugin; antes de eso, el tiempo conectado).</p>
+        <p className='nota'>En los períodos que el plugin 0.5 cubre entero, el tiempo es el que estuvo en un bando, sin contar el rato de espectador. En los anteriores es el tiempo conectado.</p>
 
         {(orden === 'kd' || orden === 'hs') && (
           <p className='nota'>Solo jugadores con al menos {MIN_KILLS_PORCENTAJES} kills, para que el porcentaje sea representativo.</p>
