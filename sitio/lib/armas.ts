@@ -40,6 +40,17 @@ export const CATALOGO: Arma[] = [
   { nombre: 'Cuchillo', sprite: 'amerknife', bando: 'aliados', alias: ['knife', 'amerknife', 'cuchillo'] },
   { nombre: 'Granada', sprite: 'handgrenade', bando: 'aliados', alias: ['handgrenade', 'handgrenade_ex', 'grenade'] },
 
+  /* Britanicos: juegan del lado de los Aliados en los mapas que los tienen */
+  { nombre: 'Lee-Enfield', sprite: 'enfield', bando: 'aliados', alias: ['enfield', 'lee-enfield'] },
+  { nombre: 'Bayoneta Lee-Enfield', sprite: 'enfield', bando: 'aliados', alias: ['enfield bayonet', 'enf_bayonet'] },
+  { nombre: 'Lee-Enfield con mira', sprite: 'scopedenfield', bando: 'aliados', alias: ['scoped enfield', 'scopedenfield'] },
+  { nombre: 'Sten', sprite: 'sten', bando: 'aliados', alias: ['sten'] },
+  { nombre: 'Bren', sprite: 'bren', bando: 'aliados', alias: ['bren'] },
+  { nombre: 'PIAT', sprite: 'piat', bando: 'aliados', alias: ['piat'] },
+  { nombre: 'Webley', sprite: 'webley', bando: 'aliados', alias: ['webley'] },
+  { nombre: 'Cuchillo británico', sprite: 'britknife', bando: 'aliados', alias: ['brit knife', 'britknife', 'brit_knife'] },
+  { nombre: 'Granada Mills', sprite: 'britgrenade', bando: 'aliados', alias: ['mills bomb', 'mills_bomb', 'britgrenade'] },
+
   /* Eje */
   { nombre: 'Kar98k', sprite: 'kar', bando: 'eje', alias: ['k98', 'kar', 'kar98k'] },
   { nombre: 'Bayoneta Kar98k', sprite: 'kar', bando: 'eje', alias: ['k98 bayonet', 'bayonet', 'kar bayonet'] },
