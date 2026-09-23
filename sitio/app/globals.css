@@ -579,3 +579,19 @@ tbody tr.sin-uso .arma-dibujo { opacity: 0.45; filter: grayscale(1); }
 .melee-cabecera h2 { margin-bottom: 0.15rem; }
 .melee-cabecera .nota { margin-top: 0; }
 .melee-dibujo { height: 54px; width: auto; image-rendering: auto; }
+
+/* Prueba: la lista del ranking, plegada arriba de las figuritas */
+.lista-plegable > summary {
+  display: flex; align-items: center; gap: 0.6rem; cursor: pointer; list-style: none;
+  padding: 0.6rem 0.9rem; border: 1px solid var(--borde); border-radius: var(--radio);
+  background: var(--panel); color: var(--texto);
+  font-family: var(--font-oswald), sans-serif; text-transform: uppercase; letter-spacing: 0.04em;
+}
+.lista-plegable > summary::-webkit-details-marker { display: none; }
+.lista-plegable > summary::before {
+  content: '▸'; color: var(--acento); font-size: 0.9rem; transition: transform 0.15s;
+}
+.lista-plegable[open] > summary::before { transform: rotate(90deg); }
+.lista-plegable > summary:hover { border-color: var(--acento); }
+.lista-plegable > summary .cuantos { margin-left: auto; color: var(--tenue); font-size: 0.8rem; text-transform: none; }
+.lista-plegable > .tabla-envoltorio { margin-top: 0.75rem; }
