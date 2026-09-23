@@ -9,7 +9,7 @@ import { CopiarIp } from '@/components/CopiarIp'
 import { Menu } from '@/components/Menu'
 import { estadoServidor, jugadoresEnLinea, SERVIDOR } from '@/lib/estado'
 import { JugadoresEnLinea } from '@/components/JugadoresEnLinea'
-import { IconoWhatsApp, IconoDiscord, IconoCafecito } from '@/components/Iconos'
+import { IconoWhatsApp, IconoDiscord } from '@/components/Iconos'
 import { GRUPOS, enlaceCafecito } from '@/lib/links'
 import './globals.css'
 
@@ -122,12 +122,20 @@ export default function RootLayout ({ children }: LayoutProps<'/'>) {
                 <a href={DISCORD} target='_blank' rel='noopener noreferrer' className='con-icono'>
                   <IconoDiscord className='icono' />Discord
                 </a>
+                <span className='pie-nota'>Avisale a alguien del server que pediste entrar al grupo.</span>
                 {enlaceCafecito && (
-                  <a href={enlaceCafecito} target='_blank' rel='noopener noreferrer' className='con-icono'>
-                    <IconoCafecito className='icono' />Invitame un cafecito
+                  <a href={enlaceCafecito} target='_blank' rel='noopener noreferrer' className='boton-cafecito'>
+                    {/* eslint-disable-next-line @next/next/no-img-element -- es el boton oficial de Cafecito, servido por ellos */}
+                    <img
+                      srcSet='https://cdn.cafecito.app/imgs/buttons/button_2.png 1x, https://cdn.cafecito.app/imgs/buttons/button_2_2x.png 2x, https://cdn.cafecito.app/imgs/buttons/button_2_3.75x.png 3.75x'
+                      src='https://cdn.cafecito.app/imgs/buttons/button_2.png'
+                      alt='Invitame un café en cafecito.app'
+                      width={168}
+                      height={44}
+                      loading='lazy'
+                    />
                   </a>
                 )}
-                <span className='pie-nota'>Avisale a alguien del server que pediste entrar al grupo.</span>
               </div>
 
               <div className='pie-columna'>

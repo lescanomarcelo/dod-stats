@@ -573,3 +573,8 @@ a.jugador.con-dibujo { display: inline-flex; align-items: center; gap: 0.6rem; }
 /* Armas que todavia no mataron a nadie */
 tbody tr.sin-uso { color: var(--tenue); }
 tbody tr.sin-uso .arma-dibujo { opacity: 0.45; filter: grayscale(1); }
+
+/* Boton oficial de Cafecito, con su propia imagen */
+.boton-cafecito { display: inline-block; margin-top: 0.5rem; }
+.boton-cafecito img { height: 40px; width: auto; display: block; border-radius: 4px; }
+.boton-cafecito:hover img { filter: brightness(1.08); }
