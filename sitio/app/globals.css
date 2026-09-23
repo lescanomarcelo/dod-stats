@@ -573,3 +573,9 @@ a.jugador.con-dibujo { display: inline-flex; align-items: center; gap: 0.6rem; }
 /* Armas que todavia no mataron a nadie */
 tbody tr.sin-uso { color: var(--tenue); }
 tbody tr.sin-uso .arma-dibujo { opacity: 0.45; filter: grayscale(1); }
+
+/* Cuerpo a cuerpo: el recuadro con el dibujo del despeinado */
+.melee-cabecera { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.6rem; flex-wrap: wrap; }
+.melee-cabecera h2 { margin-bottom: 0.15rem; }
+.melee-cabecera .nota { margin-top: 0; }
+.melee-dibujo { height: 54px; width: auto; image-rendering: auto; }

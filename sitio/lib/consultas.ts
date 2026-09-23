@@ -3,6 +3,7 @@ import { cacheLife } from 'next/cache'
 import { consultar } from './db'
 import { MIN_KILLS_PORCENTAJES, MIN_SEGUNDOS_CAMPER } from './calculos'
 import { HORAS_ARGENTINA, type Ventana, type Balance } from './periodos'
+import { ALIAS_CUERPO_A_CUERPO } from './armas'
 
 /*
  *  Cuanto vive lo cacheado. La ingesta carga datos nuevos cada 15 minutos, asi que
@@ -459,12 +460,8 @@ export async function resumenDeArma (nombres: string[], v: Ventana = TODO) {
 /* Armas que son granadas, para "El Aero-Player" */
 const GRANADAS = ['handgrenade', 'stickgrenade', 'mills_bomb', 'grenade']
 
-/* Cuerpo a cuerpo, para "La vieja más pelada": palas y cuchillos, con todos los
-   nombres con los que puede llegar cada uno */
-const CUERPO_A_CUERPO = [
-  'knife', 'amerknife', 'gerknife', 'brit knife', 'britknife', 'brit_knife', 'cuchillo',
-  'spade', 'pala'
-]
+/* Cuerpo a cuerpo (palas, cuchillos, bayonetas y culatazos): sale del catalogo */
+const CUERPO_A_CUERPO = ALIAS_CUERPO_A_CUERPO
 
 export type Destacado = { id: number, nick: string, valor: number } | null
 
