@@ -9,8 +9,8 @@ import { CopiarIp } from '@/components/CopiarIp'
 import { Menu } from '@/components/Menu'
 import { estadoServidor, jugadoresEnLinea, SERVIDOR } from '@/lib/estado'
 import { JugadoresEnLinea } from '@/components/JugadoresEnLinea'
-import { IconoWhatsApp, IconoDiscord } from '@/components/Iconos'
-import { GRUPOS } from '@/lib/links'
+import { IconoWhatsApp, IconoDiscord, IconoCafecito } from '@/components/Iconos'
+import { GRUPOS, enlaceCafecito } from '@/lib/links'
 import './globals.css'
 
 const geist = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
@@ -122,6 +122,11 @@ export default function RootLayout ({ children }: LayoutProps<'/'>) {
                 <a href={DISCORD} target='_blank' rel='noopener noreferrer' className='con-icono'>
                   <IconoDiscord className='icono' />Discord
                 </a>
+                {enlaceCafecito && (
+                  <a href={enlaceCafecito} target='_blank' rel='noopener noreferrer' className='con-icono'>
+                    <IconoCafecito className='icono' />Invitame un cafecito
+                  </a>
+                )}
                 <span className='pie-nota'>Avisale a alguien del server que pediste entrar al grupo.</span>
               </div>
 
