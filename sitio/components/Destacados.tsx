@@ -34,6 +34,14 @@ const CATEGORIAS: Categoria[] = [
     vacio: 'Todavía nadie jugó en este período.'
   },
   {
+    clave: 'melee',
+    titulo: 'La vieja más pelada',
+    subtitulo: 'Más kills con pala o cuchillo',
+    imagen: '/destacados/melee.webp',
+    valor: (v) => `${formatoNumero(v)} cuerpo a cuerpo`,
+    vacio: 'Todavía nadie mató cuerpo a cuerpo.'
+  },
+  {
     clave: 'camper',
     titulo: 'El más Kenny',
     subtitulo: 'Más tiempo acostado',
