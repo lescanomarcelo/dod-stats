@@ -123,7 +123,7 @@ async function Contenido ({ parametros }: { parametros: Busqueda }) {
       </details>
 
       <section className='seccion'>
-        <Destacados datos={figuras} />
+        <Destacados datos={figuras} periodo={rango.periodo} fecha={rango.clave} />
       </section>
     </>
   )

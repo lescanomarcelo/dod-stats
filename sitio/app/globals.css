@@ -574,6 +574,16 @@ a.jugador.con-dibujo { display: inline-flex; align-items: center; gap: 0.6rem; }
 tbody tr.sin-uso { color: var(--tenue); }
 tbody tr.sin-uso .arma-dibujo { opacity: 0.45; filter: grayscale(1); }
 
+/* Detalle de un destacado: la misma foto de la tarjeta, mas grande, y su texto al lado */
+.destacado-retrato {
+  display: flex; align-items: center; gap: 1.1rem; flex-wrap: wrap;
+  padding: 1rem; margin-bottom: 1.5rem;
+  background: var(--panel); border: 1px solid var(--borde); border-radius: var(--radio);
+}
+.destacado-retrato img { width: 96px; height: 96px; object-fit: cover; border-radius: var(--radio); flex-shrink: 0; }
+.destacado-retrato-texto h2 { color: var(--acento); margin-bottom: 0.2rem; }
+.destacado-retrato-texto p { color: var(--tenue); margin: 0; font-size: 0.9rem; }
+
 /* Cuerpo a cuerpo: el recuadro con el dibujo del despeinado */
 .melee-cabecera { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.6rem; flex-wrap: wrap; }
 .melee-cabecera h2 { margin-bottom: 0.15rem; }
