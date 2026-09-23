@@ -15,6 +15,14 @@ export type EnlaceComunidad = {
 
 export type GrupoEnlaces = { titulo: string, enlaces: EnlaceComunidad[] }
 
+/*
+ *  Cafecito (cafecito.app): para bancar el server con una donación chica.
+ *  Cuando este la cuenta creada, poner acá el usuario (lo que va después de
+ *  cafecito.app/) y aparece solo en Links y abajo de todo.
+ */
+export const CAFECITO: string | null = null
+export const enlaceCafecito = CAFECITO ? `https://cafecito.app/${CAFECITO}` : null
+
 export const GRUPOS: GrupoEnlaces[] = [
   {
     titulo: 'Comunidad',
@@ -23,6 +31,11 @@ export const GRUPOS: GrupoEnlaces[] = [
         nombre: 'Discord',
         descripcion: 'Para charlar, armar partidas y avisos del server.',
         url: 'https://discord.gg/zSwGqF3'
+      },
+      {
+        nombre: 'Invitame un cafecito',
+        descripcion: 'Una mano para pagar el server. Con tarjeta o desde Mercado Pago.',
+        url: enlaceCafecito
       },
       {
         nombre: 'Grupo de WhatsApp',
