@@ -26,7 +26,8 @@ const NOMBRES = {
   'El dodero ejemplar': ['banderas', 'top'],
   'El mas m_rawinput 1': ['teamkills', 'top'],
   'El chiterazo': ['headshots', 'top'],
-  'el dodero fiel': ['fiel', 'centre']
+  'el dodero fiel': ['fiel', 'centre'],
+  'La vieja mas pelada': ['melee', 'centre']
 }
 
 await mkdir(DESTINO, { recursive: true })

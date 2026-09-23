@@ -6,7 +6,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   kd, porcentaje, formatoKd, formatoPorcentaje, formatoTiempo,
-  tiempoRelativo, nombreHitbox, nombreEquipo, camper, tiempoDeJuego
+  tiempoRelativo, nombreHitbox, nombreEquipo, camper
 } from './calculos.ts'
 import { nombreDeArma, armaDe, imagenDeArma } from './armas.ts'
 
@@ -92,9 +92,4 @@ test('cada arma conocida tiene su dibujo, y una desconocida no rompe nada', () =
   assert.equal(imagenDeArma('arma_nueva_rara'), null)
   assert.equal(armaDe('arma_nueva_rara'), undefined)
   assert.equal(armaDe('  MP40  ')?.bando, 'eje')
-})
-
-test('el tiempo mostrado es el del bando, y si no hay, el conectado', () => {
-  assert.equal(tiempoDeJuego({ segundos: 3600, segundosEnJuego: 2400 }), 2400)
-  assert.equal(tiempoDeJuego({ segundos: 3600, segundosEnJuego: 0 }), 3600)
 })

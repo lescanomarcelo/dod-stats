@@ -53,14 +53,11 @@ export async function desdeCuandoHayTiempoEnJuego (): Promise<string | null> {
 }
 
 /*
- *  El tiempo en un bando solo sirve si cubre el periodo entero. Un periodo que
- *  empieza antes de que el plugin lo registrara mostraria solo el ultimo rato
- *  (el dia que se instalo, por ejemplo), asi que en ese caso se usa el tiempo
- *  conectado, que esta desde el principio.
+ *  El tiempo que cuenta para el ranking y para "El dodero fiel" es SIEMPRE el que
+ *  el jugador estuvo en un bando (tabla jugado, plugin 0.5 en adelante). El tiempo
+ *  conectado queda solo como dato aparte en el perfil: incluye el rato en
+ *  espectador, asi que no sirve para premiar a nadie.
  */
-function cubreLaVentana (v: Ventana, desde: string | null): boolean {
-  return Boolean(desde && v.desde && new Date(v.desde) >= new Date(desde))
-}
 
 const n = (valor: unknown) => Number(valor ?? 0)
 const iso = (valor: unknown) => (valor instanceof Date ? valor.toISOString() : null)
@@ -140,8 +137,8 @@ const ORDENES: Record<Orden, { sql: string, soloConMinimo?: boolean, soloCamper?
   kills: { sql: 'kills DESC, muertes ASC', soloConMinimo: false },
   kd: { sql: 'kills / GREATEST(muertes, 1) DESC, kills DESC', soloConMinimo: true },
   hs: { sql: 'headshots / GREATEST(kills, 1) DESC, kills DESC', soloConMinimo: true },
-  tiempo: { sql: 'IF(segundos_en_juego > 0, segundos_en_juego, segundos_jugados) DESC', soloConMinimo: false },
-  camper: { sql: 'segundos_acostado / GREATEST(IF(segundos_en_juego > 0, segundos_en_juego, segundos_jugados), 1) DESC, segundos_acostado DESC', soloCamper: true }
+  tiempo: { sql: 'segundos_en_juego DESC, segundos_jugados DESC', soloConMinimo: false },
+  camper: { sql: 'segundos_acostado / GREATEST(segundos_en_juego, 1) DESC, segundos_acostado DESC', soloCamper: true }
 }
 
 export function esOrden (valor: unknown): valor is Orden {
@@ -154,7 +151,7 @@ export function esOrden (valor: unknown): valor is Orden {
  *  ya esta lista. El tiempo jugado sale de las sesiones que TERMINARON dentro de la
  *  ventana, asi que una partida a caballo de la medianoche cuenta el dia que termino.
  */
-function sqlTotales (v: Ventana, conTiempoEnJuego: boolean) {
+function sqlTotales (v: Ventana) {
   const fm = filtro(null, v)
   const fs = filtro(null, v, '', 'desconexion')
   const fp = filtro(null, v)
@@ -185,17 +182,14 @@ function sqlTotales (v: Ventana, conTiempoEnJuego: boolean) {
         UNION ALL
         SELECT jugador_id, 0, 0, 0, 0, 0, 0, 0, SUM(segundos), 0
         FROM {p}acostado WHERE 1 = 1 ${fa.sql} GROUP BY jugador_id
-        ${conTiempoEnJuego
-          ? `UNION ALL
+        UNION ALL
         SELECT jugador_id, 0, 0, 0, 0, 0, 0, 0, 0, SUM(segundos)
-        FROM {p}jugado WHERE 1 = 1 ${fj.sql} GROUP BY jugador_id`
-          : ''}
+        FROM {p}jugado WHERE 1 = 1 ${fj.sql} GROUP BY jugador_id
       ) x
       JOIN {p}jugadores j ON j.id = x.jugador_id
       GROUP BY j.id, j.identidad, j.steamid, j.nick, j.primera_vez, j.ultima_vez
     `,
-    valores: [...fm.valores, ...fm.valores, ...fs.valores, ...fp.valores, ...fa.valores,
-      ...(conTiempoEnJuego ? fj.valores : [])]
+    valores: [...fm.valores, ...fm.valores, ...fs.valores, ...fp.valores, ...fa.valores, ...fj.valores]
   }
 }
 
@@ -205,19 +199,11 @@ export async function ranking (orden: Orden, v: Ventana = TODO): Promise<Jugador
 
   const { sql, soloConMinimo, soloCamper } = ORDENES[orden]
   /* Camper: solo con tiempo acostado registrado (plugin 0.4) y un minimo de tiempo jugado */
-  const condicion = soloConMinimo ? 'AND kills >= ?' : soloCamper ? 'AND segundos_acostado > 0 AND IF(segundos_en_juego > 0, segundos_en_juego, segundos_jugados) >= ?' : ''
+  const condicion = soloConMinimo ? 'AND kills >= ?' : soloCamper ? 'AND segundos_acostado > 0 AND segundos_en_juego >= ?' : ''
   const valores = soloConMinimo ? [MIN_KILLS_PORCENTAJES] : soloCamper ? [MIN_SEGUNDOS_CAMPER] : []
-  const enJuego = cubreLaVentana(v, await desdeCuandoHayTiempoEnJuego())
-  /* Sin periodo cubierto, el tiempo que vale es el conectado: se anula el otro */
   const base = esTodo(v)
-    ? {
-        sql: `SELECT id, identidad, steamid, nick, primera_vez, ultima_vez, kills, headshots,
-                      teamkills, muertes, suicidios, segundos_jugados, puntos, segundos_acostado,
-                      0 AS segundos_en_juego
-               FROM {p}ranking`,
-        valores: [] as unknown[]
-      }
-    : sqlTotales(v, enJuego)
+    ? { sql: 'SELECT * FROM {p}ranking', valores: [] as unknown[] }
+    : sqlTotales(v)
   const filas = await consultar(`
     SELECT * FROM (${base.sql}) t
     WHERE kills + muertes + puntos > 0 ${condicion}
@@ -258,7 +244,7 @@ export async function jugadorEnPeriodo (id: number, v: Ventana): Promise<Jugador
 
   if (esTodo(v)) return jugador(id)
 
-  const base = sqlTotales(v, cubreLaVentana(v, await desdeCuandoHayTiempoEnJuego()))
+  const base = sqlTotales(v)
   const [fila] = await consultar(`SELECT * FROM (${base.sql}) t WHERE id = ?`, [...base.valores, id])
   if (!fila) return null
   return { ...aJugador(fila), primeraVez: iso(fila.primera_vez), ultimaVez: iso(fila.ultima_vez) }
@@ -473,10 +459,18 @@ export async function resumenDeArma (nombres: string[], v: Ventana = TODO) {
 /* Armas que son granadas, para "El Aero-Player" */
 const GRANADAS = ['handgrenade', 'stickgrenade', 'mills_bomb', 'grenade']
 
+/* Cuerpo a cuerpo, para "La vieja más pelada": palas y cuchillos, con todos los
+   nombres con los que puede llegar cada uno */
+const CUERPO_A_CUERPO = [
+  'knife', 'amerknife', 'gerknife', 'brit knife', 'britknife', 'brit_knife', 'cuchillo',
+  'spade', 'pala'
+]
+
 export type Destacado = { id: number, nick: string, valor: number } | null
 
 export type Destacados = {
   fiel: Destacado
+  melee: Destacado
   camper: Destacado
   granadas: Destacado
   banderas: Destacado
@@ -495,28 +489,33 @@ export async function destacados (v: Ventana = TODO): Promise<Destacados> {
   'use cache'
   cacheLife(VIDA_CACHE)
 
-  const enJuego = cubreLaVentana(v, await desdeCuandoHayTiempoEnJuego())
 
   const fm = filtro(null, v)
   const fp = filtro(null, v)
   const fa = filtro(null, v, 'a.', 'dia')
-  const fse = filtro(null, v, 's.', 'desconexion')
   const fjg = filtro(null, v, 'g.', 'dia')
   const marcadores = GRANADAS.map(() => '?').join(', ')
 
-  const [fiel, camper, granadas, banderas, teamkills, headshots] = await Promise.all([
+  const [fiel, melee, camper, granadas, banderas, teamkills, headshots] = await Promise.all([
     /*
      *  El que mas horas jugo: el tiempo en un bando si cubre todo el periodo, y
      *  si no el tiempo conectado.
      */
     consultar(`
       SELECT j.id, j.nick, SUM(t.segundos) AS valor
-      FROM ${enJuego
-        ? `(SELECT jugador_id, segundos FROM {p}jugado g WHERE 1 = 1 ${fjg.sql}) t`
-        : `(SELECT jugador_id, segundos FROM {p}sesiones s WHERE 1 = 1 ${fse.sql}) t`}
+      FROM (SELECT jugador_id, segundos FROM {p}jugado g WHERE 1 = 1 ${fjg.sql}) t
       JOIN {p}jugadores j ON j.id = t.jugador_id
       GROUP BY j.id, j.nick HAVING valor > 0 ORDER BY valor DESC LIMIT 1
-    `, enJuego ? fjg.valores : fse.valores),
+    `, fjg.valores),
+
+    /* La vieja mas pelada: el que mas mato con pala o cuchillo, sumando variantes */
+    consultar(`
+      SELECT j.id, j.nick, COUNT(*) AS valor
+      FROM {p}muertes m JOIN {p}jugadores j ON j.id = m.matador_id
+      WHERE m.teamkill = 0 AND LOWER(m.arma) IN (${CUERPO_A_CUERPO.map(() => '?').join(', ')})
+        ${filtro(null, v, 'm.').sql}
+      GROUP BY j.id, j.nick ORDER BY valor DESC LIMIT 1
+    `, [...CUERPO_A_CUERPO, ...fm.valores]),
 
     /* Camper: mayor parte del tiempo jugado acostado, con un minimo de tiempo jugado */
     consultar(`
@@ -524,15 +523,13 @@ export async function destacados (v: Ventana = TODO): Promise<Destacados> {
       FROM (SELECT jugador_id, SUM(segundos) AS segundos FROM {p}acostado a WHERE 1 = 1 ${fa.sql} GROUP BY jugador_id) a
       JOIN (
         SELECT jugador_id, SUM(segundos) AS segundos
-        FROM ${enJuego
-          ? `(SELECT jugador_id, segundos FROM {p}jugado g WHERE 1 = 1 ${fjg.sql}) t`
-          : `(SELECT jugador_id, segundos FROM {p}sesiones s WHERE 1 = 1 ${fse.sql}) t`}
+        FROM (SELECT jugador_id, segundos FROM {p}jugado g WHERE 1 = 1 ${fjg.sql}) t
         GROUP BY jugador_id
       ) s ON s.jugador_id = a.jugador_id
       JOIN {p}jugadores j ON j.id = a.jugador_id
       WHERE s.segundos >= ? AND a.segundos > 0
       ORDER BY a.segundos / s.segundos DESC LIMIT 1
-    `, [...fa.valores, ...(enJuego ? fjg.valores : fse.valores), MIN_SEGUNDOS_CAMPER]),
+    `, [...fa.valores, ...fjg.valores, MIN_SEGUNDOS_CAMPER]),
 
     consultar(`
       SELECT j.id, j.nick, COUNT(*) AS valor
@@ -570,6 +567,7 @@ export async function destacados (v: Ventana = TODO): Promise<Destacados> {
 
   return {
     fiel: uno(fiel),
+    melee: uno(melee),
     camper: uno(camper),
     granadas: uno(granadas),
     banderas: uno(banderas),

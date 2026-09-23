@@ -10,14 +10,6 @@ export const MIN_KILLS_PORCENTAJES = 20
 /* Para el ranking Camper: con menos de media hora jugada el porcentaje no dice nada */
 export const MIN_SEGUNDOS_CAMPER = 30 * 60
 
-/**
- * El tiempo que se muestra: el que estuvo en un bando si ya se registra
- * (plugin 0.5), y si no el tiempo conectado, que incluye el rato de espectador.
- */
-export function tiempoDeJuego (j: { segundos: number, segundosEnJuego: number }): number {
-  return j.segundosEnJuego > 0 ? j.segundosEnJuego : j.segundos
-}
-
 /** Camper: porcentaje del tiempo jugado que paso acostado, de 0 a 100 */
 export function camper (segundosAcostado: number, segundosJugados: number): number {
   if (segundosJugados <= 0) return 0
