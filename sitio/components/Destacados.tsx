@@ -1,91 +1,28 @@
 import Link from 'next/link'
 import type { Destacados as DatosDestacados, Destacado } from '@/lib/consultas'
-import { formatoNumero, formatoTiempo } from '@/lib/calculos'
-
-/* "1 bandera" / "3 banderas": el numero manda */
-const plural = (v: number, uno: string, varios: string) => `${formatoNumero(v)} ${v === 1 ? uno : varios}`
+import { CATEGORIAS_DESTACADO, type CategoriaDestacado } from '@/lib/destacados'
+import { enlaceDeDestacado } from '@/lib/enlaces'
+import type { Periodo } from '@/lib/periodos'
 
 /*
- *  Las cinco figuritas del ranking: una categoria con nombre propio, la imagen del
+ *  Las siete figuritas del ranking: una categoria con nombre propio, la imagen del
  *  tapir y el que va ganando en ese rubro, con su numero.
  *
  *  El nick y el dato van ENCIMA de la imagen (no dibujados en ella): cambian solos
  *  cuando cambia el que lidera, y se leen nitidos en cualquier pantalla.
+ *
+ *  La tarjeta lleva al detalle de la categoria (su top 10), no directo al perfil:
+ *  desde ahi, cada jugador del top si lleva a su perfil.
  */
 
-type Categoria = {
-  clave: keyof DatosDestacados
-  titulo: string
-  subtitulo: string
-  imagen: string
-  /** Como se muestra el numero del que lidera */
-  valor: (v: number) => string
-  /** Mensaje cuando todavia no hay datos de ese rubro */
-  vacio: string
-}
-
-const CATEGORIAS: Categoria[] = [
-  {
-    clave: 'fiel',
-    titulo: 'El dodero fiel',
-    subtitulo: 'Más horas jugadas',
-    imagen: '/destacados/fiel.webp',
-    valor: (v) => formatoTiempo(v),
-    vacio: 'Todavía nadie jugó en este período.'
-  },
-  {
-    clave: 'melee',
-    titulo: 'La vieja más pelada',
-    subtitulo: 'Más kills con pala o cuchillo',
-    imagen: '/destacados/melee.webp',
-    valor: (v) => `${formatoNumero(v)} cuerpo a cuerpo`,
-    vacio: 'Todavía nadie mató cuerpo a cuerpo.'
-  },
-  {
-    clave: 'camper',
-    titulo: 'El más Kenny',
-    subtitulo: 'Más tiempo acostado',
-    imagen: '/destacados/kenny.webp',
-    valor: (v) => `${v}% del tiempo`,
-    vacio: 'Se registra desde la versión 0.4 del plugin.'
-  },
-  {
-    clave: 'granadas',
-    titulo: 'El Aero-Player',
-    subtitulo: 'Más kills con granadas',
-    imagen: '/destacados/granadas.webp',
-    valor: (v) => plural(v, 'con una nade', 'con nades'),
-    vacio: 'Todavía nadie mató con granadas.'
-  },
-  {
-    clave: 'banderas',
-    titulo: 'El dodero ejemplar',
-    subtitulo: 'Más banderas tomadas',
-    imagen: '/destacados/banderas.webp',
-    valor: (v) => plural(v, 'bandera', 'banderas'),
-    vacio: 'Se registra desde la versión 0.3 del plugin.'
-  },
-  {
-    clave: 'teamkills',
-    titulo: 'm_rawinput 1',
-    subtitulo: 'Más teamkills',
-    imagen: '/destacados/teamkills.webp',
-    valor: (v) => plural(v, 'teamkill', 'teamkills'),
-    vacio: 'Nadie mató a un compañero. Por ahora.'
-  },
-  {
-    clave: 'headshots',
-    titulo: 'El chiterazo',
-    subtitulo: 'Mayor % de headshots',
-    imagen: '/destacados/headshots.webp',
-    valor: (v) => `${v}% a la cabeza`,
-    vacio: 'Todavía nadie tiene kills suficientes.'
-  }
-]
-
-function Tarjeta ({ categoria, quien }: { categoria: Categoria, quien: Destacado }) {
-  const contenido = (
-    <>
+function Tarjeta ({ categoria, quien, periodo, fecha }: {
+  categoria: CategoriaDestacado
+  quien: Destacado
+  periodo: Periodo
+  fecha: string | null
+}) {
+  return (
+    <Link href={enlaceDeDestacado(categoria.clave, periodo, fecha)} className={quien ? 'figurita' : 'figurita sin-datos'}>
       {/* eslint-disable-next-line @next/next/no-img-element -- imagen fija ya optimizada a webp */}
       <img src={categoria.imagen} alt='' width={700} height={700} loading='lazy' />
       <div className='figurita-texto'>
@@ -100,18 +37,16 @@ function Tarjeta ({ categoria, quien }: { categoria: Categoria, quien: Destacado
             )
           : <span className='figurita-vacio'>{categoria.vacio}</span>}
       </div>
-    </>
+    </Link>
   )
-
-  return quien
-    ? <Link href={`/jugador/${quien.id}`} className='figurita'>{contenido}</Link>
-    : <div className='figurita sin-datos'>{contenido}</div>
 }
 
-export function Destacados ({ datos }: { datos: DatosDestacados }) {
+export function Destacados ({ datos, periodo, fecha }: { datos: DatosDestacados, periodo: Periodo, fecha: string | null }) {
   return (
     <div className='figuritas'>
-      {CATEGORIAS.map((c) => <Tarjeta key={c.clave} categoria={c} quien={datos[c.clave]} />)}
+      {CATEGORIAS_DESTACADO.map((c) => (
+        <Tarjeta key={c.clave} categoria={c} quien={datos[c.clave]} periodo={periodo} fecha={fecha} />
+      ))}
     </div>
   )
 }

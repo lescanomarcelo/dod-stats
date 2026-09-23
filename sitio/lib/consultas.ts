@@ -463,20 +463,136 @@ const GRANADAS = ['handgrenade', 'stickgrenade', 'mills_bomb', 'grenade']
 /* Cuerpo a cuerpo (palas, cuchillos, bayonetas y culatazos): sale del catalogo */
 const CUERPO_A_CUERPO = ALIAS_CUERPO_A_CUERPO
 
-export type Destacado = { id: number, nick: string, valor: number } | null
+export type FilaDestacado = { id: number, nick: string, valor: number }
+export type Destacado = FilaDestacado | null
 
-export type Destacados = {
-  fiel: Destacado
-  melee: Destacado
-  camper: Destacado
-  granadas: Destacado
-  banderas: Destacado
-  teamkills: Destacado
-  headshots: Destacado
-}
+export type ClaveDestacado = 'fiel' | 'melee' | 'camper' | 'granadas' | 'banderas' | 'teamkills' | 'headshots'
+
+export type Destacados = Record<ClaveDestacado, Destacado>
 
 /* Minimos para que un porcentaje signifique algo */
 const MIN_KILLS_HEADSHOTS = 20
+
+/*
+ *  Una consulta por categoria, parametrizada por cuantos puestos traer. destacados()
+ *  las llama todas con limite 1 (el que va ganando); topDestacado() llama a UNA con
+ *  el limite que haga falta, para el detalle del top de esa categoria.
+ */
+const CONSULTA_DESTACADO: Record<ClaveDestacado, (v: Ventana, limite: number) => { sql: string, valores: unknown[] }> = {
+  /*
+   *  El dodero fiel: mas horas jugadas. El tiempo en un bando si cubre todo el
+   *  periodo, y si no el tiempo conectado.
+   */
+  fiel: (v, limite) => {
+    const fjg = filtro(null, v, 'g.', 'dia')
+    return {
+      sql: `
+        SELECT j.id, j.nick, SUM(t.segundos) AS valor
+        FROM (SELECT jugador_id, segundos FROM {p}jugado g WHERE 1 = 1 ${fjg.sql}) t
+        JOIN {p}jugadores j ON j.id = t.jugador_id
+        GROUP BY j.id, j.nick HAVING valor > 0 ORDER BY valor DESC LIMIT ${limite}
+      `,
+      valores: fjg.valores
+    }
+  },
+
+  /* La vieja mas pelada: el que mas mato con pala o cuchillo, sumando variantes */
+  melee: (v, limite) => {
+    const fm = filtro(null, v, 'm.')
+    return {
+      sql: `
+        SELECT j.id, j.nick, COUNT(*) AS valor
+        FROM {p}muertes m JOIN {p}jugadores j ON j.id = m.matador_id
+        WHERE m.teamkill = 0 AND LOWER(m.arma) IN (${CUERPO_A_CUERPO.map(() => '?').join(', ')}) ${fm.sql}
+        GROUP BY j.id, j.nick ORDER BY valor DESC LIMIT ${limite}
+      `,
+      valores: [...CUERPO_A_CUERPO, ...fm.valores]
+    }
+  },
+
+  /* Camper: mayor parte del tiempo jugado acostado, con un minimo de tiempo jugado */
+  camper: (v, limite) => {
+    const fa = filtro(null, v, 'a.', 'dia')
+    const fjg = filtro(null, v, 'g.', 'dia')
+    return {
+      sql: `
+        SELECT j.id, j.nick, ROUND(100 * a.segundos / s.segundos) AS valor
+        FROM (SELECT jugador_id, SUM(segundos) AS segundos FROM {p}acostado a WHERE 1 = 1 ${fa.sql} GROUP BY jugador_id) a
+        JOIN (
+          SELECT jugador_id, SUM(segundos) AS segundos
+          FROM (SELECT jugador_id, segundos FROM {p}jugado g WHERE 1 = 1 ${fjg.sql}) t
+          GROUP BY jugador_id
+        ) s ON s.jugador_id = a.jugador_id
+        JOIN {p}jugadores j ON j.id = a.jugador_id
+        WHERE s.segundos >= ? AND a.segundos > 0
+        ORDER BY a.segundos / s.segundos DESC LIMIT ${limite}
+      `,
+      valores: [...fa.valores, ...fjg.valores, MIN_SEGUNDOS_CAMPER]
+    }
+  },
+
+  granadas: (v, limite) => {
+    const fm = filtro(null, v, 'm.')
+    return {
+      sql: `
+        SELECT j.id, j.nick, COUNT(*) AS valor
+        FROM {p}muertes m JOIN {p}jugadores j ON j.id = m.matador_id
+        WHERE m.teamkill = 0 AND m.arma IN (${GRANADAS.map(() => '?').join(', ')}) ${fm.sql}
+        GROUP BY j.id, j.nick ORDER BY valor DESC LIMIT ${limite}
+      `,
+      valores: [...GRANADAS, ...fm.valores]
+    }
+  },
+
+  banderas: (v, limite) => {
+    const fp = filtro(null, v, 'p.')
+    return {
+      sql: `
+        SELECT j.id, j.nick, COUNT(*) AS valor
+        FROM {p}puntos p JOIN {p}jugadores j ON j.id = p.jugador_id
+        WHERE 1 = 1 ${fp.sql}
+        GROUP BY j.id, j.nick ORDER BY valor DESC LIMIT ${limite}
+      `,
+      valores: fp.valores
+    }
+  },
+
+  teamkills: (v, limite) => {
+    const fm = filtro(null, v, 'm.')
+    return {
+      sql: `
+        SELECT j.id, j.nick, COUNT(*) AS valor
+        FROM {p}muertes m JOIN {p}jugadores j ON j.id = m.matador_id
+        WHERE m.teamkill = 1 ${fm.sql}
+        GROUP BY j.id, j.nick ORDER BY valor DESC LIMIT ${limite}
+      `,
+      valores: fm.valores
+    }
+  },
+
+  headshots: (v, limite) => {
+    const fm = filtro(null, v, 'm.')
+    return {
+      sql: `
+        SELECT j.id, j.nick, ROUND(100 * SUM(m.headshot) / COUNT(*)) AS valor
+        FROM {p}muertes m JOIN {p}jugadores j ON j.id = m.matador_id
+        WHERE m.teamkill = 0 ${fm.sql}
+        GROUP BY j.id, j.nick
+        HAVING COUNT(*) >= ?
+        ORDER BY SUM(m.headshot) / COUNT(*) DESC, COUNT(*) DESC LIMIT ${limite}
+      `,
+      valores: [...fm.valores, MIN_KILLS_HEADSHOTS]
+    }
+  }
+}
+
+const CLAVES_DESTACADO = Object.keys(CONSULTA_DESTACADO) as ClaveDestacado[]
+
+export function esClaveDestacado (valor: unknown): valor is ClaveDestacado {
+  return typeof valor === 'string' && (CLAVES_DESTACADO as string[]).includes(valor)
+}
+
+const aFilaDestacado = (f: Record<string, unknown>): FilaDestacado => ({ id: n(f.id), nick: String(f.nick), valor: n(f.valor) })
 
 /**
  * El que mas se destaca en cada categoria dentro de la ventana. Cada consulta
@@ -486,91 +602,26 @@ export async function destacados (v: Ventana = TODO): Promise<Destacados> {
   'use cache'
   cacheLife(VIDA_CACHE)
 
+  const filas = await Promise.all(CLAVES_DESTACADO.map((clave) => {
+    const { sql, valores } = CONSULTA_DESTACADO[clave](v, 1)
+    return consultar(sql, valores)
+  }))
 
-  const fm = filtro(null, v)
-  const fp = filtro(null, v)
-  const fa = filtro(null, v, 'a.', 'dia')
-  const fjg = filtro(null, v, 'g.', 'dia')
-  const marcadores = GRANADAS.map(() => '?').join(', ')
+  const resultado = {} as Destacados
+  CLAVES_DESTACADO.forEach((clave, i) => {
+    resultado[clave] = filas[i].length ? aFilaDestacado(filas[i][0]) : null
+  })
+  return resultado
+}
 
-  const [fiel, melee, camper, granadas, banderas, teamkills, headshots] = await Promise.all([
-    /*
-     *  El que mas horas jugo: el tiempo en un bando si cubre todo el periodo, y
-     *  si no el tiempo conectado.
-     */
-    consultar(`
-      SELECT j.id, j.nick, SUM(t.segundos) AS valor
-      FROM (SELECT jugador_id, segundos FROM {p}jugado g WHERE 1 = 1 ${fjg.sql}) t
-      JOIN {p}jugadores j ON j.id = t.jugador_id
-      GROUP BY j.id, j.nick HAVING valor > 0 ORDER BY valor DESC LIMIT 1
-    `, fjg.valores),
+/** El top de una categoria (para el detalle: "El dodero fiel" con sus 10 mejores) */
+export async function topDestacado (clave: ClaveDestacado, v: Ventana = TODO, limite = 10): Promise<FilaDestacado[]> {
+  'use cache'
+  cacheLife(VIDA_CACHE)
 
-    /* La vieja mas pelada: el que mas mato con pala o cuchillo, sumando variantes */
-    consultar(`
-      SELECT j.id, j.nick, COUNT(*) AS valor
-      FROM {p}muertes m JOIN {p}jugadores j ON j.id = m.matador_id
-      WHERE m.teamkill = 0 AND LOWER(m.arma) IN (${CUERPO_A_CUERPO.map(() => '?').join(', ')})
-        ${filtro(null, v, 'm.').sql}
-      GROUP BY j.id, j.nick ORDER BY valor DESC LIMIT 1
-    `, [...CUERPO_A_CUERPO, ...fm.valores]),
-
-    /* Camper: mayor parte del tiempo jugado acostado, con un minimo de tiempo jugado */
-    consultar(`
-      SELECT j.id, j.nick, ROUND(100 * a.segundos / s.segundos) AS valor
-      FROM (SELECT jugador_id, SUM(segundos) AS segundos FROM {p}acostado a WHERE 1 = 1 ${fa.sql} GROUP BY jugador_id) a
-      JOIN (
-        SELECT jugador_id, SUM(segundos) AS segundos
-        FROM (SELECT jugador_id, segundos FROM {p}jugado g WHERE 1 = 1 ${fjg.sql}) t
-        GROUP BY jugador_id
-      ) s ON s.jugador_id = a.jugador_id
-      JOIN {p}jugadores j ON j.id = a.jugador_id
-      WHERE s.segundos >= ? AND a.segundos > 0
-      ORDER BY a.segundos / s.segundos DESC LIMIT 1
-    `, [...fa.valores, ...fjg.valores, MIN_SEGUNDOS_CAMPER]),
-
-    consultar(`
-      SELECT j.id, j.nick, COUNT(*) AS valor
-      FROM {p}muertes m JOIN {p}jugadores j ON j.id = m.matador_id
-      WHERE m.teamkill = 0 AND m.arma IN (${marcadores}) ${filtro(null, v, 'm.').sql}
-      GROUP BY j.id, j.nick ORDER BY valor DESC LIMIT 1
-    `, [...GRANADAS, ...fm.valores]),
-
-    consultar(`
-      SELECT j.id, j.nick, COUNT(*) AS valor
-      FROM {p}puntos p JOIN {p}jugadores j ON j.id = p.jugador_id
-      WHERE 1 = 1 ${filtro(null, v, 'p.').sql}
-      GROUP BY j.id, j.nick ORDER BY valor DESC LIMIT 1
-    `, fp.valores),
-
-    consultar(`
-      SELECT j.id, j.nick, COUNT(*) AS valor
-      FROM {p}muertes m JOIN {p}jugadores j ON j.id = m.matador_id
-      WHERE m.teamkill = 1 ${filtro(null, v, 'm.').sql}
-      GROUP BY j.id, j.nick ORDER BY valor DESC LIMIT 1
-    `, fm.valores),
-
-    consultar(`
-      SELECT j.id, j.nick, ROUND(100 * SUM(m.headshot) / COUNT(*)) AS valor
-      FROM {p}muertes m JOIN {p}jugadores j ON j.id = m.matador_id
-      WHERE m.teamkill = 0 ${filtro(null, v, 'm.').sql}
-      GROUP BY j.id, j.nick
-      HAVING COUNT(*) >= ?
-      ORDER BY SUM(m.headshot) / COUNT(*) DESC, COUNT(*) DESC LIMIT 1
-    `, [...fm.valores, MIN_KILLS_HEADSHOTS])
-  ])
-
-  const uno = (filas: Record<string, unknown>[]): Destacado =>
-    filas.length ? { id: n(filas[0].id), nick: String(filas[0].nick), valor: n(filas[0].valor) } : null
-
-  return {
-    fiel: uno(fiel),
-    melee: uno(melee),
-    camper: uno(camper),
-    granadas: uno(granadas),
-    banderas: uno(banderas),
-    teamkills: uno(teamkills),
-    headshots: uno(headshots)
-  }
+  const { sql, valores } = CONSULTA_DESTACADO[clave](v, limite)
+  const filas = await consultar(sql, valores)
+  return filas.map(aFilaDestacado)
 }
 
 /* ------------------------------------------------------------------ */

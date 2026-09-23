@@ -53,11 +53,17 @@ async function Contenido ({ parametros }: { parametros: Busqueda }) {
         />
       </ControlPeriodo>
 
-      <section className='seccion'>
-        <Destacados datos={figuras} />
-      </section>
+      {/*
+        Prueba: la lista completa va plegada arriba de todo, apenas debajo de
+        "Ordenar por". Al abrirla las figuritas quedan abajo. Es un <details>, o
+        sea que abre y cierra sin JavaScript.
+      */}
+      <details className='seccion lista-plegable'>
+        <summary>
+          Ranking completo
+          <span className='cuantos numero'>{filas.length}</span>
+        </summary>
 
-      <section className='seccion'>
         <div className='tabla-envoltorio'>
           {filas.length === 0
             ? (
@@ -114,6 +120,10 @@ async function Contenido ({ parametros }: { parametros: Busqueda }) {
         {(orden === 'kd' || orden === 'hs') && (
           <p className='nota'>Solo jugadores con al menos {MIN_KILLS_PORCENTAJES} kills, para que el porcentaje sea representativo.</p>
         )}
+      </details>
+
+      <section className='seccion'>
+        <Destacados datos={figuras} periodo={rango.periodo} fecha={rango.clave} />
       </section>
     </>
   )
