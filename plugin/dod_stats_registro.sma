@@ -50,6 +50,10 @@
  *    J trae los segundos que el jugador estuvo en un bando (Aliados o Eje) desde la
  *    linea J anterior: el tiempo jugando de verdad, sin contar el rato de espectador
  *    ni eligiendo clase. Tambien se suman al cargarlos.
+ *
+ *    Casi todas las muertes llegan por dodx (client_death), pero las de bazooka,
+ *    Panzerschreck y PIAT dodx no las avisa: esas se leen del log del propio juego
+ *    ("... killed ... with \"bazooka\"") y se escriben igual que las demas.
  */
 
 #include <amxmodx>
@@ -58,7 +62,7 @@
 #include <dodstats>
 
 #define PLUGIN_NAME     "DoD Stats - Registro"
-#define PLUGIN_VERSION  "0.5.0"
+#define PLUGIN_VERSION  "0.6.0"
 #define PLUGIN_AUTHOR   "Marcelo Lescano"
 
 #define PARTES_CUERPO   8   /* generico + las 7 zonas: igual a MAX_BODYHITS */
@@ -102,6 +106,9 @@ public plugin_init()
     register_plugin(PLUGIN_NAME, PLUGIN_VERSION, PLUGIN_AUTHOR);
 
     g_pendientes = ArrayCreate(LARGO_LINEA);
+
+    /* Las muertes con cohete no llegan por dodx: se leen del log del juego */
+    register_logevent("evtMuerteEnLog", 3, "1=killed");
 
     register_concmd("dod_stats_volcar", "cmdVolcar", ADMIN_RCON, "- escribe ya los eventos pendientes al archivo");
     register_concmd("dod_stats_estado", "cmdEstado", ADMIN_RCON, "- muestra eventos pendientes, escritos y fallos");
@@ -507,15 +514,8 @@ public client_disconnected(id, bool:drop, message[], maxlen)
     ArrayPushString(g_pendientes, linea);
 }
 
-public client_death(matador, victima, indiceArma, lugarImpacto, TK)
+registrarMuerte(matador, victima, const arma[], lugarImpacto, TK)
 {
-    if (!victima || !is_user_connected(victima))
-        return;
-
-    /* Muerto no esta acostado: se cierra el tramo aunque el juego no avise que se levanto */
-    if (victima <= 32)
-        cerrarTramoAcostado(victima, false);
-
     new vSteam[35], vNick[32];
     new vOrigen[3];
     datosJugador(victima, vSteam, charsmax(vSteam), vNick, charsmax(vNick));
@@ -534,9 +534,9 @@ public client_death(matador, victima, indiceArma, lugarImpacto, TK)
         mEquipo = get_user_team(matador);
     }
 
-    new arma[32];
-    xmod_get_wpnname(indiceArma, arma, charsmax(arma));
-    limpiar(arma);
+    new nombreArma[32];
+    copy(nombreArma, charsmax(nombreArma), arma);
+    limpiar(nombreArma);
 
     new linea[LARGO_LINEA];
     formatex(linea, charsmax(linea),
@@ -544,11 +544,97 @@ public client_death(matador, victima, indiceArma, lugarImpacto, TK)
         get_systime(), g_mapa,
         mSteam, mNick, mEquipo,
         vSteam, vNick, vEquipo,
-        arma, lugarImpacto, TK,
+        nombreArma, lugarImpacto, TK,
         vOrigen[0], vOrigen[1], vOrigen[2],
         mOrigen[0], mOrigen[1], mOrigen[2]);
 
     ArrayPushString(g_pendientes, linea);
+}
+
+public client_death(matador, victima, indiceArma, lugarImpacto, TK)
+{
+    if (!victima || !is_user_connected(victima))
+        return;
+
+    /* Muerto no esta acostado: se cierra el tramo aunque el juego no avise que se levanto */
+    if (victima <= 32)
+        cerrarTramoAcostado(victima, false);
+
+    new arma[32];
+    xmod_get_wpnname(indiceArma, arma, charsmax(arma));
+    registrarMuerte(matador, victima, arma, lugarImpacto, TK);
+}
+
+/*
+ *  Muertes con cohete (bazooka, Panzerschreck, PIAT). dodx no avisa de estas, asi
+ *  que se leen del log del juego:
+ *
+ *    "Nombre<37><STEAM_0:1:1><Allies>" killed "Otro<8><STEAM_0:0:2><Axis>" with "bazooka"
+ *
+ *  Solo se toman esas armas: las demas ya vienen por dodx y se duplicarian.
+ */
+/* Copia el trozo entre comillas numero "cual" (desde 0) de la linea. false si no esta */
+bool:entreComillas(const texto[], cual, salida[], largoSalida)
+{
+    new encontrados = 0, i = 0;
+    while (texto[i])
+    {
+        if (texto[i] == '"')
+        {
+            new fin = i + 1;
+            while (texto[fin] && texto[fin] != '"')
+                fin++;
+            if (!texto[fin])
+                return false;
+            if (encontrados == cual)
+            {
+                new largo = fin - i - 1;
+                if (largo >= largoSalida)
+                    largo = largoSalida - 1;
+                copy(salida, largo, texto[i + 1]);
+                return true;
+            }
+            encontrados++;
+            i = fin + 1;
+            continue;
+        }
+        i++;
+    }
+    return false;
+}
+
+public evtMuerteEnLog()
+{
+    /* La linea entera, para no depender de como se parta en argumentos */
+    new texto[256];
+    read_logdata(texto, charsmax(texto));
+
+    new arma[32];
+    if (!entreComillas(texto, 2, arma, charsmax(arma)))
+        return;
+    if (!equal(arma, "bazooka") && !equal(arma, "pschreck") && !equal(arma, "piat"))
+        return;
+
+    new textoMatador[96], textoVictima[96], nombre[32], autorizacion[40];
+    new useridMatador, useridVictima;
+    if (!entreComillas(texto, 0, textoMatador, charsmax(textoMatador)))
+        return;
+    if (!entreComillas(texto, 1, textoVictima, charsmax(textoVictima)))
+        return;
+    parse_loguser(textoMatador, nombre, charsmax(nombre), useridMatador, autorizacion, charsmax(autorizacion));
+    parse_loguser(textoVictima, nombre, charsmax(nombre), useridVictima, autorizacion, charsmax(autorizacion));
+
+    new matador = find_player("k", useridMatador);
+    new victima = find_player("k", useridVictima);
+    if (!victima || !is_user_connected(victima))
+        return;
+
+    if (victima <= 32)
+        cerrarTramoAcostado(victima, false);
+
+    /* El cohete revienta: no hay parte del cuerpo. El fuego amigo se deduce del bando */
+    new TK = (matador && matador != victima && get_user_team(matador) == get_user_team(victima)) ? 1 : 0;
+    registrarMuerte(matador, victima, arma, 0, TK);
 }
 
 /* ------------------------------------------------------------------ */
