@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import Link from 'next/link'
-import { armas } from '@/lib/consultas'
+import { armas, rankingDeArma } from '@/lib/consultas'
 import { porcentaje, formatoPorcentaje, formatoNumero } from '@/lib/calculos'
-import { CATALOGO, armaDe, nombreDeArma, NOMBRE_BANDO, type Arma } from '@/lib/armas'
-import { Barras, Cargando } from '@/components/Ui'
+import { CATALOGO, armaDe, nombreDeArma, esCuerpoACuerpo, NOMBRE_BANDO, type Arma } from '@/lib/armas'
+import { Barras, EnlaceJugador, Cargando } from '@/components/Ui'
 import { enlaceDeArma } from '@/lib/enlaces'
 import { ImagenArma } from '@/components/ImagenArma'
 import { ControlPeriodo } from '@/components/Periodo'
@@ -69,12 +69,52 @@ function armadoDeFilas (crudas: Awaited<ReturnType<typeof armas>>): Fila[] {
   return [...porNombre.values()].sort((a, b) => b.kills - a.kills || a.nombre.localeCompare(b.nombre))
 }
 
+/*
+ *  Cuerpo a cuerpo: pala, cuchillo, bayoneta y culatazo, todo junto. Lleva el
+ *  dibujo del despeinado, que es el icono que el juego muestra cuando te matan
+ *  de un culatazo.
+ */
+function CuerpoACuerpo ({ kills, mejores }: { kills: number, mejores: { id: number, nick: string, kills: number }[] }) {
+  return (
+    <section className='seccion'>
+      <div className='panel'>
+        <div className='melee-cabecera'>
+          {/* eslint-disable-next-line @next/next/no-img-element -- icono del juego ya optimizado */}
+          <img src='/armas/golpes/garandbutt.webp' alt='' width={120} height={60} className='melee-dibujo' />
+          <div>
+            <h2>Cuerpo a cuerpo</h2>
+            <p className='nota'>Pala, cuchillo, bayoneta y culatazo, todo junto: {formatoNumero(kills)} kills.</p>
+          </div>
+        </div>
+        {mejores.length === 0
+          ? <p className='vacio'>Nadie mató de cerca en este período.</p>
+          : (
+            <ul className='lista'>
+              {mejores.map((j) => (
+                <li key={j.id}>
+                  <EnlaceJugador id={j.id} nick={j.nick} />
+                  <span className='cifra numero'>{formatoNumero(j.kills)}</span>
+                </li>
+              ))}
+            </ul>
+            )}
+      </div>
+    </section>
+  )
+}
+
 async function TablaArmas ({ parametros }: { parametros: Busqueda }) {
   const rango = rangoDesdeBusqueda(await parametros)
-  const crudas = await armas({ desde: rango.desde, hasta: rango.hasta })
+  const ventana = { desde: rango.desde, hasta: rango.hasta }
+  const crudas = await armas(ventana)
   const filas = armadoDeFilas(crudas)
   const total = filas.reduce((s, a) => s + a.kills, 0)
   const conKills = filas.filter((a) => a.kills > 0)
+
+  /* Los nombres que usa la base para las armas de cerca, para sumarlas todas */
+  const nombresMelee = crudas.map((a) => a.arma).filter(esCuerpoACuerpo)
+  const killsMelee = crudas.filter((a) => esCuerpoACuerpo(a.arma)).reduce((s, a) => s + a.kills, 0)
+  const mejoresMelee = await rankingDeArma(nombresMelee, ventana, 5)
 
   return (
     <>
@@ -96,6 +136,8 @@ async function TablaArmas ({ parametros }: { parametros: Busqueda }) {
             </div>
           </section>
           )}
+
+      <CuerpoACuerpo kills={killsMelee} mejores={mejoresMelee} />
 
       <section className='seccion tabla-envoltorio'>
         <table>

@@ -23,7 +23,9 @@ import sharp from 'sharp'
 const CARPETA_JUEGO = process.env.DOD_SPRITES ??
   'C:/Program Files (x86)/Steam/steamapps/common/Half-Life/dod/sprites'
 const DESTINO = '../sitio/public/armas'
+const DESTINO_GOLPES = '../sitio/public/armas/golpes'
 const ALTO_SALIDA = 90
+const ALTO_GOLPE = 60
 
 /* Lee un .spr y devuelve el primer cuadro como pixeles RGBA */
 function leerSprite (ruta) {
@@ -58,14 +60,18 @@ async function main () {
   const hud = readFileSync(join(CARPETA_JUEGO, 'hud.txt'), 'latin1')
   const laminas = new Map()
   await mkdir(DESTINO, { recursive: true })
+  await mkdir(DESTINO_GOLPES, { recursive: true })
 
   let hechas = 0
   for (const linea of hud.split('\n')) {
     const campos = linea.trim().split(/\s+/)
-    if (!campos[0]?.startsWith('weapon_')) continue
+    /* weapon_*: el arma como se ve en el inventario.
+       d_*: el iconito chico que sale en la lista de muertes al matar con ella */
+    const esGolpe = Boolean(campos[0]?.startsWith('d_'))
+    if (!campos[0]?.startsWith('weapon_') && !esGolpe) continue
 
     const [nombre, , lamina, x, y, ancho, alto] = campos
-    const arma = nombre.slice('weapon_'.length)
+    const arma = nombre.slice(esGolpe ? 'd_'.length : 'weapon_'.length)
     if (!laminas.has(lamina)) laminas.set(lamina, leerSprite(join(CARPETA_JUEGO, `${lamina}.spr`)))
     const hoja = laminas.get(lamina)
 
@@ -77,9 +83,9 @@ async function main () {
 
     await sharp(hoja.pixeles, { raw: { width: hoja.ancho, height: hoja.alto, channels: 4 } })
       .extract(recorte)
-      .resize({ height: ALTO_SALIDA, fit: 'inside', kernel: 'lanczos3' })
+      .resize({ height: esGolpe ? ALTO_GOLPE : ALTO_SALIDA, fit: 'inside', kernel: 'lanczos3' })
       .webp({ quality: 85 })
-      .toFile(join(DESTINO, `${arma}.webp`))
+      .toFile(join(esGolpe ? DESTINO_GOLPES : DESTINO, `${arma}.webp`))
     hechas++
   }
 
