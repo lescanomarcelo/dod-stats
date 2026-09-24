@@ -80,6 +80,9 @@ h2 { font-size: 1.05rem; color: var(--tenue); margin-bottom: 0.9rem; }
 
 main { padding: 2rem 0 3rem; }
 
+.titulares-contenedor { padding-top: 1.1rem; }
+.titulares-contenedor .titulares { margin-bottom: 0; }
+
 .pie {
   border-top: 1px solid var(--borde);
   color: var(--tenue);
@@ -333,9 +336,7 @@ td.gana { color: var(--acento); font-weight: 700; }
 .titulares-dodero { color: var(--tenue); font-size: 0.85rem; }
 .titulares-dodero strong { color: var(--texto); }
 .titulares-dodero.aliados { color: var(--aliados); }
-.titulares-dodero.aliados strong { color: var(--aliados); }
 .titulares-dodero.eje { color: var(--eje); }
-.titulares-dodero.eje strong { color: var(--eje); }
 .titulares-figura { padding-right: 2.5rem; color: var(--tenue); font-size: 0.85rem; }
 .titulares:hover .titulares-periodo { color: var(--acento); }
 

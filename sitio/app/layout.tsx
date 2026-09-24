@@ -11,6 +11,7 @@ import { estadoServidor, jugadoresEnLinea, SERVIDOR } from '@/lib/estado'
 import { JugadoresEnLinea } from '@/components/JugadoresEnLinea'
 import { IconoWhatsApp, IconoDiscord, IconoCafecito } from '@/components/Iconos'
 import { GRUPOS, enlaceCafecito } from '@/lib/links'
+import { Titulares } from '@/components/Titulares'
 import './globals.css'
 
 const geist = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
@@ -101,6 +102,13 @@ export default function RootLayout ({ children }: LayoutProps<'/'>) {
             </Suspense>
           </div>
         </header>
+
+        {/* Arriba de todo, en cualquier seccion: no es parte del ranking, es del sitio entero */}
+        <div className='contenedor titulares-contenedor'>
+          <Suspense fallback={null}>
+            <Titulares />
+          </Suspense>
+        </div>
 
         <main>
           <div className='contenedor'>{children}</div>
