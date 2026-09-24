@@ -683,18 +683,42 @@ export async function marcadorDeBandos (mapa: string | null, v: Ventana = TODO) 
 }
 
 /** El jugador de un bando (1 aliados, 2 eje) que mas banderas tomo en la ventana */
-export async function mejorJugadorDeBando (equipo: 1 | 2, v: Ventana = TODO): Promise<FilaDestacado | null> {
+export type Dodero = { id: number, nick: string, banderas: number, kills: number }
+
+/**
+ * El "dodero estrella" de un bando (1 aliados, 2 eje) o de los dos juntos (null,
+ * para cuando el resultado en mapas quedo empatado): el que mas banderas tomo en
+ * la ventana, y si hay empate en banderas, el que mas mato.
+ */
+export async function mejorDodero (equipo: 1 | 2 | null, v: Ventana = TODO): Promise<Dodero | null> {
   'use cache'
   cacheLife(VIDA_CACHE)
 
-  const f = filtro(null, v, 'p.')
+  const fp = filtro(null, v, 'p.')
+  const fm = filtro(null, v, 'm.')
+  const condicionEquipo = equipo ? 'AND p.equipo = ?' : 'AND p.equipo IN (1, 2)'
+  const valorEquipo = equipo ? [equipo] : []
+
   const [fila] = await consultar(`
-    SELECT j.id, j.nick, COUNT(*) AS valor
-    FROM {p}puntos p JOIN {p}jugadores j ON j.id = p.jugador_id
-    WHERE p.equipo = ? ${f.sql}
-    GROUP BY j.id, j.nick ORDER BY valor DESC LIMIT 1
-  `, [equipo, ...f.valores])
-  return fila ? aFilaDestacado(fila) : null
+    SELECT j.id, j.nick, b.banderas, COALESCE(k.kills, 0) AS kills
+    FROM (
+      SELECT p.jugador_id, COUNT(*) AS banderas
+      FROM {p}puntos p
+      WHERE 1 = 1 ${condicionEquipo} ${fp.sql}
+      GROUP BY p.jugador_id
+    ) b
+    JOIN {p}jugadores j ON j.id = b.jugador_id
+    LEFT JOIN (
+      SELECT matador_id AS jugador_id, COUNT(*) AS kills
+      FROM {p}muertes m
+      WHERE m.teamkill = 0 AND m.matador_id IS NOT NULL ${fm.sql}
+      GROUP BY matador_id
+    ) k ON k.jugador_id = j.id
+    ORDER BY b.banderas DESC, kills DESC
+    LIMIT 1
+  `, [...valorEquipo, ...fp.valores, ...fm.valores])
+
+  return fila ? { id: n(fila.id), nick: String(fila.nick), banderas: n(fila.banderas), kills: n(fila.kills) } : null
 }
 
 /** Puntos de jugadores (banderas y objetivos) sumados por bando */
