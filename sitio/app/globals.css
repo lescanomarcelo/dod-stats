@@ -306,9 +306,11 @@ td.gana { color: var(--acento); font-weight: 700; }
 .escudo-chico { height: 22px; width: 22px; flex-shrink: 0; display: block; }
 
 /*
- *  Titulares: banda chica arriba del ranking que va pasando de "Ayer" a "Esta
- *  semana" y "Este mes", con el resultado en mapas ganados y la figura del
- *  bando que gana. Todo el recuadro es un solo enlace a Eje vs Aliados.
+ *  Titulares: banda chica arriba del ranking que va pasando de "Ayer" a la
+ *  semana pasada y el mes pasado, con el resultado en mapas ganados y el
+ *  dodero estrella del bando que gano. Todo el recuadro es un solo enlace a
+ *  Eje vs Aliados. Tres lineas: periodo + marcador, "Dodero estrella: Nick" y
+ *  la cantidad de banderas aparte.
  */
 .titulares {
   position: relative; margin-bottom: 1.5rem; padding: 0.7rem 1rem 1.1rem;
@@ -319,18 +321,22 @@ td.gana { color: var(--acento); font-weight: 700; }
   text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.45rem;
 }
 .titulares-slide {
-  display: flex; align-items: center; gap: 0.6rem 1rem; flex-wrap: wrap;
+  display: flex; flex-direction: column; gap: 0.3rem;
   animation: titulares-entrar 0.3s ease;
 }
+.titulares-fila1 { display: flex; align-items: center; gap: 0.6rem 1rem; flex-wrap: wrap; }
 .titulares-periodo { color: var(--texto); font-size: 0.92rem; font-weight: 600; white-space: nowrap; }
 .titulares-marcador { display: flex; align-items: center; gap: 0.45rem; font-size: 1.05rem; font-weight: 600; }
 .titulares-vs { color: var(--tenue); font-size: 0.72rem; font-weight: 400; text-transform: uppercase; }
 .titulares-gana.aliados { color: var(--aliados); }
 .titulares-gana.eje { color: var(--eje); }
-.titulares-figura { flex-basis: 100%; padding-right: 2.5rem; color: var(--tenue); font-size: 0.85rem; }
-.titulares-figura.aliados { color: var(--aliados); }
-.titulares-figura.eje { color: var(--eje); }
-.titulares-figura strong { color: var(--texto); }
+.titulares-dodero { color: var(--tenue); font-size: 0.85rem; }
+.titulares-dodero strong { color: var(--texto); }
+.titulares-dodero.aliados { color: var(--aliados); }
+.titulares-dodero.aliados strong { color: var(--aliados); }
+.titulares-dodero.eje { color: var(--eje); }
+.titulares-dodero.eje strong { color: var(--eje); }
+.titulares-figura { padding-right: 2.5rem; color: var(--tenue); font-size: 0.85rem; }
 .titulares:hover .titulares-periodo { color: var(--acento); }
 
 .titulares-puntos { display: flex; gap: 0.35rem; position: absolute; right: 1rem; bottom: 0.55rem; }
