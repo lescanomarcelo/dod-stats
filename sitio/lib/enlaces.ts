@@ -23,3 +23,11 @@ export function enlaceDeDestacado (clave: ClaveDestacado, periodo: Periodo, fech
   const base = `/destacados/${clave}`
   return texto ? `${base}?${texto}` : base
 }
+
+export function enlaceDeEquipos (periodo: Periodo, fecha: string | null) {
+  const q = new URLSearchParams()
+  if (periodo !== 'global') q.set('periodo', periodo)
+  if (fecha) q.set('fecha', fecha)
+  const texto = q.toString()
+  return texto ? `/equipos?${texto}` : '/equipos'
+}

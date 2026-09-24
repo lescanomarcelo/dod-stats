@@ -682,6 +682,21 @@ export async function marcadorDeBandos (mapa: string | null, v: Ventana = TODO) 
   }
 }
 
+/** El jugador de un bando (1 aliados, 2 eje) que mas banderas tomo en la ventana */
+export async function mejorJugadorDeBando (equipo: 1 | 2, v: Ventana = TODO): Promise<FilaDestacado | null> {
+  'use cache'
+  cacheLife(VIDA_CACHE)
+
+  const f = filtro(null, v, 'p.')
+  const [fila] = await consultar(`
+    SELECT j.id, j.nick, COUNT(*) AS valor
+    FROM {p}puntos p JOIN {p}jugadores j ON j.id = p.jugador_id
+    WHERE p.equipo = ? ${f.sql}
+    GROUP BY j.id, j.nick ORDER BY valor DESC LIMIT 1
+  `, [equipo, ...f.valores])
+  return fila ? aFilaDestacado(fila) : null
+}
+
 /** Puntos de jugadores (banderas y objetivos) sumados por bando */
 export async function puntosDeJugadoresPorBando (mapa: string | null, v: Ventana = TODO) {
   'use cache'

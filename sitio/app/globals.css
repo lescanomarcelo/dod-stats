@@ -305,16 +305,45 @@ td.gana { color: var(--acento); font-weight: 700; }
 .escudo-grande { height: 48px; width: 48px; flex-shrink: 0; display: block; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5)); }
 .escudo-chico { height: 22px; width: 22px; flex-shrink: 0; display: block; }
 
-/* Banda chica arriba del ranking: quien gano ayer, solo en mapas ganados */
-.resultado-ayer {
-  display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
-  flex-wrap: wrap; margin-bottom: 1.5rem; padding: 0.6rem 1rem;
+/*
+ *  Titulares: banda chica arriba del ranking que va pasando de "Ayer" a "Esta
+ *  semana" y "Este mes", con el resultado en mapas ganados y la figura del
+ *  bando que gana. Todo el recuadro es un solo enlace a Eje vs Aliados.
+ */
+.titulares {
+  position: relative; margin-bottom: 1.5rem; padding: 0.7rem 1rem 1.1rem;
   background: var(--panel); border: 1px solid var(--borde); border-radius: var(--radio);
 }
-.resultado-ayer:hover { border-color: var(--acento); }
-.resultado-ayer-titulo { color: var(--tenue); font-size: 0.82rem; }
-.resultado-ayer-marcador { display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem; font-weight: 600; }
-.resultado-ayer-vs { color: var(--tenue); font-size: 0.75rem; font-weight: 400; text-transform: uppercase; }
+.titulares-etiqueta {
+  display: block; color: var(--tenue); font-size: 0.7rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.45rem;
+}
+.titulares-slide {
+  display: flex; align-items: center; gap: 0.6rem 1rem; flex-wrap: wrap;
+  animation: titulares-entrar 0.3s ease;
+}
+.titulares-periodo { color: var(--texto); font-size: 0.92rem; font-weight: 600; white-space: nowrap; }
+.titulares-marcador { display: flex; align-items: center; gap: 0.45rem; font-size: 1.05rem; font-weight: 600; }
+.titulares-vs { color: var(--tenue); font-size: 0.72rem; font-weight: 400; text-transform: uppercase; }
+.titulares-gana.aliados { color: var(--aliados); }
+.titulares-gana.eje { color: var(--eje); }
+.titulares-figura { flex-basis: 100%; padding-right: 2.5rem; color: var(--tenue); font-size: 0.85rem; }
+.titulares-figura.aliados { color: var(--aliados); }
+.titulares-figura.eje { color: var(--eje); }
+.titulares-figura strong { color: var(--texto); }
+.titulares:hover .titulares-periodo { color: var(--acento); }
+
+.titulares-puntos { display: flex; gap: 0.35rem; position: absolute; right: 1rem; bottom: 0.55rem; }
+.titulares-puntos button {
+  width: 6px; height: 6px; padding: 0; border: none; border-radius: 999px;
+  background: var(--borde); cursor: pointer;
+}
+.titulares-puntos button.activo { background: var(--acento); }
+
+@keyframes titulares-entrar {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 /* ------------------------------------------------------------------ */
 /*  Eje vs Aliados                                                     */
