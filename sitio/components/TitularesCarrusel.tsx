@@ -39,7 +39,7 @@ function Contenido ({ slide }: { slide: SlideTitular }) {
         <span className='titulares-fila1'>
           <span className='titulares-periodo'>{slide.etiqueta}</span>
         </span>
-        <span className='titulares-figura'>Todavía no cerró. Cierra el {slide.cierra}.</span>
+        <span className='titulares-figura'>Todavía no cerró. Se publica el {slide.cierra}.</span>
       </>
     )
   }

@@ -9,7 +9,6 @@ import { EnlaceJugador, Cargando } from '@/components/Ui'
 import { ControlPeriodo } from '@/components/Periodo'
 import { Desplegable } from '@/components/Desplegable'
 import { Destacados } from '@/components/Destacados'
-import { Titulares } from '@/components/Titulares'
 
 const PESTANAS: { orden: Orden, texto: string }[] = [
   { orden: 'puntos', texto: 'Puntos' },
@@ -133,10 +132,6 @@ async function Contenido ({ parametros }: { parametros: Busqueda }) {
 export default function PaginaRanking (props: PageProps<'/'>) {
   return (
     <>
-      <Suspense fallback={null}>
-        <Titulares />
-      </Suspense>
-
       <div className='encabezado-pagina'>
         <h1>Ranking</h1>
       </div>
