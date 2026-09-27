@@ -4,6 +4,7 @@ import { consultar } from './db'
 import { MIN_KILLS_PORCENTAJES, MIN_SEGUNDOS_CAMPER } from './calculos'
 import { HORAS_ARGENTINA, type Ventana, type Balance } from './periodos'
 import { ALIAS_CUERPO_A_CUERPO } from './armas'
+import type { Sesion } from './actividad'
 
 /*
  *  Cuanto vive lo cacheado. La ingesta carga datos nuevos cada 15 minutos, asi que
@@ -926,4 +927,94 @@ export async function armas (v: Ventana = TODO) {
     headshots: n(f.headshots),
     jugadores: n(f.jugadores)
   }))
+}
+
+/* ------------------------------------------------------------------ */
+/*  El Server: actividad y permanencia                                 */
+/* ------------------------------------------------------------------ */
+
+/** Totales de todo el historico, para la linea chica de los titulares */
+export async function totalesDelSitio (): Promise<{ jugadores: number, segundos: number }> {
+  'use cache'
+  cacheLife(VIDA_CACHE)
+
+  const [fila] = await consultar(`
+    SELECT
+      (SELECT COUNT(*) FROM {p}ranking WHERE kills + muertes + puntos > 0) AS jugadores,
+      (SELECT COALESCE(SUM(segundos), 0) FROM {p}jugado)                   AS segundos
+  `)
+  return { jugadores: n(fila?.jugadores), segundos: n(fila?.segundos) }
+}
+
+/* Tope de sesiones que se traen para los graficos: de sobra para un mes */
+const MAX_SESIONES = 20000
+
+/**
+ * Las sesiones (conexiones completas) que pisan la ventana, incluidas las que
+ * empezaron antes: el que entro a las 23:50 de ayer tambien estuvo hoy.
+ */
+export async function sesionesDeVentana (v: Ventana): Promise<Sesion[]> {
+  'use cache'
+  cacheLife(VIDA_CACHE)
+
+  const partes: string[] = []
+  const valores: Date[] = []
+  /* La sesion va de (desconexion - segundos) a desconexion: se pide que se cruce con la ventana */
+  if (v.desde) { partes.push('AND desconexion > ?'); valores.push(new Date(v.desde)) }
+  if (v.hasta) { partes.push('AND DATE_SUB(desconexion, INTERVAL segundos SECOND) < ?'); valores.push(new Date(v.hasta)) }
+
+  const filas = await consultar(`
+    SELECT jugador_id, desconexion, segundos
+    FROM {p}sesiones
+    WHERE 1 = 1 ${partes.join(' ')}
+    ORDER BY desconexion DESC
+    LIMIT ${MAX_SESIONES}
+  `, valores)
+
+  return filas.map((f) => {
+    const fin = (f.desconexion as Date).getTime()
+    return { jugadorId: n(f.jugador_id), inicio: fin - n(f.segundos) * 1000, fin }
+  })
+}
+
+/** Resumen de la ventana: cuantos jugaron, cuanto tiempo y cuantas partidas hubo */
+export async function actividadDelServer (v: Ventana = TODO) {
+  'use cache'
+  cacheLife(VIDA_CACHE)
+
+  const fj = filtro(null, v, '', 'dia')
+  const fm = filtro(null, v, '', 'inicio')
+  const [[jugado], [partidas]] = await Promise.all([
+    consultar(`
+      SELECT COALESCE(SUM(segundos), 0) AS segundos
+      FROM {p}jugado WHERE 1 = 1 ${fj.sql}
+    `, fj.valores),
+    consultar(`
+      SELECT COUNT(*) AS partidas, COUNT(DISTINCT LOWER(mapa)) AS mapas
+      FROM {p}mapas_jugados WHERE 1 = 1 ${fm.sql}
+    `, fm.valores)
+  ])
+
+  return {
+    segundos: n(jugado?.segundos),
+    partidas: n(partidas?.partidas),
+    mapas: n(partidas?.mapas)
+  }
+}
+
+/** Los mapas que mas se jugaron en la ventana */
+export async function mapasMasJugados (v: Ventana = TODO, limite = 8) {
+  'use cache'
+  cacheLife(VIDA_CACHE)
+
+  const f = filtro(null, v, '', 'inicio')
+  const filas = await consultar(`
+    SELECT LOWER(mapa) AS mapa, COUNT(*) AS partidas
+    FROM {p}mapas_jugados WHERE 1 = 1 ${f.sql}
+    GROUP BY LOWER(mapa)
+    ORDER BY partidas DESC, mapa
+    LIMIT ${Number(limite) || 8}
+  `, f.valores)
+
+  return filas.map((f2) => ({ mapa: String(f2.mapa), partidas: n(f2.partidas) }))
 }

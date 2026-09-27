@@ -1,5 +1,6 @@
 import { connection } from 'next/server'
 import { titulares } from '@/lib/titulares'
+import { totalesDelSitio } from '@/lib/consultas'
 import { TitularesCarrusel } from '@/components/TitularesCarrusel'
 
 /*
@@ -13,8 +14,8 @@ import { TitularesCarrusel } from '@/components/TitularesCarrusel'
  */
 export async function Titulares () {
   await connection()
-  const slides = await titulares()
+  const [slides, totales] = await Promise.all([titulares(), totalesDelSitio()])
   if (slides.length === 0) return null
 
-  return <TitularesCarrusel slides={slides} />
+  return <TitularesCarrusel slides={slides} totales={totales} />
 }

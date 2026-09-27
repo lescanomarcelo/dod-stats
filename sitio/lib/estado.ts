@@ -2,7 +2,7 @@ import 'server-only'
 import { cacheLife } from 'next/cache'
 import { consultarServidor, consultarJugadores, type EstadoServidor, type JugadorEnLinea } from './servidor'
 
-export const SERVIDOR = { host: '45.235.98.67', puerto: 27017 }
+export const SERVIDOR = { host: '45.235.98.67', puerto: 27017, nombre: 'DoD 1.3 :::aU::: Tributo Server' }
 
 /**
  * Estado del server, cacheado: se renueva como mucho una vez por minuto, en segundo

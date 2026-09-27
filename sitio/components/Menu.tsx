@@ -14,6 +14,7 @@ const PAGINAS = [
   { href: '/equipos', texto: 'Eje vs Aliados' },
   { href: '/armas', texto: 'Armas' },
   { href: '/comparar', texto: 'Comparar' },
+  { href: '/server', texto: 'El Server' },
   { href: '/links', texto: 'Links' }
 ]
 
