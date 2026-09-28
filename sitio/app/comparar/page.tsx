@@ -7,6 +7,7 @@ import {
   kd, porcentaje, formatoKd, formatoPorcentaje, formatoNumero, formatoTiempo
 } from '@/lib/calculos'
 import { EnlaceJugador, Cargando } from '@/components/Ui'
+import { SelectorJugador } from '@/components/SelectorJugador'
 
 /* Enlace a /comparar conservando los jugadores elegidos */
 function enlace (p: { periodo: Periodo, fecha?: string | null, a?: number | null, b?: number | null }) {
@@ -37,15 +38,6 @@ const FILAS: { etiqueta: string, valor: (j: JugadorDetalle) => number, texto: (v
   { etiqueta: 'Tiempo conectado', valor: (j) => j.segundos, texto: formatoTiempo }
 ]
 
-function Selector ({ nombre, elegido, jugadores }: { nombre: string, elegido: number | null, jugadores: { id: number, nick: string }[] }) {
-  return (
-    <select name={nombre} defaultValue={elegido ?? ''} aria-label={`Jugador ${nombre.toUpperCase()}`}>
-      <option value='' disabled>Elegí un jugador</option>
-      {jugadores.map((j) => <option key={j.id} value={j.id}>{j.nick}</option>)}
-    </select>
-  )
-}
-
 async function Comparacion ({ parametros }: { parametros: PageProps<'/comparar'>['searchParams'] }) {
   const p = await parametros
   const idA = leerId(p.a)
@@ -68,9 +60,9 @@ async function Comparacion ({ parametros }: { parametros: PageProps<'/comparar'>
     <form className='formulario-comparar' method='get' action='/comparar'>
       {rango.periodo !== 'global' && <input type='hidden' name='periodo' value={rango.periodo} />}
       {rango.clave && <input type='hidden' name='fecha' value={rango.clave} />}
-      <Selector nombre='a' elegido={a?.id ?? null} jugadores={jugadores} />
+      <SelectorJugador nombre='a' elegido={a?.id ?? null} jugadores={jugadores} />
       <span className='vs'>VS</span>
-      <Selector nombre='b' elegido={b?.id ?? null} jugadores={jugadores} />
+      <SelectorJugador nombre='b' elegido={b?.id ?? null} jugadores={jugadores} />
       <button type='submit'>Comparar</button>
     </form>
   )
