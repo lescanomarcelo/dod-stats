@@ -15,7 +15,7 @@ import { ZONAS } from './parsear.mjs'
 
 const RUTA_ESQUEMA = fileURLToPath(new URL('./esquema.sql', import.meta.url))
 /* En orden de borrado: las que apuntan a jugadores, antes que jugadores */
-const TABLAS = ['muertes', 'sesiones', 'impactos', 'acostado', 'jugado', 'puntos', 'partidas', 'mapas_jugados', 'ingesta_estado', 'jugadores']
+const TABLAS = ['muertes', 'sesiones', 'impactos', 'acostado', 'jugado', 'puntos', 'comandos', 'partidas', 'mapas_jugados', 'admines', 'ingesta_estado', 'jugadores']
 const FILAS_POR_INSERT = 500
 
 /* Recorta a lo que entra en la columna. Un dato raro no puede trabar la ingesta:
@@ -188,7 +188,7 @@ export async function conectar (config, prefijo = '') {
    * opciones.fallarAntesDeConfirmar: solo para tests, simula un corte justo antes del COMMIT.
    */
   async function guardarLote (archivo, nuevoOffset, eventos, descartadas, opciones = {}) {
-    const resumen = { muertes: 0, sesiones: 0, mapas: 0, impactos: 0, acostado: 0, jugado: 0, puntos: 0, marcadores: 0, ignorados: 0 }
+    const resumen = { muertes: 0, sesiones: 0, mapas: 0, impactos: 0, acostado: 0, jugado: 0, puntos: 0, marcadores: 0, comandos: 0, ignorados: 0 }
 
     await conexion.beginTransaction()
     try {
@@ -201,6 +201,7 @@ export async function conectar (config, prefijo = '') {
       const acostado = []
       const jugado = []
       const marcadores = []
+      const comandos = []
 
       for (const e of eventos) {
         if (e.tipo === 'inicio_mapa') {
@@ -234,6 +235,13 @@ export async function conectar (config, prefijo = '') {
         if (e.tipo === 'marcador') {
           marcadores.push([recortar(e.mapa, 40).toLowerCase(), fecha(e.inicio), fecha(e.ts),
             Math.min(Math.max(e.aliados, 0), 65535), Math.min(Math.max(e.eje, 0), 65535)])
+          continue
+        }
+
+        if (e.tipo === 'comando') {
+          const id = await asegurarJugador(cache, e.steamid, e.nick, e.ts)
+          if (!id) { resumen.ignorados++; continue }
+          comandos.push([fecha(e.ts), id, recortar(e.comando, 40).toLowerCase()])
           continue
         }
 
@@ -291,6 +299,7 @@ export async function conectar (config, prefijo = '') {
       await guardarMarcadores(marcadores)
       await acumularSegundos('acostado', acostado)
       await acumularSegundos('jugado', jugado)
+      await insertarEnTandas('comandos', ['momento', 'jugador_id', 'comando'], comandos)
 
       await conexion.query(
         `INSERT INTO ${t('ingesta_estado')}
@@ -315,7 +324,36 @@ export async function conectar (config, prefijo = '') {
       resumen.acostado = acostado.length
       resumen.jugado = jugado.length
       resumen.marcadores = marcadores.length
+      resumen.comandos = comandos.length
       return resumen
+    } catch (error) {
+      await conexion.rollback()
+      throw error
+    }
+  }
+
+  /**
+   * Deja la tabla de admines igual que el users.ini del server: agrega los nuevos,
+   * actualiza el acceso de los que ya estaban y borra a los que ya no figuran.
+   * Nunca recibe contrasenas: admines.mjs las descarta al parsear.
+   */
+  async function guardarAdmines (admines) {
+    const momento = new Date()
+    await conexion.beginTransaction()
+    try {
+      if (admines.length) {
+        const filas = admines.map((a) => [recortar(a.clave, 80), recortar(a.tipo, 10), recortar(a.acceso, 40), momento])
+        await conexion.query(
+          `INSERT INTO ${t('admines')} (clave, tipo, acceso, actualizado) VALUES ?
+           ON DUPLICATE KEY UPDATE tipo = VALUES(tipo), acceso = VALUES(acceso), actualizado = VALUES(actualizado)`,
+          [filas])
+        await conexion.query(
+          `DELETE FROM ${t('admines')} WHERE clave NOT IN (?)`, [admines.map((a) => a.clave)])
+      } else {
+        await conexion.query(`DELETE FROM ${t('admines')}`)
+      }
+      await conexion.commit()
+      return admines.length
     } catch (error) {
       await conexion.rollback()
       throw error
@@ -360,6 +398,7 @@ export async function conectar (config, prefijo = '') {
     soltarCandado,
     leerOffset,
     guardarLote,
+    guardarAdmines,
     ranking,
     contar,
     consultar,

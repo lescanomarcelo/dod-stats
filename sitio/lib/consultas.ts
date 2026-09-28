@@ -4,6 +4,7 @@ import { consultar } from './db'
 import { MIN_KILLS_PORCENTAJES, MIN_SEGUNDOS_CAMPER } from './calculos'
 import { HORAS_ARGENTINA, type Ventana, type Balance } from './periodos'
 import { ALIAS_CUERPO_A_CUERPO } from './armas'
+import type { Sesion } from './actividad'
 
 /*
  *  Cuanto vive lo cacheado. La ingesta carga datos nuevos cada 15 minutos, asi que
@@ -926,4 +927,172 @@ export async function armas (v: Ventana = TODO) {
     headshots: n(f.headshots),
     jugadores: n(f.jugadores)
   }))
+}
+
+/* ------------------------------------------------------------------ */
+/*  El Server: actividad y permanencia                                 */
+/* ------------------------------------------------------------------ */
+
+/** Totales de todo el historico, para la linea chica de los titulares */
+export async function totalesDelSitio (): Promise<{ jugadores: number, segundos: number }> {
+  'use cache'
+  cacheLife(VIDA_CACHE)
+
+  const [fila] = await consultar(`
+    SELECT
+      (SELECT COUNT(*) FROM {p}ranking WHERE kills + muertes + puntos > 0) AS jugadores,
+      (SELECT COALESCE(SUM(segundos), 0) FROM {p}jugado)                   AS segundos
+  `)
+  return { jugadores: n(fila?.jugadores), segundos: n(fila?.segundos) }
+}
+
+/* Tope de sesiones que se traen para los graficos: de sobra para un mes */
+const MAX_SESIONES = 20000
+
+/**
+ * Las sesiones (conexiones completas) que pisan la ventana, incluidas las que
+ * empezaron antes: el que entro a las 23:50 de ayer tambien estuvo hoy.
+ */
+export async function sesionesDeVentana (v: Ventana): Promise<Sesion[]> {
+  'use cache'
+  cacheLife(VIDA_CACHE)
+
+  const partes: string[] = []
+  const valores: Date[] = []
+  /* La sesion va de (desconexion - segundos) a desconexion: se pide que se cruce con la ventana */
+  if (v.desde) { partes.push('AND desconexion > ?'); valores.push(new Date(v.desde)) }
+  if (v.hasta) { partes.push('AND DATE_SUB(desconexion, INTERVAL segundos SECOND) < ?'); valores.push(new Date(v.hasta)) }
+
+  const filas = await consultar(`
+    SELECT jugador_id, desconexion, segundos
+    FROM {p}sesiones
+    WHERE 1 = 1 ${partes.join(' ')}
+    ORDER BY desconexion DESC
+    LIMIT ${MAX_SESIONES}
+  `, valores)
+
+  return filas.map((f) => {
+    const fin = (f.desconexion as Date).getTime()
+    return { jugadorId: n(f.jugador_id), inicio: fin - n(f.segundos) * 1000, fin }
+  })
+}
+
+/** Resumen de la ventana: cuantos jugaron, cuanto tiempo y cuantas partidas hubo */
+export async function actividadDelServer (v: Ventana = TODO) {
+  'use cache'
+  cacheLife(VIDA_CACHE)
+
+  const fj = filtro(null, v, '', 'dia')
+  const fm = filtro(null, v, '', 'inicio')
+  const [[jugado], [partidas]] = await Promise.all([
+    consultar(`
+      SELECT COALESCE(SUM(segundos), 0) AS segundos
+      FROM {p}jugado WHERE 1 = 1 ${fj.sql}
+    `, fj.valores),
+    consultar(`
+      SELECT COUNT(*) AS partidas, COUNT(DISTINCT LOWER(mapa)) AS mapas
+      FROM {p}mapas_jugados WHERE 1 = 1 ${fm.sql}
+    `, fm.valores)
+  ])
+
+  return {
+    segundos: n(jugado?.segundos),
+    partidas: n(partidas?.partidas),
+    mapas: n(partidas?.mapas)
+  }
+}
+
+/** Los mapas que mas se jugaron en la ventana */
+export async function mapasMasJugados (v: Ventana = TODO, limite = 8) {
+  'use cache'
+  cacheLife(VIDA_CACHE)
+
+  const f = filtro(null, v, '', 'inicio')
+  const filas = await consultar(`
+    SELECT LOWER(mapa) AS mapa, COUNT(*) AS partidas
+    FROM {p}mapas_jugados WHERE 1 = 1 ${f.sql}
+    GROUP BY LOWER(mapa)
+    ORDER BY partidas DESC, mapa
+    LIMIT ${Number(limite) || 8}
+  `, f.valores)
+
+  return filas.map((f2) => ({ mapa: String(f2.mapa), partidas: n(f2.partidas) }))
+}
+
+/* ------------------------------------------------------------------ */
+/*  Campeonato de admines                                              */
+/* ------------------------------------------------------------------ */
+
+export type Admin = {
+  /** Como esta dado de alta en users.ini: su steamid o su nick */
+  clave: string
+  /** id del jugador en la base, si se lo pudo emparejar */
+  id: number | null
+  nick: string
+  /** Segundos conectados al server (incluye el rato en espectador) */
+  conectado: number
+  /** Segundos en un bando: jugando de verdad */
+  jugado: number
+  /** Comandos amx_ que ejecuto */
+  comandos: number
+}
+
+/**
+ * Los admines del server (los del users.ini) con su tiempo y sus comandos.
+ *
+ * A los que estan dados de alta por steamid se los empareja por steamid; a los que
+ * estan por nick, por nick. Si un admin nunca jugo -o cambio de nick- aparece igual,
+ * en cero. La consola del server (loopback) y las altas por IP no son personas: no
+ * entran al campeonato.
+ */
+export async function admines (v: Ventana = TODO): Promise<Admin[]> {
+  'use cache'
+  cacheLife(VIDA_CACHE)
+
+  const fs = filtro(null, v, '', 'desconexion')
+  const fj = filtro(null, v, '', 'dia')
+  const fc = filtro(null, v, '', 'momento')
+
+  const filas = await consultar(`
+    SELECT a.clave,
+           MIN(j.id)                       AS id,
+           MAX(j.nick)                     AS nick,
+           COALESCE(SUM(s.segundos), 0)    AS conectado,
+           COALESCE(SUM(t.segundos), 0)    AS jugado,
+           COALESCE(SUM(c.comandos), 0)    AS comandos
+    FROM {p}admines a
+    LEFT JOIN {p}jugadores j
+      ON (a.tipo = 'steamid' AND j.steamid = a.clave)
+      OR (a.tipo = 'nick'    AND j.nick    = a.clave)
+    LEFT JOIN ( SELECT jugador_id, SUM(segundos) AS segundos FROM {p}sesiones
+                WHERE 1 = 1 ${fs.sql} GROUP BY jugador_id ) s ON s.jugador_id = j.id
+    LEFT JOIN ( SELECT jugador_id, SUM(segundos) AS segundos FROM {p}jugado
+                WHERE 1 = 1 ${fj.sql} GROUP BY jugador_id ) t ON t.jugador_id = j.id
+    LEFT JOIN ( SELECT jugador_id, COUNT(*) AS comandos FROM {p}comandos
+                WHERE 1 = 1 ${fc.sql} GROUP BY jugador_id ) c ON c.jugador_id = j.id
+    WHERE a.tipo <> 'ip' AND a.clave <> 'loopback'
+    GROUP BY a.clave
+    ORDER BY conectado DESC, comandos DESC, a.clave
+  `, [...fs.valores, ...fj.valores, ...fc.valores])
+
+  const lista = filas.map((f) => ({
+    clave: String(f.clave),
+    id: f.id === null ? null : n(f.id),
+    nick: f.nick ? String(f.nick) : String(f.clave),
+    conectado: n(f.conectado),
+    jugado: n(f.jugado),
+    comandos: n(f.comandos)
+  }))
+
+  /* El mismo admin suele estar dado de alta dos veces (por steamid y por nick):
+     si las dos altas dan el mismo jugador, va una sola vez al campeonato. */
+  const unicos = new Map<string, Admin>()
+  for (const admin of lista) {
+    const clave = admin.id ? `id:${admin.id}` : `alta:${admin.clave}`
+    if (!unicos.has(clave)) unicos.set(clave, admin)
+  }
+
+  /* Un alta por steamid que nunca se emparejo no tiene nada que mostrar, y el
+     steamid no es algo para publicar: esa fila no va. */
+  return [...unicos.values()].filter((a) => a.id !== null || !a.clave.startsWith('STEAM_'))
 }

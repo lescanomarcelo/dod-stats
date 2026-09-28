@@ -14,9 +14,13 @@
  */
 
 import { parsearFragmento } from './parsear.mjs'
+import { parsearUsuarios } from './admines.mjs'
+
+/* users.ini esta dos carpetas mas arriba que los eventos: data/stats -> configs */
+const RUTA_USERS = '../../configs/users.ini'
 
 export async function ingerir ({ fuente, base, registrar = () => {} }) {
-  const resultado = { ocupado: false, archivos: 0, muertes: 0, sesiones: 0, mapas: 0, impactos: 0, acostado: 0, jugado: 0, puntos: 0, marcadores: 0, ignorados: 0, descartadas: 0, alertas: [] }
+  const resultado = { ocupado: false, archivos: 0, admines: 0, muertes: 0, sesiones: 0, mapas: 0, impactos: 0, acostado: 0, jugado: 0, puntos: 0, marcadores: 0, ignorados: 0, descartadas: 0, alertas: [] }
 
   if (!await base.tomarCandado()) {
     registrar('Hay otra ingesta corriendo. Esta termina sin hacer nada.')
@@ -25,12 +29,32 @@ export async function ingerir ({ fuente, base, registrar = () => {} }) {
   }
 
   try {
+    await refrescarAdmines(fuente, base, registrar, resultado)
     await procesarArchivos(fuente, base, registrar, resultado)
   } finally {
     await base.soltarCandado()
   }
 
   return resultado
+}
+
+/*
+ *  La lista de admines del server (users.ini). Es un extra: si el archivo no esta
+ *  o no se puede leer, se avisa y la ingesta de eventos sigue igual.
+ *
+ *  Del archivo solo salen quienes son admins y con que acceso. Las contrasenas que
+ *  tiene adentro las descarta parsearUsuarios(): no se guardan ni se registran.
+ */
+async function refrescarAdmines (fuente, base, registrar, resultado) {
+  if (!fuente.leerTexto) return
+
+  try {
+    const admines = parsearUsuarios(await fuente.leerTexto(RUTA_USERS))
+    resultado.admines = await base.guardarAdmines(admines)
+    registrar(`users.ini: ${admines.length} admines`)
+  } catch (error) {
+    registrar(`No se pudo leer la lista de admines (${error.code || error.message}). Sigo con los eventos.`)
+  }
 }
 
 async function procesarArchivos (fuente, base, registrar, resultado) {

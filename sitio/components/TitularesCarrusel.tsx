@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import type { SlideTitular } from '@/lib/titulares'
-import { formatoNumero } from '@/lib/calculos'
+import { formatoNumero, formatoTiempo } from '@/lib/calculos'
 import { EscudoAliados, EscudoEje } from '@/components/Banderas'
 
 /*
@@ -65,7 +65,18 @@ function Contenido ({ slide }: { slide: SlideTitular }) {
   )
 }
 
-export function TitularesCarrusel ({ slides }: { slides: SlideTitular[] }) {
+export type Totales = { jugadores: number, segundos: number }
+
+/* Arriba a la derecha, chiquito: cuanta gente paso por el server y cuanto se jugo */
+function Total ({ jugadores, segundos }: Totales) {
+  return (
+    <span className='titulares-total numero'>
+      {formatoNumero(jugadores)} doderos · {formatoTiempo(segundos)} jugadas
+    </span>
+  )
+}
+
+export function TitularesCarrusel ({ slides, totales }: { slides: SlideTitular[], totales: Totales }) {
   const [indice, setIndice] = useState(0)
 
   useEffect(() => {
@@ -78,7 +89,10 @@ export function TitularesCarrusel ({ slides }: { slides: SlideTitular[] }) {
 
   return (
     <div className='titulares'>
-      <span className='titulares-etiqueta'>Titulares</span>
+      <div className='titulares-cabecera'>
+        <span className='titulares-etiqueta'>Titulares</span>
+        <Total {...totales} />
+      </div>
 
       {/* La key fuerza a React a rearmar el nodo en cada cambio: asi la animacion de entrada se repite */}
       <Link href={slide.href} className='titulares-slide' key={slide.etiqueta}>

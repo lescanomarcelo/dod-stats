@@ -27,6 +27,7 @@
  *    E  ts  mapa  inicio  puntos_aliados  puntos_eje               marcador de equipos
  *    A  ts  mapa  steamid  nick  segundos                          tiempo acostado
  *    J  ts  mapa  steamid  nick  segundos                          tiempo en un bando
+ *    X  ts  steamid  nick  comando                                 comando de admin
  *
  *    ts = segundos unix.  m_ = matador, v_ = victima.  equipo: 1 aliados, 2 eje.
  *    Si no hay matador (suicidio, caida, mundo) los campos m_ van vacios.
@@ -51,6 +52,11 @@
  *    linea J anterior: el tiempo jugando de verdad, sin contar el rato de espectador
  *    ni eligiendo clase. Tambien se suman al cargarlos.
  *
+ *    X se escribe cada vez que alguien ejecuta un comando que empieza con "amx_"
+ *    (amx_map, amx_kick, amx_slap...). Solo el nombre del comando: los argumentos
+ *    no se guardan, asi no puede colarse una contrasena en el archivo. Queda
+ *    registrado tambien el intento de alguien que no es admin, que igual no hace nada.
+ *
  *    Casi todas las muertes llegan por dodx (client_death), pero las de bazooka,
  *    Panzerschreck y PIAT dodx no las avisa: esas se leen del log del propio juego
  *    ("... killed ... with \"bazooka\"") y se escriben igual que las demas.
@@ -62,7 +68,7 @@
 #include <dodstats>
 
 #define PLUGIN_NAME     "DoD Stats - Registro"
-#define PLUGIN_VERSION  "0.6.0"
+#define PLUGIN_VERSION  "0.7.0"
 #define PLUGIN_AUTHOR   "Marcelo Lescano"
 
 #define PARTES_CUERPO   8   /* generico + las 7 zonas: igual a MAX_BODYHITS */
@@ -549,6 +555,32 @@ registrarMuerte(matador, victima, const arma[], lugarImpacto, TK)
         mOrigen[0], mOrigen[1], mOrigen[2]);
 
     ArrayPushString(g_pendientes, linea);
+}
+
+/*
+ *  Comandos de admin. client_command() ve todos los comandos de consola de los
+ *  jugadores; nos quedamos solo con los que empiezan con "amx_" y anotamos el
+ *  nombre del comando, nunca sus argumentos.
+ */
+public client_command(id)
+{
+    if (!g_conectadoDesde[id])
+        return PLUGIN_CONTINUE;
+
+    new comando[40];
+    read_argv(0, comando, charsmax(comando));
+
+    if (!equali(comando, "amx_", 4))
+        return PLUGIN_CONTINUE;
+
+    new steam[35], nick[32], linea[LARGO_LINEA];
+    datosJugador(id, steam, charsmax(steam), nick, charsmax(nick));
+    limpiar(comando);
+
+    formatex(linea, charsmax(linea), "X^t%d^t%s^t%s^t%s", get_systime(), steam, nick, comando);
+    ArrayPushString(g_pendientes, linea);
+
+    return PLUGIN_CONTINUE;
 }
 
 public client_death(matador, victima, indiceArma, lugarImpacto, TK)

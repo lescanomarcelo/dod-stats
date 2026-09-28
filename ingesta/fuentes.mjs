@@ -9,7 +9,7 @@
  *    cerrar()
  */
 
-import { readdir, stat, open } from 'node:fs/promises'
+import { readdir, stat, open, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { Writable } from 'node:stream'
 import { createHash } from 'node:crypto'
@@ -41,6 +41,11 @@ export function crearFuenteLocal (carpeta) {
       } finally {
         await archivo.close()
       }
+    },
+
+    /* Un archivo suelto de la instalacion, relativo a la carpeta de eventos */
+    async leerTexto (ruta) {
+      return readFile(join(carpeta, ruta), 'utf8')
     },
 
     async cerrar () {}
@@ -106,6 +111,12 @@ export async function crearFuenteSftp ({ host, port, user, password, carpeta, hu
       const flujo = cliente.createReadStream(`${carpeta}/${nombre}`, { start: desde })
       for await (const trozo of flujo) partes.push(trozo)
       return Buffer.concat(partes)
+    },
+
+    /* Un archivo suelto de la instalacion (users.ini), relativo a la carpeta de eventos */
+    async leerTexto (ruta) {
+      const datos = await cliente.get(`${carpeta}/${ruta}`)
+      return datos.toString('utf8')
     },
 
     async cerrar () { await cliente.end() }
