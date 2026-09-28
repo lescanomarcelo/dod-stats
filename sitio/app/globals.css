@@ -302,6 +302,7 @@ td.gana { color: var(--acento); font-weight: 700; }
 /* ------------------------------------------------------------------ */
 
 .marca { align-items: center; }
+.marca-texto { display: flex; align-items: baseline; gap: 0.6rem; min-width: 0; }
 .banderas { display: inline-flex; gap: 4px; align-items: center; margin-right: 0.2rem; }
 .bandera { height: 16px; width: auto; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45); display: block; }
 .logo-dod { height: 22px; width: 22px; display: block; }
@@ -572,7 +573,8 @@ a.figurita:hover img { transform: scale(1.03); }
 .enlace-ir a:hover { text-decoration: underline; }
 
 @media (max-width: 560px) {
-  .marca { flex-wrap: wrap; gap: 0.4rem; }
+  .marca { flex-wrap: nowrap; gap: 0.4rem; }
+  .marca-texto { gap: 0.4rem; }
   .marca .titular { font-size: 1.2rem; }
   .marca small { font-size: 0.72rem; }
   .estado-servidor { font-size: 0.75rem; gap: 0.3rem; }
