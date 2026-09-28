@@ -10,6 +10,7 @@ import {
   SERVER_MOVIDO, SEGUNDOS_FUGAZ
 } from '@/lib/actividad'
 import { ControlPeriodo } from '@/components/Periodo'
+import { NotaTiempo } from '@/components/NotaTiempo'
 import { Columnas } from '@/components/Grafico'
 import { Barras, Tarjeta, Cargando, EnlaceJugador } from '@/components/Ui'
 
@@ -174,6 +175,8 @@ async function Tablero ({ parametros }: { parametros: Busqueda }) {
         <Tarjeta etiqueta='Máximo a la vez' valor={formatoNumero(picoSimultaneo(sesiones))} />
         <Tarjeta etiqueta={masGente ? `Más gente · ${masGente.etiqueta}` : 'Más gente'} valor={masGente ? formatoNumero(masGente.jugadores) : '—'} />
       </div>
+
+      <NotaTiempo ventana={ventana} />
 
       <section className='seccion'>
         <div className='panel'>

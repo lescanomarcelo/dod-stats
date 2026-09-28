@@ -458,22 +458,35 @@ tr.fila-clave td:first-child { font-weight: 600; }
 
 /* Historial semana a semana / mes a mes */
 .historial { margin: 0; }
-.historial-desplazable { overflow-x: auto; background: var(--panel); border: 1px solid var(--borde); border-radius: var(--radio); padding: 0.5rem; }
+/* El rtl del contenedor hace que arranque mostrando el final -lo ultimo que paso-
+   en vez de las semanas viejas y vacias. El svg vuelve a ltr para dibujarse igual. */
+.historial-desplazable {
+  direction: rtl; overflow-x: auto; background: var(--panel);
+  border: 1px solid var(--borde); border-radius: var(--radio); padding: 0.5rem;
+}
+.historial-desplazable > svg { direction: ltr; }
 .historial svg { display: block; width: 100%; height: auto; }
-.historial-bando { font-family: var(--font-oswald), sans-serif; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; }
-.historial-bando.aliados { fill: var(--aliados); }
-.historial-bando.eje { fill: var(--eje); }
+.historial-leyenda {
+  display: flex; align-items: center; gap: 0.35rem;
+  color: var(--tenue); font-size: 0.75rem; margin-bottom: 0.5rem;
+}
+.historial-leyenda .marca { width: 9px; height: 9px; border-radius: 2px; }
+.historial-leyenda .marca.aliados { background: var(--aliados); }
+.historial-leyenda .marca.eje { background: var(--eje); margin-left: 0.6rem; }
+.historial-unidad { margin-left: auto; }
 .historial-cero { stroke: var(--borde); stroke-width: 1.5; }
 .historial-fondo { fill: transparent; }
 .historial-columna:hover .historial-fondo { fill: var(--panel-alto); }
 .historial-columna.elegida .historial-fondo { fill: var(--acento-suave); stroke: var(--acento); stroke-width: 1; }
 .historial-barra.aliados { fill: var(--aliados); }
 .historial-barra.eje { fill: var(--eje); }
-.historial-barra.empate { fill: var(--tenue); }
+.historial-barra.perdio { fill-opacity: 0.4; }
 .historial-barra.por-kills { fill-opacity: 0.35; stroke-dasharray: 4 3; stroke-width: 1.5; }
 .historial-barra.por-kills.aliados { stroke: var(--aliados); }
 .historial-barra.por-kills.eje { stroke: var(--eje); }
-.historial-marcador { fill: var(--texto); font-family: var(--font-geist-mono), monospace; font-size: 12px; }
+.historial-marcador { font-family: var(--font-geist-mono), monospace; font-size: 11px; }
+.historial-marcador.aliados { fill: var(--aliados); }
+.historial-marcador.eje { fill: var(--eje); }
 .historial-eje-x { fill: var(--tenue); font-size: 12px; }
 
 /* Encabezado: IP y estado del server */

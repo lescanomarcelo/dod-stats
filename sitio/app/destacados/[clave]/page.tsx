@@ -8,6 +8,7 @@ import { rangoDesdeBusqueda } from '@/lib/periodos'
 import { enlaceDeDestacado } from '@/lib/enlaces'
 import { EnlaceJugador, Cargando } from '@/components/Ui'
 import { ControlPeriodo } from '@/components/Periodo'
+import { NotaTiempo } from '@/components/NotaTiempo'
 
 /*
  *  Detalle de una categoria destacada del ranking: la misma imagen de la tarjeta,
@@ -73,6 +74,8 @@ async function Contenido ({ parametros, busqueda }: {
             )}
       </section>
       <p className='nota'>Top {CANTIDAD_TOP} de este período.{clave === 'headshots' && ' Solo jugadores con kills suficientes.'}</p>
+      {/* Estas dos categorias se miden con el tiempo en un bando: va la misma aclaracion que en el ranking */}
+      {(clave === 'fiel' || clave === 'camper') && <NotaTiempo ventana={ventana} />}
     </>
   )
 }
