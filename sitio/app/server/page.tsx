@@ -2,11 +2,12 @@ import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { actividadDelServer, admines, mapasMasJugados, sesionesDeVentana, type Admin } from '@/lib/consultas'
 import { estadoServidor, SERVIDOR } from '@/lib/estado'
-import { formatoNumero, formatoTiempo } from '@/lib/calculos'
+import { formatoNumero, formatoTiempo, formatoPorcentaje } from '@/lib/calculos'
 import { rangoDesdeBusqueda, type Periodo } from '@/lib/periodos'
 import {
   cubos, escalaDe, jugadoresPorCubo, permanenciaPorCubo, permanenciaTotal, pico,
-  NOMBRE_ESCALA, bordes, jugadoresUnicos
+  NOMBRE_ESCALA, bordes, jugadoresUnicos, permanenciaConGente, proporcionFugaz, visitas, picoSimultaneo,
+  SERVER_MOVIDO, SEGUNDOS_FUGAZ
 } from '@/lib/actividad'
 import { ControlPeriodo } from '@/components/Periodo'
 import { Columnas } from '@/components/Grafico'
@@ -60,6 +61,8 @@ async function Ficha () {
   )
 }
 
+const TOP_ADMINES = 10
+
 /*
  *  El campeonato de admines: los del users.ini del server, ordenados por el tiempo
  *  que estuvieron. Y al lado, cuantos comandos amx_ ejecuto cada uno.
@@ -74,8 +77,12 @@ async function Admines ({ ventana }: { ventana: { desde: string | null, hasta: s
   const lista = await admines(ventana)
   if (lista.length === 0) return null
 
-  const porComandos = [...lista].sort((a, b) => b.comandos - a.comandos || b.conectado - a.conectado)
-  const algunComando = porComandos.some((a) => a.comandos > 0)
+  /* Top 10 en las dos: la lista entera de admines es larga y casi toda en cero */
+  const porTiempo = lista.slice(0, TOP_ADMINES)
+  const porComandos = [...lista]
+    .sort((a, b) => b.comandos - a.comandos || b.conectado - a.conectado)
+    .filter((a) => a.comandos > 0)
+    .slice(0, TOP_ADMINES)
 
   return (
     <div className='columnas'>
@@ -88,7 +95,7 @@ async function Admines ({ ventana }: { ventana: { desde: string | null, hasta: s
                 <tr><th>#</th><th>Admin</th><th className='num'>En el server</th><th className='num'>Jugando</th></tr>
               </thead>
               <tbody>
-                {lista.map((a, i) => (
+                {porTiempo.map((a, i) => (
                   <tr key={a.clave} className={a.conectado === 0 ? 'sin-uso' : ''}>
                     <td className='posicion numero'>{i + 1}</td>
                     <td><Nombre a={a} /></td>
@@ -99,14 +106,14 @@ async function Admines ({ ventana }: { ventana: { desde: string | null, hasta: s
               </tbody>
             </table>
           </div>
-          <p className='nota'>La lista sale del users.ini del server. Puntúa el tiempo que estuvo conectado, esté jugando o mirando. A los admines dados de alta por nick se los reconoce por el nick: si cambian de nick, el tiempo nuevo no se les suma.</p>
+          <p className='nota'>Los diez primeros de los {lista.length} admines del users.ini del server. Puntúa el tiempo que estuvo conectado, esté jugando o mirando. A los admines dados de alta por nick se los reconoce por el nick: si cambian de nick, el tiempo nuevo no se les suma.</p>
         </div>
       </section>
 
       <section className='seccion'>
         <div className='panel'>
           <h2>Comandos de admin</h2>
-          {algunComando
+          {porComandos.length > 0
             ? (
               <div className='tabla-envoltorio'>
                 <table>
@@ -114,7 +121,7 @@ async function Admines ({ ventana }: { ventana: { desde: string | null, hasta: s
                     <tr><th>#</th><th>Admin</th><th className='num'>Comandos amx_</th></tr>
                   </thead>
                   <tbody>
-                    {porComandos.filter((a) => a.comandos > 0).map((a, i) => (
+                    {porComandos.map((a, i) => (
                       <tr key={a.clave}>
                         <td className='posicion numero'>{i + 1}</td>
                         <td><Nombre a={a} /></td>
@@ -137,18 +144,22 @@ async function Tablero ({ parametros }: { parametros: Busqueda }) {
   const rango = rangoDesdeBusqueda(await parametros)
   const ventana = { desde: rango.desde, hasta: rango.hasta }
 
-  const [resumen, sesiones, mapas] = await Promise.all([
+  const [resumen, crudas, mapas] = await Promise.all([
     actividadDelServer(ventana),
     sesionesDeVentana(ventana),
     mapasMasJugados(ventana)
   ])
 
+  /* Una visita = todo el rato que estuvo, aunque haya cambiado el mapa tres veces */
+  const sesiones = visitas(crudas)
   const [desde, hasta] = bordes(ventana, sesiones)
   const escala = escalaDe(rango.periodo)
   const lista = cubos(escala, desde, hasta)
   const cantidades = jugadoresPorCubo(sesiones, lista)
   const permanencia = permanenciaPorCubo(sesiones, lista)
   const total = permanenciaTotal(sesiones)
+  const conGente = permanenciaConGente(sesiones)
+  const fugaces = proporcionFugaz(sesiones)
   const masGente = pico(lista, cantidades)
 
   return (
@@ -159,9 +170,9 @@ async function Tablero ({ parametros }: { parametros: Busqueda }) {
         <Tarjeta etiqueta='Jugadores' valor={formatoNumero(jugadoresUnicos(sesiones))} destacada />
         <Tarjeta etiqueta='Tiempo jugado' valor={formatoTiempo(resumen.segundos)} />
         <Tarjeta etiqueta='Partidas' valor={formatoNumero(resumen.partidas)} />
-        <Tarjeta etiqueta='Mapas' valor={formatoNumero(resumen.mapas)} />
-        <Tarjeta etiqueta='Permanencia' valor={formatoTiempo(total.promedio)} />
-        <Tarjeta etiqueta={masGente ? `Pico · ${masGente.etiqueta}` : 'Pico'} valor={masGente ? formatoNumero(masGente.jugadores) : '—'} />
+        <Tarjeta etiqueta='Se quedan' valor={formatoTiempo(total.mediana)} />
+        <Tarjeta etiqueta='Máximo a la vez' valor={formatoNumero(picoSimultaneo(sesiones))} />
+        <Tarjeta etiqueta={masGente ? `Más gente · ${masGente.etiqueta}` : 'Más gente'} valor={masGente ? formatoNumero(masGente.jugadores) : '—'} />
       </div>
 
       <section className='seccion'>
@@ -172,7 +183,7 @@ async function Tablero ({ parametros }: { parametros: Busqueda }) {
             formato={(v) => `${v} jugador${v === 1 ? '' : 'es'}`}
             vacio='Nadie se conectó en este período.'
           />
-          <p className='nota'>Cuenta a cada jugador en cada {NOMBRE_ESCALA[escala]} que estuvo conectado. Sale de las conexiones registradas, así que a alguien que todavía está en el server se lo cuenta cuando se va.</p>
+          <p className='nota'>Cuenta a cada jugador en cada {NOMBRE_ESCALA[escala]} que estuvo conectado. Sale de las conexiones registradas, así que a alguien que todavía está en el server se lo cuenta recién cuando se va.</p>
         </div>
       </section>
 
@@ -183,14 +194,19 @@ async function Tablero ({ parametros }: { parametros: Busqueda }) {
             columnas={lista.map((c, i) => ({
               clave: c.clave,
               etiqueta: c.etiqueta,
-              valor: permanencia[i].promedio,
-              fondo: permanencia[i].maximo
+              valor: permanencia[i].mediana
             }))}
             formato={formatoTiempo}
-            leyenda={{ valor: 'Promedio', fondo: 'Máximo' }}
             vacio='Todavía no hay conexiones completas en este período.'
           />
-          <p className='nota'>De las conexiones que empezaron en cada {NOMBRE_ESCALA[escala]}. El máximo de todo el período fue {formatoTiempo(total.maximo)}.</p>
+          <p className='nota'>
+            Es la visita entera, no un mapa: al cambiar de mapa el juego desconecta y reconecta a todos, así que las
+            conexiones cortadas por el cambio se vuelven a pegar. Lo típico es la mediana y no el promedio porque
+            el {formatoPorcentaje(fugaces * 100)} de las visitas dura menos de {SEGUNDOS_FUGAZ / 60} minutos —entra,
+            ve el mapa y se va— y unas pocas duran horas, así que el promedio ({formatoTiempo(total.promedio)}) no
+            representa a nadie. Cuando entran con {SERVER_MOVIDO} o más jugando, lo típico
+            es {conGente.cuantas ? formatoTiempo(conGente.mediana) : '—'}. El que más aguantó estuvo {formatoTiempo(total.maximo)}.
+          </p>
         </div>
       </section>
 
