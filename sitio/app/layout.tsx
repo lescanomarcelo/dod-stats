@@ -19,11 +19,13 @@ const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin']
 const oswald = Oswald({ variable: '--font-oswald', subsets: ['latin'], weight: ['500', '600', '700'] })
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://tributo-stats.vercel.app'),
   title: {
     default: 'Tributo Server — Estadísticas',
     template: '%s · Tributo Server'
   },
   description: 'Ranking y estadísticas de los jugadores del server DoD 1.3 :::aU::: Tributo.',
+  openGraph: { title: 'Tributo Dod Stats!', description: 'Ranking y estadísticas del server DoD 1.3 :::aU::: Tributo.', siteName: 'Tributo Dod Stats!', type: 'website', locale: 'es_AR' },
   /* Instalada en iPhone: pantalla completa y nombre corto bajo el icono */
   appleWebApp: { capable: true, title: 'Tributo Stats', statusBarStyle: 'black-translucent' }
 }
