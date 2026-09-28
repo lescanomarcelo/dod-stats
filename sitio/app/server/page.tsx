@@ -59,8 +59,8 @@ async function Ficha () {
           </>
         )}
       </dl>
+        <CompartirServer variante='icono' nombre={e.enLinea ? e.nombre : SERVIDOR.nombre} juego='Day of Defeat 1.3' host={SERVIDOR.host} puerto={SERVIDOR.puerto} />
       </div>
-      <CompartirServer nombre={e.enLinea ? e.nombre : SERVIDOR.nombre} juego='Day of Defeat 1.3' host={SERVIDOR.host} puerto={SERVIDOR.puerto} />
     </>
   )
 }

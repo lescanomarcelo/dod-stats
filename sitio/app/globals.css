@@ -735,14 +735,17 @@ tbody tr.sin-uso .arma-dibujo { opacity: 0.45; filter: grayscale(1); }
 .navegador-periodo + .tarjetas { margin-top: 1.5rem; }
 
 /* Compartir la tarjeta del server como imagen */
-.compartir { display: flex; align-items: center; gap: 0.75rem 1rem; flex-wrap: wrap; margin: -0.75rem 0 1.75rem; }
+.ficha { position: relative; }
+.ficha dl { padding-right: 3rem; }
 .boton-whatsapp {
-  display: inline-flex; align-items: center; gap: 0.5rem;
-  font: inherit; font-size: 0.9rem; font-weight: 600;
-  color: #0b1f10; background: #25d366;
-  border: 0; border-radius: 999px; padding: 0.55rem 1rem; cursor: pointer;
+  position: absolute; top: 0.75rem; right: 0.75rem;
+  display: grid; place-items: center; width: 2.5rem; height: 2.5rem;
+  color: #0b1f10; background: #25d366; border: 0; border-radius: 0.6rem; cursor: pointer;
 }
 .boton-whatsapp:hover { background: #3ee07a; }
+.boton-whatsapp .icono-boton { width: 1.1rem; height: 1.1rem; flex: none; }
+.enlace-boton { font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.enlace-boton:hover { border-color: var(--acento); }
 .compartir-aviso { color: var(--tenue); font-size: 0.85rem; }
 .icono-boton { width: 1.1rem; height: 1.1rem; flex: none; }
 .enlace-icono { width: 1.4rem; height: 1.4rem; margin-bottom: 0.25rem; color: var(--acento); }

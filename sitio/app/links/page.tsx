@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { GRUPOS, type EnlaceComunidad } from '@/lib/links'
 import { IconoSteam } from '@/components/Iconos'
+import { CompartirServer } from '@/components/CompartirServer'
+import { SERVIDOR } from '@/lib/estado'
 
 export const metadata: Metadata = { title: 'Links' }
 
@@ -11,6 +13,10 @@ function afuera (url: string) {
 }
 
 function Tarjeta ({ e }: { e: EnlaceComunidad }) {
+  if (e.accion === 'compartir') {
+    return <CompartirServer variante='tarjeta' descripcion={e.descripcion} nombre={SERVIDOR.nombre} juego='Day of Defeat 1.3' host={SERVIDOR.host} puerto={SERVIDOR.puerto} />
+  }
+
   const cuerpo = (
     <>
       {e.icono === 'steam' && <IconoSteam className='enlace-icono' />}
@@ -46,7 +52,7 @@ function Tarjeta ({ e }: { e: EnlaceComunidad }) {
   return (
     <a href={e.url} className='panel enlace' {...afuera(e.url)}>
       {cuerpo}
-      <span className='enlace-ir'>{esExterno(e.url) ? 'Abrir ↗' : 'Abrir'}</span>
+      <span className='enlace-ir'>{esExterno(e.url) || e.icono === 'steam' ? 'Abrir ↗' : 'Abrir'}</span>
     </a>
   )
 }

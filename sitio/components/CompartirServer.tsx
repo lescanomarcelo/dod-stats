@@ -3,13 +3,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { IconoWhatsApp } from '@/components/Iconos'
 
-type Props = { nombre: string, juego: string, host: string, puerto: number }
+type Datos = { nombre: string, juego: string, host: string, puerto: number }
+type Props = Datos & { variante: 'icono' | 'tarjeta', descripcion?: string }
 
 const ANCHO = 1080
 const MARGEN = 64
 
 /* Arma la tarjeta (banda + datos del server) en un canvas y la devuelve como JPG */
-async function tarjeta (banda: HTMLImageElement, { nombre, juego, host, puerto }: Props): Promise<Blob | null> {
+async function tarjeta (banda: HTMLImageElement, { nombre, juego, host, puerto }: Datos): Promise<Blob | null> {
   const alto = Math.round(ANCHO * banda.naturalHeight / banda.naturalWidth)
   const filas: [string, string][] = [['Name', nombre], ['Game', juego], ['Address', host], ['Port', String(puerto)]]
 
@@ -40,7 +41,7 @@ async function tarjeta (banda: HTMLImageElement, { nombre, juego, host, puerto }
   return new Promise((resolver) => lienzo.toBlob(resolver, 'image/jpeg', 0.9))
 }
 
-export function CompartirServer (props: Props) {
+export function CompartirServer ({ variante, descripcion, ...props }: Props) {
   const banda = useRef<HTMLImageElement | null>(null)
   const [aviso, setAviso] = useState('')
 
@@ -79,13 +80,26 @@ export function CompartirServer (props: Props) {
     setAviso('Se bajó la imagen: mandala por WhatsApp.')
   }
 
-  return (
-    <div className='compartir'>
-      <button type='button' className='boton-whatsapp' onClick={compartir}>
-        <IconoWhatsApp className='icono-boton' />
-        Compartir por WhatsApp
+  const aviso_ = aviso && <span className='compartir-aviso'>{aviso}</span>
+
+  if (variante === 'tarjeta') {
+    return (
+      <button type='button' className='panel enlace enlace-boton' onClick={compartir}>
+        <IconoWhatsApp className='enlace-icono' />
+        <strong>Compartir el server</strong>
+        <span>{descripcion}</span>
+        {aviso_}
+        <span className='enlace-ir'>Compartir</span>
       </button>
-      {aviso && <span className='compartir-aviso'>{aviso}</span>}
-    </div>
+    )
+  }
+
+  return (
+    <>
+      <button type='button' className='boton-whatsapp' onClick={compartir} aria-label='Compartir el server por WhatsApp' title='Compartir por WhatsApp'>
+        <IconoWhatsApp className='icono-boton' />
+      </button>
+      {aviso_}
+    </>
   )
 }
