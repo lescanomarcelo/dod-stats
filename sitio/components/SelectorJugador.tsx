@@ -39,6 +39,16 @@ export function SelectorJugador ({ nombre, elegido, jugadores }: { nombre: strin
     setFiltrando(false)
   }
 
+  /* Escribio algo y no eligio: se queda con la primera coincidencia */
+  function alSalir () {
+    if (id === null && texto.trim()) {
+      const primero = filtrar(jugadores, texto)[0]
+      if (primero) { setId(primero.id); setTexto(primero.nick) }
+    }
+    setAbierto(false)
+    setFiltrando(false)
+  }
+
   function teclado (e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault()
@@ -49,6 +59,9 @@ export function SelectorJugador ({ nombre, elegido, jugadores }: { nombre: strin
     } else if (e.key === 'Enter' && abierto && visibles[resaltado]) {
       e.preventDefault()
       elegir(visibles[resaltado])
+    } else if (e.key === 'Enter' && id === null && texto.trim()) {
+      e.preventDefault()
+      alSalir()
     } else if (e.key === 'Escape') {
       setAbierto(false)
     }
@@ -67,7 +80,7 @@ export function SelectorJugador ({ nombre, elegido, jugadores }: { nombre: strin
         placeholder='Elegí un jugador'
         value={texto}
         onFocus={(e) => { e.target.select(); setFiltrando(false); setResaltado(0); setAbierto(true) }}
-        onBlur={() => setTimeout(() => setAbierto(false), 120)}
+        onBlur={alSalir}
         onChange={(e) => { setTexto(e.target.value); setId(null); setFiltrando(true); setResaltado(0); setAbierto(true) }}
         onKeyDown={teclado}
       />
