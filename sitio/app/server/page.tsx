@@ -2,12 +2,11 @@ import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { actividadDelServer, admines, mapasMasJugados, sesionesDeVentana, type Admin } from '@/lib/consultas'
 import { estadoServidor, SERVIDOR } from '@/lib/estado'
-import { formatoNumero, formatoTiempo, formatoPorcentaje } from '@/lib/calculos'
+import { formatoNumero, formatoTiempo } from '@/lib/calculos'
 import { rangoDesdeBusqueda, type Periodo } from '@/lib/periodos'
 import {
   cubos, escalaDe, jugadoresPorCubo, permanenciaPorCubo, permanenciaTotal, pico,
-  NOMBRE_ESCALA, bordes, jugadoresUnicos, permanenciaConGente, proporcionFugaz, visitas, picoSimultaneo,
-  SERVER_MOVIDO, SEGUNDOS_FUGAZ
+  NOMBRE_ESCALA, bordes, jugadoresUnicos, visitas, picoSimultaneo
 } from '@/lib/actividad'
 import { ControlPeriodo } from '@/components/Periodo'
 import { NotaTiempo } from '@/components/NotaTiempo'
@@ -112,11 +111,7 @@ async function Admines ({ ventana }: { ventana: { desde: string | null, hasta: s
           </div>
               )
             : <p className='vacio'>Ningún admin estuvo en el server en este período.</p>}
-          <p className='nota'>
-            Los diez admines que más tiempo estuvieron en el server, jugando o mirando. La lista de admines sale del
-            propio server; acá van los que estuvieron en este período. Al que está anotado por nombre y no por su cuenta de Steam se
-            lo reconoce por el nick: si se lo cambia, el tiempo nuevo le queda afuera.
-          </p>
+          <p className='nota'>Los admines que más tiempo pasaron en el server en este período, jugando o mirando.</p>
         </div>
       </section>
 
@@ -143,10 +138,7 @@ async function Admines ({ ventana }: { ventana: { desde: string | null, hasta: s
               </div>
               )
             : <p className='vacio'>Todavía no hay comandos registrados.</p>}
-          <p className='nota'>
-            Cuántas veces cada admin usó un comando de administración: cambiar de mapa, echar a alguien, callarlo.
-            Se empezó a anotar hace poco, así que arranca de cero.
-          </p>
+          <p className='nota'>Cuántas veces usó cada admin un comando de administración, como cambiar de mapa o echar a alguien.</p>
         </div>
       </section>
     </div>
@@ -171,8 +163,6 @@ async function Tablero ({ parametros }: { parametros: Busqueda }) {
   const cantidades = jugadoresPorCubo(sesiones, lista)
   const permanencia = permanenciaPorCubo(sesiones, lista)
   const total = permanenciaTotal(sesiones)
-  const conGente = permanenciaConGente(sesiones)
-  const fugaces = proporcionFugaz(sesiones)
   const masGente = pico(lista, cantidades)
 
   return (
@@ -198,11 +188,7 @@ async function Tablero ({ parametros }: { parametros: Busqueda }) {
             formato={(v) => `${v} jugador${v === 1 ? '' : 'es'}`}
             vacio='Nadie se conectó en este período.'
           />
-          <p className='nota'>
-            Cuánta gente distinta pasó por el server en cada {NOMBRE_ESCALA[escala]}. Al que estuvo un rato largo se
-            lo cuenta en cada {NOMBRE_ESCALA[escala]} que estuvo, y a los que están jugando ahora mismo se los suma
-            cuando se van.
-          </p>
+          <p className='nota'>Cuánta gente distinta entró al server en cada {NOMBRE_ESCALA[escala]}.</p>
         </div>
       </section>
 
@@ -218,13 +204,7 @@ async function Tablero ({ parametros }: { parametros: Busqueda }) {
             formato={formatoTiempo}
             vacio='Todavía no hay conexiones completas en este período.'
           />
-          <p className='nota'>
-            Cuánto dura una visita: la mitad de la gente se queda más que eso y la otra mitad, menos. Se cuenta todo
-            el rato que estuvo, aunque el mapa haya cambiado varias veces en el medio.
-            El {formatoPorcentaje(fugaces * 100)} entra, mira y se va antes de los {SEGUNDOS_FUGAZ / 60} minutos, y
-            algunos se quedan horas: el que más aguantó estuvo {formatoTiempo(total.maximo)}.
-            {conGente.cuantas > 0 && ` Con el server movido, de ${SERVER_MOVIDO} jugadores para arriba, la visita es de ${formatoTiempo(conGente.mediana)}.`}
-          </p>
+          <p className='nota'>Cuánto tiempo se queda lo más habitual: la mitad de la gente aguanta más que eso y la otra mitad, menos.</p>
         </div>
       </section>
 
@@ -240,7 +220,7 @@ async function Tablero ({ parametros }: { parametros: Busqueda }) {
             texto: formatoNumero(m.partidas)
           }))}
           />
-          <p className='nota'>Los mapas que más veces se jugaron en este período, y cuántas veces salió cada uno.</p>
+          <p className='nota'>Los mapas que más veces se jugaron en este período.</p>
         </div>
       </section>
     </>
