@@ -733,3 +733,23 @@ tbody tr.sin-uso .arma-dibujo { opacity: 0.45; filter: grayscale(1); }
 .banda-seccion + .panel.ficha { margin-top: 1.5rem; }
 .ficha { margin-bottom: 1.75rem; }
 .navegador-periodo + .tarjetas { margin-top: 1.5rem; }
+
+/* Compartir la tarjeta del server como imagen */
+.compartir { display: flex; align-items: center; gap: 0.75rem 1rem; flex-wrap: wrap; margin: -0.75rem 0 1.75rem; }
+.boton-whatsapp {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  font: inherit; font-size: 0.9rem; font-weight: 600;
+  color: #0b1f10; background: #25d366;
+  border: 0; border-radius: 999px; padding: 0.55rem 1rem; cursor: pointer;
+}
+.boton-whatsapp:hover { background: #3ee07a; }
+.compartir-aviso { color: var(--tenue); font-size: 0.85rem; }
+.icono-boton { width: 1.1rem; height: 1.1rem; flex: none; }
+.enlace-icono { width: 1.4rem; height: 1.4rem; margin-bottom: 0.25rem; color: var(--acento); }
+
+/* Barra de arriba: copiar la IP y conectarse con Steam, lado a lado */
+.marca-bloque .ip-acciones { align-self: flex-start; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.ip-servidor.conectar { text-decoration: none; }
+.ip-servidor.conectar .icono-boton { width: 0.9rem; height: 0.9rem; color: var(--texto); }
+/* En el celular no hay Steam con el juego: el boton solo estorba */
+@media (max-width: 640px) { .ip-servidor.conectar { display: none; } }

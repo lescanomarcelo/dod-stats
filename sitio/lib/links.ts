@@ -11,6 +11,8 @@ export type EnlaceComunidad = {
   extra?: { texto: string, url: string }
   /** Aclaracion al pie de la tarjeta */
   aviso?: string
+  /** Icono chico arriba del nombre */
+  icono?: 'steam'
 }
 
 export type GrupoEnlaces = { titulo: string, enlaces: EnlaceComunidad[] }
@@ -48,6 +50,12 @@ export const GRUPOS: GrupoEnlaces[] = [
   {
     titulo: 'Descargas',
     enlaces: [
+      {
+        nombre: 'Day of Defeat en Steam',
+        descripcion: 'El juego, en la tienda de Steam.',
+        url: 'https://store.steampowered.com/app/30/Day_of_Defeat/',
+        icono: 'steam'
+      },
       {
         nombre: 'Pack de miras',
         descripcion: 'Miras para el juego.',

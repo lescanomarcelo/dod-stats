@@ -9,6 +9,7 @@ import {
   NOMBRE_ESCALA, bordes, jugadoresUnicos, visitas, picoSimultaneo
 } from '@/lib/actividad'
 import { ControlPeriodo } from '@/components/Periodo'
+import { CompartirServer } from '@/components/CompartirServer'
 import { NotaTiempo } from '@/components/NotaTiempo'
 import { Columnas } from '@/components/Grafico'
 import { Barras, Tarjeta, Cargando, EnlaceJugador } from '@/components/Ui'
@@ -35,7 +36,8 @@ async function Ficha () {
   const humanos = e.enLinea ? Math.max(0, e.jugadores - e.bots) : 0
 
   return (
-    <div className='panel ficha'>
+    <>
+      <div className='panel ficha'>
       <dl>
         <div><dt>Name</dt><dd>{e.enLinea ? e.nombre : SERVIDOR.nombre}</dd></div>
         <div><dt>Game</dt><dd>Day of Defeat 1.3</dd></div>
@@ -57,7 +59,9 @@ async function Ficha () {
           </>
         )}
       </dl>
-    </div>
+      </div>
+      <CompartirServer nombre={e.enLinea ? e.nombre : SERVIDOR.nombre} juego='Day of Defeat 1.3' host={SERVIDOR.host} puerto={SERVIDOR.puerto} />
+    </>
   )
 }
 
