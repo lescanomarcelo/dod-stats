@@ -773,3 +773,4 @@ tbody tr.sin-uso .arma-dibujo { opacity: 0.45; filter: grayscale(1); }
 .ip-servidor.conectar .icono-boton { width: 0.9rem; height: 0.9rem; color: var(--texto); }
 /* En el celular no hay Steam con el juego: el boton solo estorba */
 @media (max-width: 640px) { .ip-servidor.conectar { display: none; } }
+.visitantes { color: var(--tenue); font-size: 0.8rem; }

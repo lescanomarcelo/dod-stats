@@ -15,7 +15,7 @@ import { ZONAS } from './parsear.mjs'
 
 const RUTA_ESQUEMA = fileURLToPath(new URL('./esquema.sql', import.meta.url))
 /* En orden de borrado: las que apuntan a jugadores, antes que jugadores */
-const TABLAS = ['muertes', 'sesiones', 'impactos', 'acostado', 'jugado', 'puntos', 'comandos', 'partidas', 'mapas_jugados', 'admines', 'ingesta_estado', 'jugadores']
+const TABLAS = ['muertes', 'sesiones', 'impactos', 'acostado', 'jugado', 'puntos', 'comandos', 'visitas', 'partidas', 'mapas_jugados', 'admines', 'ingesta_estado', 'jugadores']
 const FILAS_POR_INSERT = 500
 
 /* Recorta a lo que entra en la columna. Un dato raro no puede trabar la ingesta:

@@ -172,6 +172,15 @@ CREATE TABLE IF NOT EXISTS {p}comandos (
   CONSTRAINT fk_{p}comandos_jugador FOREIGN KEY (jugador_id) REFERENCES {p}jugadores (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Contador de visitantes del sitio: una sola fila, sube una vez por visitante nuevo (cookie).
+CREATE TABLE IF NOT EXISTS {p}visitas (
+  id     TINYINT UNSIGNED NOT NULL,
+  total  INT UNSIGNED     NOT NULL DEFAULT 0,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO {p}visitas (id, total) VALUES (1, 0);
+
 -- Hasta que byte de cada archivo ya se cargo. Se actualiza en la MISMA transaccion
 -- que los eventos: o entran los eventos y avanza el offset, o no pasa ninguna de las dos.
 CREATE TABLE IF NOT EXISTS {p}ingesta_estado (

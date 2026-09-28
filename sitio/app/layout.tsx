@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import Link from 'next/link'
+import { Visitantes } from '@/components/Visitantes'
 import { Suspense } from 'react'
 import { Geist, Geist_Mono, Oswald, Playfair_Display, Libre_Baskerville, Anton } from 'next/font/google'
 import { resumenGeneral } from '@/lib/consultas'
@@ -174,6 +175,7 @@ export default function RootLayout ({ children }: LayoutProps<'/'>) {
 
             <div className='pie-abajo'>
               <span>Hecho por <strong className='firma'>Trevor</strong></span>
+              <Visitantes />
               <Suspense fallback={<span>&nbsp;</span>}>
                 <UltimaActualizacion />
               </Suspense>
