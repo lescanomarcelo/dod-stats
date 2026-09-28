@@ -97,7 +97,7 @@ async function Admines ({ ventana }: { ventana: { desde: string | null, hasta: s
               </thead>
               <tbody>
                 {porTiempo.map((a, i) => (
-                  <tr key={a.clave} className={a.conectado === 0 ? 'sin-uso' : ''}>
+                  <tr key={a.clave}>
                     <td className='posicion numero'>{i + 1}</td>
                     <td><Nombre a={a} /></td>
                     <td className='num destacado'>{a.conectado ? formatoTiempo(a.conectado) : '—'}</td>
