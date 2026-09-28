@@ -712,3 +712,19 @@ tbody tr.sin-uso .arma-dibujo { opacity: 0.45; filter: grayscale(1); }
 
 /* Un admin del users.ini que todavia no se pudo emparejar con ningun jugador */
 .jugador.apagado { color: var(--tenue); cursor: default; }
+
+/* ------------------------------------------------------------------ */
+/*  Banda ilustrada de una seccion                                     */
+/* ------------------------------------------------------------------ */
+
+/* El alto lo pone el CSS y no el recorte de la imagen: en el celular la banda
+   tiene que ser mas alta en proporcion, si no el dibujo no se entiende */
+.banda-seccion {
+  display: block; width: 100%; height: auto; margin-bottom: 1.5rem;
+  aspect-ratio: 1120 / 300; object-fit: cover; object-position: center 30%;
+  border: 1px solid var(--borde); border-radius: var(--radio);
+}
+
+@media (max-width: 640px) {
+  .banda-seccion { aspect-ratio: 16 / 9; }
+}

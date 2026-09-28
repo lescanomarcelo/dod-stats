@@ -203,12 +203,9 @@ async function Tablero ({ parametros }: { parametros: Busqueda }) {
             vacio='Todavía no hay conexiones completas en este período.'
           />
           <p className='nota'>
-            Es la visita entera, no un mapa: al cambiar de mapa el juego desconecta y reconecta a todos, así que las
-            conexiones cortadas por el cambio se vuelven a pegar. Lo típico es la mediana y no el promedio porque
-            el {formatoPorcentaje(fugaces * 100)} de las visitas dura menos de {SEGUNDOS_FUGAZ / 60} minutos —entra,
-            ve el mapa y se va— y unas pocas duran horas, así que el promedio ({formatoTiempo(total.promedio)}) no
-            representa a nadie. Cuando entran con {SERVER_MOVIDO} o más jugando, lo típico
-            es {conGente.cuantas ? formatoTiempo(conGente.mediana) : '—'}. El que más aguantó estuvo {formatoTiempo(total.maximo)}.
+            La visita entera, no un mapa. Es la mediana: el {formatoPorcentaje(fugaces * 100)} dura menos
+            de {SEGUNDOS_FUGAZ / 60} minutos y unas pocas duran horas. Con {SERVER_MOVIDO} o más
+            jugando, {conGente.cuantas ? formatoTiempo(conGente.mediana) : '—'}. El máximo, {formatoTiempo(total.maximo)}.
           </p>
         </div>
       </section>
@@ -238,6 +235,9 @@ export default function PaginaServer (props: PageProps<'/server'>) {
         <h1>El Server</h1>
         <p>Cómo viene la actividad del server: cuánta gente hay, cuánto se queda y qué se juega.</p>
       </div>
+
+      {/* eslint-disable-next-line @next/next/no-img-element -- imagen fija ya optimizada a webp */}
+      <img src='/server/admines.webp' alt='' width={1600} height={906} className='banda-seccion' />
 
       <Suspense fallback={<Cargando />}>
         <Ficha />
