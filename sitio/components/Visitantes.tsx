@@ -13,5 +13,5 @@ export function Visitantes () {
   }, [])
 
   if (total === null) return null
-  return <span className='visitantes'>{total.toLocaleString('es-AR')} visitantes</span>
+  return <span className='visitas'>{total.toLocaleString('es-AR')} visitas</span>
 }

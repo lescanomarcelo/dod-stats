@@ -172,7 +172,7 @@ CREATE TABLE IF NOT EXISTS {p}comandos (
   CONSTRAINT fk_{p}comandos_jugador FOREIGN KEY (jugador_id) REFERENCES {p}jugadores (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Contador de visitantes del sitio: una sola fila, sube una vez por visitante nuevo (cookie).
+-- Contador de visitas del sitio: una sola fila, sube una vez cada 30 min por navegador (cookie).
 CREATE TABLE IF NOT EXISTS {p}visitas (
   id     TINYINT UNSIGNED NOT NULL,
   total  INT UNSIGNED     NOT NULL DEFAULT 0,
