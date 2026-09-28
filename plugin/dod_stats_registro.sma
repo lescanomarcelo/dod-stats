@@ -58,8 +58,9 @@
  *    registrado tambien el intento de alguien que no es admin, que igual no hace nada.
  *
  *    Casi todas las muertes llegan por dodx (client_death), pero las de bazooka,
- *    Panzerschreck y PIAT dodx no las avisa: esas se leen del log del propio juego
- *    ("... killed ... with \"bazooka\"") y se escriben igual que las demas.
+ *    Panzerschreck y PIAT dodx no las avisa: esas se leen del mensaje DeathMsg que
+ *    el juego le manda a todos (el que dibuja el icono en el marcador) y se
+ *    escriben igual que las demas.
  */
 
 #include <amxmodx>
@@ -68,7 +69,7 @@
 #include <dodstats>
 
 #define PLUGIN_NAME     "DoD Stats - Registro"
-#define PLUGIN_VERSION  "0.7.0"
+#define PLUGIN_VERSION  "0.8.0"
 #define PLUGIN_AUTHOR   "Marcelo Lescano"
 
 #define PARTES_CUERPO   8   /* generico + las 7 zonas: igual a MAX_BODYHITS */
@@ -107,14 +108,21 @@ new bool:g_marcadorValido;  /* ya cambio desde el comienzo: es de esta partida *
 new g_escritas;
 new g_fallos;
 
+/* Ultima muerte ya anotada de cada jugador (get_gametime), para no contarla dos veces
+   si llega por dodx y por DeathMsg en el mismo frame. -1.0 = ninguna todavia. */
+new Float:g_muerteRegistrada[33];
+
+/* Un solo aviso por mapa si el DeathMsg no trae el nombre del arma donde se espera */
+new bool:g_avisoDeathMsg;
+
 public plugin_init()
 {
     register_plugin(PLUGIN_NAME, PLUGIN_VERSION, PLUGIN_AUTHOR);
 
     g_pendientes = ArrayCreate(LARGO_LINEA);
 
-    /* Las muertes con cohete no llegan por dodx: se leen del log del juego */
-    register_logevent("evtMuerteEnLog", 3, "1=killed");
+    /* Las muertes con cohete no llegan por dodx: se leen del DeathMsg del juego */
+    register_event("DeathMsg", "evtDeathMsg", "a");
 
     register_concmd("dod_stats_volcar", "cmdVolcar", ADMIN_RCON, "- escribe ya los eventos pendientes al archivo");
     register_concmd("dod_stats_estado", "cmdEstado", ADMIN_RCON, "- muestra eventos pendientes, escritos y fallos");
@@ -140,9 +148,12 @@ public plugin_cfg()
     }
     g_marcadorValido = false;
 
+    g_avisoDeathMsg = false;
+
     /* Cambio de mapa: los que ya estaban en un bando siguen jugando desde ahora */
     for (new id = 1; id <= 32; id++)
     {
+        g_muerteRegistrada[id] = -1.0;
         g_enEquipoDesde[id] = 0.0;
         g_jugadoAcumulado[id] = 0.0;
         if (is_user_connected(id))
@@ -484,6 +495,7 @@ public client_putinserver(id)
         return;
 
     g_conectadoDesde[id] = get_systime();
+    g_muerteRegistrada[id] = -1.0;
     limpiarImpactos(id);
     limpiarAcostado(id);
     limpiarJugado(id);
@@ -522,6 +534,15 @@ public client_disconnected(id, bool:drop, message[], maxlen)
 
 registrarMuerte(matador, victima, const arma[], lugarImpacto, TK)
 {
+    /* La misma muerte puede llegar por dos caminos en el mismo frame: se anota una */
+    if (victima >= 1 && victima <= 32)
+    {
+        new Float:ahora = get_gametime();
+        if (g_muerteRegistrada[victima] == ahora)
+            return;
+        g_muerteRegistrada[victima] = ahora;
+    }
+
     new vSteam[35], vNick[32];
     new vOrigen[3];
     datosJugador(victima, vSteam, charsmax(vSteam), vNick, charsmax(vNick));
@@ -598,73 +619,62 @@ public client_death(matador, victima, indiceArma, lugarImpacto, TK)
 }
 
 /*
- *  Muertes con cohete (bazooka, Panzerschreck, PIAT). dodx no avisa de estas, asi
- *  que se leen del log del juego:
+ *  Muertes con cohete (bazooka, Panzerschreck, PIAT).
  *
- *    "Nombre<37><STEAM_0:1:1><Allies>" killed "Otro<8><STEAM_0:0:2><Axis>" with "bazooka"
+ *  dodx no avisa ninguna: su client_death no llega nunca para estas armas. La
+ *  version 0.6 intento leerlas del log del juego con register_logevent(), pero ese
+ *  evento exige coincidir en la cantidad EXACTA de argumentos en que se parte la
+ *  linea, y la declarada no era la de la linea de muerte: no se disparo ni una vez
+ *  (12 bazookazos en el log del 27/9, cero en la base).
  *
- *  Solo se toman esas armas: las demas ya vienen por dodx y se duplicarian.
+ *  Ahora se leen del DeathMsg, el mensaje que el juego le manda a todos los
+ *  clientes para dibujar el icono en el marcador de muertes. Trae el matador, la
+ *  victima y el nombre del arma tal cual ("bazooka"), que es justamente el que usa
+ *  el juego para elegir el dibujo.
+ *
+ *  Solo se toman esas tres armas: las demas ya vienen por dodx y se duplicarian.
+ *  Igual, registrarMuerte() ignora una segunda muerte de la misma victima en el
+ *  mismo frame, asi que si algun dia dodx empieza a avisarlas, no se cuentan dos veces.
  */
-/* Copia el trozo entre comillas numero "cual" (desde 0) de la linea. false si no esta */
-bool:entreComillas(const texto[], cual, salida[], largoSalida)
+bool:esCohete(const arma[])
 {
-    new encontrados = 0, i = 0;
-    while (texto[i])
-    {
-        if (texto[i] == '"')
-        {
-            new fin = i + 1;
-            while (texto[fin] && texto[fin] != '"')
-                fin++;
-            if (!texto[fin])
-                return false;
-            if (encontrados == cual)
-            {
-                new largo = fin - i - 1;
-                if (largo >= largoSalida)
-                    largo = largoSalida - 1;
-                copy(salida, largo, texto[i + 1]);
-                return true;
-            }
-            encontrados++;
-            i = fin + 1;
-            continue;
-        }
-        i++;
-    }
-    return false;
+    return equal(arma, "bazooka") || equal(arma, "pschreck") || equal(arma, "piat");
 }
 
-public evtMuerteEnLog()
+public evtDeathMsg()
 {
-    /* La linea entera, para no depender de como se parta en argumentos */
-    new texto[256];
-    read_logdata(texto, charsmax(texto));
-
+    new campos = read_datanum();
     new arma[32];
-    if (!entreComillas(texto, 2, arma, charsmax(arma)))
+
+    /* El nombre del arma va en el tercer campo; se prueba el cuarto por las dudas */
+    if (campos >= 3)
+        read_data(3, arma, charsmax(arma));
+    if (!esCohete(arma) && campos >= 4)
+        read_data(4, arma, charsmax(arma));
+
+    if (!esCohete(arma))
+    {
+        /* Si no vino ningun nombre de arma, el mensaje no es como se espera: avisar una vez */
+        if (!g_avisoDeathMsg && arma[0] == 0)
+        {
+            g_avisoDeathMsg = true;
+            log_amx("%s DeathMsg con %d campos y sin nombre de arma: revisar el plugin", PREFIJO, campos);
+        }
         return;
-    if (!equal(arma, "bazooka") && !equal(arma, "pschreck") && !equal(arma, "piat"))
+    }
+
+    new victima = read_data(2);
+    if (victima < 1 || victima > 32 || !is_user_connected(victima))
         return;
 
-    new textoMatador[96], textoVictima[96], nombre[32], autorizacion[40];
-    new useridMatador, useridVictima;
-    if (!entreComillas(texto, 0, textoMatador, charsmax(textoMatador)))
-        return;
-    if (!entreComillas(texto, 1, textoVictima, charsmax(textoVictima)))
-        return;
-    parse_loguser(textoMatador, nombre, charsmax(nombre), useridMatador, autorizacion, charsmax(autorizacion));
-    parse_loguser(textoVictima, nombre, charsmax(nombre), useridVictima, autorizacion, charsmax(autorizacion));
+    /* El cohete lo tira un jugador, pero el que figura puede ser la propia rocket */
+    new matador = read_data(1);
+    if (matador < 1 || matador > 32 || !is_user_connected(matador))
+        matador = 0;
 
-    new matador = find_player("k", useridMatador);
-    new victima = find_player("k", useridVictima);
-    if (!victima || !is_user_connected(victima))
-        return;
+    cerrarTramoAcostado(victima, false);
 
-    if (victima <= 32)
-        cerrarTramoAcostado(victima, false);
-
-    /* El cohete revienta: no hay parte del cuerpo. El fuego amigo se deduce del bando */
+    /* El cohete revienta: no hay parte del cuerpo. El fuego amigo sale del bando */
     new TK = (matador && matador != victima && get_user_team(matador) == get_user_team(victima)) ? 1 : 0;
     registrarMuerte(matador, victima, arma, 0, TK);
 }
