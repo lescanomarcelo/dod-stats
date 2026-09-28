@@ -79,7 +79,8 @@ async function Admines ({ ventana }: { ventana: { desde: string | null, hasta: s
   if (lista.length === 0) return null
 
   /* Top 10 en las dos: la lista entera de admines es larga y casi toda en cero */
-  const porTiempo = lista.slice(0, TOP_ADMINES)
+  const presentes = lista.filter((a) => a.conectado > 0)
+  const porTiempo = presentes.slice(0, TOP_ADMINES)
   const porComandos = [...lista]
     .sort((a, b) => b.comandos - a.comandos || b.conectado - a.conectado)
     .filter((a) => a.comandos > 0)
@@ -90,6 +91,8 @@ async function Admines ({ ventana }: { ventana: { desde: string | null, hasta: s
       <section className='seccion'>
         <div className='panel'>
           <h2>Campeonato de admines</h2>
+          {porTiempo.length > 0
+            ? (
           <div className='tabla-envoltorio'>
             <table>
               <thead>
@@ -107,9 +110,11 @@ async function Admines ({ ventana }: { ventana: { desde: string | null, hasta: s
               </tbody>
             </table>
           </div>
+              )
+            : <p className='vacio'>Ningún admin estuvo en el server en este período.</p>}
           <p className='nota'>
             Los diez admines que más tiempo estuvieron en el server, jugando o mirando. La lista de admines sale del
-            propio server; se cuentan los {lista.length} que alguna vez entraron. Al que está anotado por nombre y no por su cuenta de Steam se
+            propio server; acá van los que estuvieron en este período. Al que está anotado por nombre y no por su cuenta de Steam se
             lo reconoce por el nick: si se lo cambia, el tiempo nuevo le queda afuera.
           </p>
         </div>
