@@ -13,6 +13,8 @@ export type EnlaceComunidad = {
   aviso?: string
   /** Icono chico arriba del nombre */
   icono?: 'steam'
+  /** En vez de un enlace, un boton que hace algo */
+  accion?: 'compartir'
 }
 
 export type GrupoEnlaces = { titulo: string, enlaces: EnlaceComunidad[] }
@@ -72,6 +74,18 @@ export const GRUPOS: GrupoEnlaces[] = [
   {
     titulo: 'El server',
     enlaces: [
+      {
+        nombre: 'Entrar a jugar',
+        descripcion: 'Abre el juego y entra directo al server. Solo en PC, con Steam abierto.',
+        url: 'steam://connect/45.235.98.67:27017',
+        icono: 'steam'
+      },
+      {
+        nombre: 'Compartir el server',
+        descripcion: 'Manda por WhatsApp una imagen con el nombre, la dirección y el puerto.',
+        url: null,
+        accion: 'compartir'
+      },
       {
         nombre: 'GameTracker',
         descripcion: 'Historial de jugadores y mapas del server.',
