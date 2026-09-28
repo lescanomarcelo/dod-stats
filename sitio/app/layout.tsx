@@ -98,8 +98,10 @@ export default function RootLayout ({ children }: LayoutProps<'/'>) {
                     {/* eslint-disable-next-line @next/next/no-img-element -- icono de 64 px, no hace falta optimizarlo */}
                     <img src='/dod.png' alt='' width={64} height={64} className='logo-dod' />
                   </span>
-                  <span className='titular'>El Diario DoD</span>
-                  <small>Crónica del server :::aU::: Tributo · DoD 1.3</small>
+                  <span className='marca-texto'>
+                    <span className='titular'>El Diario DoD</span>
+                    <small>Crónica del server :::aU::: Tributo · DoD 1.3</small>
+                  </span>
                 </Link>
               </div>
               <Suspense fallback={<span className='estado-servidor cargando'><span className='punto' aria-hidden='true' />Consultando el server…</span>}>
