@@ -145,6 +145,33 @@ CREATE TABLE IF NOT EXISTS {p}partidas (
   KEY ix_mapa (mapa)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Los admines del server, tal como figuran en users.ini de AMX Mod X. Se refresca
+-- en cada ingesta: si a alguien lo sacan del users.ini, desaparece de la tabla.
+-- La clave es el steamid o el nick con el que esta dado de alta.
+-- OJO: users.ini tambien tiene las contrasenas de los admines. NO se guardan aca
+-- ni en ningun lado: la ingesta las descarta al leer el archivo.
+CREATE TABLE IF NOT EXISTS {p}admines (
+  clave        VARCHAR(80) NOT NULL,
+  -- como esta dado de alta: steamid, nick o ip
+  tipo         VARCHAR(10) NOT NULL,
+  -- flags de acceso de AMXX (abcdefg...), tal cual
+  acceso       VARCHAR(40) NOT NULL,
+  actualizado  DATETIME    NOT NULL,
+  PRIMARY KEY (clave)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Cada comando amx_ que ejecuto un admin. Desde la version 0.7 del plugin.
+CREATE TABLE IF NOT EXISTS {p}comandos (
+  id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  momento     DATETIME        NOT NULL,
+  jugador_id  INT UNSIGNED    NOT NULL,
+  comando     VARCHAR(40)     NOT NULL,
+  PRIMARY KEY (id),
+  KEY ix_jugador (jugador_id),
+  KEY ix_momento (momento),
+  CONSTRAINT fk_{p}comandos_jugador FOREIGN KEY (jugador_id) REFERENCES {p}jugadores (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Hasta que byte de cada archivo ya se cargo. Se actualiza en la MISMA transaccion
 -- que los eventos: o entran los eventos y avanza el offset, o no pasa ninguna de las dos.
 CREATE TABLE IF NOT EXISTS {p}ingesta_estado (

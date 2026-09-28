@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
-import { actividadDelServer, mapasMasJugados, sesionesDeVentana } from '@/lib/consultas'
+import { actividadDelServer, admines, mapasMasJugados, sesionesDeVentana, type Admin } from '@/lib/consultas'
 import { estadoServidor, SERVIDOR } from '@/lib/estado'
 import { formatoNumero, formatoTiempo } from '@/lib/calculos'
 import { rangoDesdeBusqueda, type Periodo } from '@/lib/periodos'
@@ -10,7 +10,7 @@ import {
 } from '@/lib/actividad'
 import { ControlPeriodo } from '@/components/Periodo'
 import { Columnas } from '@/components/Grafico'
-import { Barras, Tarjeta, Cargando } from '@/components/Ui'
+import { Barras, Tarjeta, Cargando, EnlaceJugador } from '@/components/Ui'
 
 export const metadata: Metadata = { title: 'El Server' }
 
@@ -56,6 +56,79 @@ async function Ficha () {
           </>
         )}
       </dl>
+    </div>
+  )
+}
+
+/*
+ *  El campeonato de admines: los del users.ini del server, ordenados por el tiempo
+ *  que estuvieron. Y al lado, cuantos comandos amx_ ejecuto cada uno.
+ *
+ *  El que nunca aparecio queda al final, en cero: tambien es un dato.
+ */
+function Nombre ({ a }: { a: Admin }) {
+  return a.id ? <EnlaceJugador id={a.id} nick={a.nick} /> : <span className='jugador apagado'>{a.nick}</span>
+}
+
+async function Admines ({ ventana }: { ventana: { desde: string | null, hasta: string | null } }) {
+  const lista = await admines(ventana)
+  if (lista.length === 0) return null
+
+  const porComandos = [...lista].sort((a, b) => b.comandos - a.comandos || b.conectado - a.conectado)
+  const algunComando = porComandos.some((a) => a.comandos > 0)
+
+  return (
+    <div className='columnas'>
+      <section className='seccion'>
+        <div className='panel'>
+          <h2>Campeonato de admines</h2>
+          <div className='tabla-envoltorio'>
+            <table>
+              <thead>
+                <tr><th>#</th><th>Admin</th><th className='num'>En el server</th><th className='num'>Jugando</th></tr>
+              </thead>
+              <tbody>
+                {lista.map((a, i) => (
+                  <tr key={a.clave} className={a.conectado === 0 ? 'sin-uso' : ''}>
+                    <td className='posicion numero'>{i + 1}</td>
+                    <td><Nombre a={a} /></td>
+                    <td className='num destacado'>{a.conectado ? formatoTiempo(a.conectado) : '—'}</td>
+                    <td className='num'>{a.jugado ? formatoTiempo(a.jugado) : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className='nota'>La lista sale del users.ini del server. Puntúa el tiempo que estuvo conectado, esté jugando o mirando. A los admines dados de alta por nick se los reconoce por el nick: si cambian de nick, el tiempo nuevo no se les suma.</p>
+        </div>
+      </section>
+
+      <section className='seccion'>
+        <div className='panel'>
+          <h2>Comandos de admin</h2>
+          {algunComando
+            ? (
+              <div className='tabla-envoltorio'>
+                <table>
+                  <thead>
+                    <tr><th>#</th><th>Admin</th><th className='num'>Comandos amx_</th></tr>
+                  </thead>
+                  <tbody>
+                    {porComandos.filter((a) => a.comandos > 0).map((a, i) => (
+                      <tr key={a.clave}>
+                        <td className='posicion numero'>{i + 1}</td>
+                        <td><Nombre a={a} /></td>
+                        <td className='num destacado'>{formatoNumero(a.comandos)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              )
+            : <p className='vacio'>Todavía no hay comandos registrados.</p>}
+          <p className='nota'>Cada vez que alguien ejecuta un comando que empieza con amx_ (cambiar de mapa, kickear, silenciar). Se registra desde la versión 0.7 del plugin.</p>
+        </div>
+      </section>
     </div>
   )
 }
@@ -120,6 +193,8 @@ async function Tablero ({ parametros }: { parametros: Busqueda }) {
           <p className='nota'>De las conexiones que empezaron en cada {NOMBRE_ESCALA[escala]}. El máximo de todo el período fue {formatoTiempo(total.maximo)}.</p>
         </div>
       </section>
+
+      <Admines ventana={ventana} />
 
       <section className='seccion'>
         <div className='panel'>

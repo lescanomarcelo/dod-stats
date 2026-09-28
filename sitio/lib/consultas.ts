@@ -1018,3 +1018,81 @@ export async function mapasMasJugados (v: Ventana = TODO, limite = 8) {
 
   return filas.map((f2) => ({ mapa: String(f2.mapa), partidas: n(f2.partidas) }))
 }
+
+/* ------------------------------------------------------------------ */
+/*  Campeonato de admines                                              */
+/* ------------------------------------------------------------------ */
+
+export type Admin = {
+  /** Como esta dado de alta en users.ini: su steamid o su nick */
+  clave: string
+  /** id del jugador en la base, si se lo pudo emparejar */
+  id: number | null
+  nick: string
+  /** Segundos conectados al server (incluye el rato en espectador) */
+  conectado: number
+  /** Segundos en un bando: jugando de verdad */
+  jugado: number
+  /** Comandos amx_ que ejecuto */
+  comandos: number
+}
+
+/**
+ * Los admines del server (los del users.ini) con su tiempo y sus comandos.
+ *
+ * A los que estan dados de alta por steamid se los empareja por steamid; a los que
+ * estan por nick, por nick. Si un admin nunca jugo -o cambio de nick- aparece igual,
+ * en cero. La consola del server (loopback) y las altas por IP no son personas: no
+ * entran al campeonato.
+ */
+export async function admines (v: Ventana = TODO): Promise<Admin[]> {
+  'use cache'
+  cacheLife(VIDA_CACHE)
+
+  const fs = filtro(null, v, '', 'desconexion')
+  const fj = filtro(null, v, '', 'dia')
+  const fc = filtro(null, v, '', 'momento')
+
+  const filas = await consultar(`
+    SELECT a.clave,
+           MIN(j.id)                       AS id,
+           MAX(j.nick)                     AS nick,
+           COALESCE(SUM(s.segundos), 0)    AS conectado,
+           COALESCE(SUM(t.segundos), 0)    AS jugado,
+           COALESCE(SUM(c.comandos), 0)    AS comandos
+    FROM {p}admines a
+    LEFT JOIN {p}jugadores j
+      ON (a.tipo = 'steamid' AND j.steamid = a.clave)
+      OR (a.tipo = 'nick'    AND j.nick    = a.clave)
+    LEFT JOIN ( SELECT jugador_id, SUM(segundos) AS segundos FROM {p}sesiones
+                WHERE 1 = 1 ${fs.sql} GROUP BY jugador_id ) s ON s.jugador_id = j.id
+    LEFT JOIN ( SELECT jugador_id, SUM(segundos) AS segundos FROM {p}jugado
+                WHERE 1 = 1 ${fj.sql} GROUP BY jugador_id ) t ON t.jugador_id = j.id
+    LEFT JOIN ( SELECT jugador_id, COUNT(*) AS comandos FROM {p}comandos
+                WHERE 1 = 1 ${fc.sql} GROUP BY jugador_id ) c ON c.jugador_id = j.id
+    WHERE a.tipo <> 'ip' AND a.clave <> 'loopback'
+    GROUP BY a.clave
+    ORDER BY conectado DESC, comandos DESC, a.clave
+  `, [...fs.valores, ...fj.valores, ...fc.valores])
+
+  const lista = filas.map((f) => ({
+    clave: String(f.clave),
+    id: f.id === null ? null : n(f.id),
+    nick: f.nick ? String(f.nick) : String(f.clave),
+    conectado: n(f.conectado),
+    jugado: n(f.jugado),
+    comandos: n(f.comandos)
+  }))
+
+  /* El mismo admin suele estar dado de alta dos veces (por steamid y por nick):
+     si las dos altas dan el mismo jugador, va una sola vez al campeonato. */
+  const unicos = new Map<string, Admin>()
+  for (const admin of lista) {
+    const clave = admin.id ? `id:${admin.id}` : `alta:${admin.clave}`
+    if (!unicos.has(clave)) unicos.set(clave, admin)
+  }
+
+  /* Un alta por steamid que nunca se emparejo no tiene nada que mostrar, y el
+     steamid no es algo para publicar: esa fila no va. */
+  return [...unicos.values()].filter((a) => a.id !== null || !a.clave.startsWith('STEAM_'))
+}

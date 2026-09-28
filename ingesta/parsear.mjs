@@ -6,7 +6,7 @@
  */
 
 /* Cantidad de campos por tipo de evento, incluyendo el propio tipo */
-const CAMPOS = { P: 3, C: 4, D: 5, M: 18, H: 15, S: 7, E: 6, A: 6, J: 6 }
+const CAMPOS = { P: 3, C: 4, D: 5, M: 18, H: 15, S: 7, E: 6, A: 6, J: 6, X: 5 }
 
 /* Orden de las zonas en la linea H: el hitplace del motor, de 0 a 7 */
 export const ZONAS = ['generico', 'cabeza', 'pecho', 'estomago', 'brazo_izq', 'brazo_der', 'pierna_izq', 'pierna_der']
@@ -54,6 +54,11 @@ export function parsearLinea (linea) {
     const segundos = entero(campos[4])
     if (segundos === null) return null
     return { tipo: 'desconexion', ts, steamid: campos[2], nick: campos[3], segundos }
+  }
+
+  if (tipo === 'X') {
+    if (!campos[4]) return null
+    return { tipo: 'comando', ts, steamid: campos[2], nick: campos[3], comando: campos[4] }
   }
 
   if (tipo === 'H') {

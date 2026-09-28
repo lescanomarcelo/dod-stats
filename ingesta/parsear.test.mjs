@@ -225,3 +225,13 @@ test('linea J: segundos en un bando', () => {
   })
   assert.equal(parsearLinea(linea('J', 1789999999, 'dod_kalt', 'STEAM_0:1:111', 'Trevor', 0)), null)
 })
+
+test('lee los comandos de admin (X)', () => {
+  const linea = ['X', '1758585600', 'STEAM_0:1:12345', 'Trevor', 'amx_map'].join('\t')
+  assert.deepEqual(parsearLinea(linea), {
+    tipo: 'comando', ts: 1758585600, steamid: 'STEAM_0:1:12345', nick: 'Trevor', comando: 'amx_map'
+  })
+
+  assert.equal(parsearLinea(['X', '1758585600', 'STEAM_0:1:12345', 'Trevor', ''].join('\t')), null)
+  assert.equal(parsearLinea(['X', '1758585600', 'STEAM_0:1:12345', 'Trevor'].join('\t')), null)
+})

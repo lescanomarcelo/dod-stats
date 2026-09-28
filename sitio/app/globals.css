@@ -696,3 +696,6 @@ tbody tr.sin-uso .arma-dibujo { opacity: 0.45; filter: grayscale(1); }
 .ficha dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0.8rem 1.5rem; margin: 0; }
 .ficha dt { color: var(--tenue); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; }
 .ficha dd { margin: 0.1rem 0 0; font-weight: 600; }
+
+/* Un admin del users.ini que todavia no se pudo emparejar con ningun jugador */
+.jugador.apagado { color: var(--tenue); cursor: default; }
