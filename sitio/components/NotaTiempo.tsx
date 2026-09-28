@@ -17,7 +17,7 @@ const FORMATO = new Intl.DateTimeFormat('es-AR', {
   day: 'numeric', month: 'numeric', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires'
 })
 
-const TEXTO = 'El tiempo jugado es el que estuvo en un bando, sin contar el rato de espectador ni eligiendo clase.'
+const TEXTO = 'El tiempo jugado cuenta desde que entrás a un bando: el rato en espectador o eligiendo clase no suma.'
 
 export async function NotaTiempo ({ ventana, extra }: { ventana: Ventana, extra?: string }) {
   const desde = await desdeCuandoHayTiempoEnJuego()
@@ -28,8 +28,8 @@ export async function NotaTiempo ({ ventana, extra }: { ventana: Ventana, extra?
       {TEXTO}
       {extra ? ` ${extra}` : ''}
       {desde
-        ? (!cubierto && ` Se registra desde el ${FORMATO.format(new Date(desde))}: lo de antes no suma.`)
-        : ' Todavía no hay tiempo registrado.'}
+        ? (!cubierto && ` Se empezó a anotar el ${FORMATO.format(new Date(desde))}, así que lo de antes no está.`)
+        : ' Todavía no hay nada anotado.'}
     </p>
   )
 }

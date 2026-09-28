@@ -107,7 +107,11 @@ async function Admines ({ ventana }: { ventana: { desde: string | null, hasta: s
               </tbody>
             </table>
           </div>
-          <p className='nota'>Los diez primeros de los {lista.length} admines del users.ini del server. Puntúa el tiempo que estuvo conectado, esté jugando o mirando. A los admines dados de alta por nick se los reconoce por el nick: si cambian de nick, el tiempo nuevo no se les suma.</p>
+          <p className='nota'>
+            Los diez admines que más tiempo estuvieron en el server, jugando o mirando. La lista de admines sale del
+            propio server, son {lista.length} en total. Al que está anotado por nombre y no por su cuenta de Steam se
+            lo reconoce por el nick: si se lo cambia, el tiempo nuevo le queda afuera.
+          </p>
         </div>
       </section>
 
@@ -134,7 +138,10 @@ async function Admines ({ ventana }: { ventana: { desde: string | null, hasta: s
               </div>
               )
             : <p className='vacio'>Todavía no hay comandos registrados.</p>}
-          <p className='nota'>Cada vez que alguien ejecuta un comando que empieza con amx_ (cambiar de mapa, kickear, silenciar). Se registra desde la versión 0.7 del plugin.</p>
+          <p className='nota'>
+            Cuántas veces cada admin usó un comando de administración: cambiar de mapa, echar a alguien, callarlo.
+            Se empezó a anotar hace poco, así que arranca de cero.
+          </p>
         </div>
       </section>
     </div>
@@ -186,7 +193,11 @@ async function Tablero ({ parametros }: { parametros: Busqueda }) {
             formato={(v) => `${v} jugador${v === 1 ? '' : 'es'}`}
             vacio='Nadie se conectó en este período.'
           />
-          <p className='nota'>Cuenta a cada jugador en cada {NOMBRE_ESCALA[escala]} que estuvo conectado. Sale de las conexiones registradas, así que a alguien que todavía está en el server se lo cuenta recién cuando se va.</p>
+          <p className='nota'>
+            Cuánta gente distinta pasó por el server en cada {NOMBRE_ESCALA[escala]}. Al que estuvo un rato largo se
+            lo cuenta en cada {NOMBRE_ESCALA[escala]} que estuvo, y a los que están jugando ahora mismo se los suma
+            cuando se van.
+          </p>
         </div>
       </section>
 
@@ -203,9 +214,11 @@ async function Tablero ({ parametros }: { parametros: Busqueda }) {
             vacio='Todavía no hay conexiones completas en este período.'
           />
           <p className='nota'>
-            La visita entera, no un mapa. Es la mediana: el {formatoPorcentaje(fugaces * 100)} dura menos
-            de {SEGUNDOS_FUGAZ / 60} minutos y unas pocas duran horas. Con {SERVER_MOVIDO} o más
-            jugando, {conGente.cuantas ? formatoTiempo(conGente.mediana) : '—'}. El máximo, {formatoTiempo(total.maximo)}.
+            Cuánto dura una visita: la mitad de la gente se queda más que eso y la otra mitad, menos. Se cuenta todo
+            el rato que estuvo, aunque el mapa haya cambiado varias veces en el medio.
+            El {formatoPorcentaje(fugaces * 100)} entra, mira y se va antes de los {SEGUNDOS_FUGAZ / 60} minutos, y
+            algunos se quedan horas: el que más aguantó estuvo {formatoTiempo(total.maximo)}.
+            {conGente.cuantas > 0 && ` Con el server movido, de ${SERVER_MOVIDO} jugadores para arriba, la visita es de ${formatoTiempo(conGente.mediana)}.`}
           </p>
         </div>
       </section>
@@ -222,6 +235,7 @@ async function Tablero ({ parametros }: { parametros: Busqueda }) {
             texto: formatoNumero(m.partidas)
           }))}
           />
+          <p className='nota'>Los mapas que más veces se jugaron en este período, y cuántas veces salió cada uno.</p>
         </div>
       </section>
     </>
