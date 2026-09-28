@@ -9,7 +9,7 @@ import { CopiarIp } from '@/components/CopiarIp'
 import { Menu } from '@/components/Menu'
 import { estadoServidor, jugadoresEnLinea, SERVIDOR } from '@/lib/estado'
 import { JugadoresEnLinea } from '@/components/JugadoresEnLinea'
-import { IconoWhatsApp, IconoDiscord, IconoCafecito } from '@/components/Iconos'
+import { IconoWhatsApp, IconoDiscord, IconoCafecito, IconoSteam } from '@/components/Iconos'
 import { GRUPOS, enlaceCafecito } from '@/lib/links'
 import { Titulares } from '@/components/Titulares'
 import './globals.css'
@@ -103,7 +103,13 @@ export default function RootLayout ({ children }: LayoutProps<'/'>) {
               <Suspense fallback={<span className='estado-servidor cargando'><span className='punto' aria-hidden='true' />Consultando el server…</span>}>
                 <EstadoServidor />
               </Suspense>
-              <CopiarIp direccion={DIRECCION} />
+              <div className='ip-acciones'>
+                <CopiarIp direccion={DIRECCION} />
+                <a className='ip-servidor conectar' href={`steam://connect/${DIRECCION}`} title='Abre el juego y entra al server (necesita Steam abierto)'>
+                  <IconoSteam className='icono-boton' />
+                  <span className='ip-accion'>Conectar</span>
+                </a>
+              </div>
             </div>
             <Suspense fallback={<div className='menu-boton' aria-hidden='true' />}>
               <Menu />

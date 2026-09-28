@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { GRUPOS, type EnlaceComunidad } from '@/lib/links'
+import { IconoSteam } from '@/components/Iconos'
 
 export const metadata: Metadata = { title: 'Links' }
 
@@ -12,6 +13,7 @@ function afuera (url: string) {
 function Tarjeta ({ e }: { e: EnlaceComunidad }) {
   const cuerpo = (
     <>
+      {e.icono === 'steam' && <IconoSteam className='enlace-icono' />}
       <strong>{e.nombre}</strong>
       <span>{e.descripcion}</span>
       {e.aviso && <span className='enlace-aviso'>{e.aviso}</span>}
