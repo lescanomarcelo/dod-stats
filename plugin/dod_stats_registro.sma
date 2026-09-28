@@ -69,7 +69,7 @@
 #include <dodstats>
 
 #define PLUGIN_NAME     "DoD Stats - Registro"
-#define PLUGIN_VERSION  "0.8.0"
+#define PLUGIN_VERSION  "0.8.1"
 #define PLUGIN_AUTHOR   "Marcelo Lescano"
 
 #define PARTES_CUERPO   8   /* generico + las 7 zonas: igual a MAX_BODYHITS */
@@ -84,6 +84,8 @@ new Array:g_pendientes;
 new g_carpeta[128];
 new g_mapa[32];
 new g_conectadoDesde[33];
+new g_ultimoComando[33][40];
+new g_ultimoComandoHora[33];
 
 /* Impactos acumulados desde la ultima linea H de cada jugador */
 new g_impactos[33][PARTES_CUERPO];
@@ -594,11 +596,18 @@ public client_command(id)
     if (!equali(comando, "amx_", 4))
         return PLUGIN_CONTINUE;
 
+    /* Un bind o menu puede repetir el mismo comando muchas veces por segundo: se anota una sola */
+    new ahora = get_systime();
+    if (g_ultimoComandoHora[id] == ahora && equali(g_ultimoComando[id], comando))
+        return PLUGIN_CONTINUE;
+    g_ultimoComandoHora[id] = ahora;
+    copy(g_ultimoComando[id], charsmax(g_ultimoComando[]), comando);
+
     new steam[35], nick[32], linea[LARGO_LINEA];
     datosJugador(id, steam, charsmax(steam), nick, charsmax(nick));
     limpiar(comando);
 
-    formatex(linea, charsmax(linea), "X^t%d^t%s^t%s^t%s", get_systime(), steam, nick, comando);
+    formatex(linea, charsmax(linea), "X^t%d^t%s^t%s^t%s", ahora, steam, nick, comando);
     ArrayPushString(g_pendientes, linea);
 
     return PLUGIN_CONTINUE;
