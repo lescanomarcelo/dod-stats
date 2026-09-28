@@ -728,3 +728,8 @@ tbody tr.sin-uso .arma-dibujo { opacity: 0.45; filter: grayscale(1); }
 @media (max-width: 640px) {
   .banda-seccion { aspect-ratio: 16 / 9; }
 }
+
+/* El Server: aire entre la banda, la ficha, el filtro de periodo y las tarjetas */
+.banda-seccion + .panel.ficha { margin-top: 1.5rem; }
+.ficha { margin-bottom: 1.75rem; }
+.navegador-periodo + .tarjetas { margin-top: 1.5rem; }
