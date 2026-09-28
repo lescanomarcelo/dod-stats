@@ -109,7 +109,7 @@ async function Admines ({ ventana }: { ventana: { desde: string | null, hasta: s
           </div>
           <p className='nota'>
             Los diez admines que más tiempo estuvieron en el server, jugando o mirando. La lista de admines sale del
-            propio server, son {lista.length} en total. Al que está anotado por nombre y no por su cuenta de Steam se
+            propio server; se cuentan los {lista.length} que alguna vez entraron. Al que está anotado por nombre y no por su cuenta de Steam se
             lo reconoce por el nick: si se lo cambia, el tiempo nuevo le queda afuera.
           </p>
         </div>
