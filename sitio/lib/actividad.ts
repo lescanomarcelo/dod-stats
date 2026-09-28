@@ -27,7 +27,19 @@ export type Sesion = { jugadorId: number, inicio: number, fin: number }
 
 export type Cubo = { clave: string, etiqueta: string, desde: number, hasta: number }
 
-export type Permanencia = { promedio: number, maximo: number }
+/*
+ *  Cuanto se queda la gente. El promedio solo miente: hay muchisimas conexiones de
+ *  un minuto -entra, ve que esta vacio o no le gusta el mapa y se va- que lo tiran
+ *  abajo. La MEDIANA aguanta eso: es lo que dura la conexion del medio, asi que
+ *  cien pasadas fugaces no la mueven.
+ */
+export type Permanencia = { mediana: number, promedio: number, maximo: number, cuantas: number }
+
+/* A partir de cuantos jugadores a la vez consideramos que el server esta movido */
+export const SERVER_MOVIDO = 8
+
+/* Una conexion mas corta que esto es una pasada, no una visita */
+export const SEGUNDOS_FUGAZ = 5 * 60
 
 const DESFASE = HORAS_ARGENTINA * 3600 * 1000
 const HORA = 3600 * 1000
@@ -110,37 +122,119 @@ export function jugadoresPorCubo (sesiones: Sesion[], lista: Cubo[]): number[] {
   })
 }
 
-/** Promedio y maximo de duracion (en segundos) de las sesiones que empezaron en cada cubo */
-export function permanenciaPorCubo (sesiones: Sesion[], lista: Cubo[]): Permanencia[] {
-  return lista.map((cubo) => {
-    let suma = 0
-    let cuantas = 0
-    let maximo = 0
-    for (const s of sesiones) {
-      if (s.inicio < cubo.desde || s.inicio >= cubo.hasta) continue
-      const duracion = Math.max(0, s.fin - s.inicio) / 1000
-      suma += duracion
-      cuantas++
-      if (duracion > maximo) maximo = duracion
+/*
+ *  De sesiones a VISITAS.
+ *
+ *  Al cambiar de mapa, Half-Life desconecta y reconecta a todos: el plugin ve el
+ *  corte y escribe una sesion por mapa. Medir "cuanto se queda la gente" con eso
+ *  daba la duracion de un mapa (unos 8 minutos), no la de la visita.
+ *
+ *  Por eso se pegan las sesiones seguidas del mismo jugador: si volvio dentro de
+ *  HUECO_MISMA_VISITA, es el mismo rato. En los datos reales el 81% de los huecos
+ *  entre sesiones de un jugador son de menos de 30 segundos -la reconexion del
+ *  cambio de mapa-, y el resto salta a horas: no hay zona gris.
+ */
+export const HUECO_MISMA_VISITA = 2 * 60 * 1000
+
+export function visitas (sesiones: Sesion[], hueco = HUECO_MISMA_VISITA): Sesion[] {
+  const porJugador = new Map<number, Sesion[]>()
+  for (const s of sesiones) {
+    const suyas = porJugador.get(s.jugadorId)
+    if (suyas) suyas.push(s)
+    else porJugador.set(s.jugadorId, [s])
+  }
+
+  const salida: Sesion[] = []
+  for (const [jugadorId, suyas] of porJugador) {
+    let actual: Sesion | null = null
+    for (const s of [...suyas].sort((a, b) => a.inicio - b.inicio)) {
+      if (actual && s.inicio - actual.fin <= hueco) {
+        actual.fin = Math.max(actual.fin, s.fin)
+        continue
+      }
+      if (actual) salida.push(actual)
+      actual = { jugadorId, inicio: s.inicio, fin: s.fin }
     }
-    return { promedio: cuantas ? Math.round(suma / cuantas) : 0, maximo: Math.round(maximo) }
+    if (actual) salida.push(actual)
+  }
+  return salida.sort((a, b) => a.inicio - b.inicio)
+}
+
+/** Duracion de una sesion, en segundos */
+const duracionDe = (s: Sesion) => Math.max(0, s.fin - s.inicio) / 1000
+
+/** El valor del medio. Con cantidad par, el promedio de los dos del medio. */
+export function mediana (valores: number[]): number {
+  if (valores.length === 0) return 0
+  const orden = [...valores].sort((a, b) => a - b)
+  const medio = Math.floor(orden.length / 2)
+  return Math.round(orden.length % 2 ? orden[medio] : (orden[medio - 1] + orden[medio]) / 2)
+}
+
+/** Mediana, promedio y maximo de una lista de duraciones */
+function resumirDuraciones (duraciones: number[]): Permanencia {
+  if (duraciones.length === 0) return { mediana: 0, promedio: 0, maximo: 0, cuantas: 0 }
+  const suma = duraciones.reduce((a, b) => a + b, 0)
+  return {
+    mediana: mediana(duraciones),
+    promedio: Math.round(suma / duraciones.length),
+    maximo: Math.round(Math.max(...duraciones)),
+    cuantas: duraciones.length
+  }
+}
+
+/** Cuanto se quedaron los que EMPEZARON en cada cubo */
+export function permanenciaPorCubo (sesiones: Sesion[], lista: Cubo[]): Permanencia[] {
+  return lista.map((cubo) => resumirDuraciones(
+    sesiones.filter((s) => s.inicio >= cubo.desde && s.inicio < cubo.hasta).map(duracionDe)))
+}
+
+/**
+ * Cuanta gente habia en el server justo cuando empezo cada sesion (contandola a
+ * ella). Se recorre la linea de tiempo una sola vez, asi que aguanta miles de
+ * sesiones sin ponerse lento.
+ */
+export function concurrenciaAlEmpezar (sesiones: Sesion[]): number[] {
+  const eventos: { ms: number, tipo: 1 | -1, i: number }[] = []
+  sesiones.forEach((s, i) => {
+    eventos.push({ ms: s.inicio, tipo: 1, i })
+    eventos.push({ ms: s.fin, tipo: -1, i: -1 })
   })
+  /* En el mismo instante, primero los que se van: el que entra justo cuando otro sale no se cruza con el */
+  eventos.sort((a, b) => a.ms - b.ms || a.tipo - b.tipo)
+
+  const salida = new Array(sesiones.length).fill(0)
+  let activos = 0
+  for (const e of eventos) {
+    activos += e.tipo
+    if (e.tipo === 1) salida[e.i] = activos
+  }
+  return salida
+}
+
+/** Cuanta gente llego a haber a la vez en el server */
+export function picoSimultaneo (sesiones: Sesion[]): number {
+  return Math.max(0, ...concurrenciaAlEmpezar(sesiones))
+}
+
+/** Cuanto se quedan los que entran con el server movido (SERVER_MOVIDO jugadores o mas) */
+export function permanenciaConGente (sesiones: Sesion[], umbral = SERVER_MOVIDO): Permanencia {
+  const gente = concurrenciaAlEmpezar(sesiones)
+  return resumirDuraciones(sesiones.filter((_, i) => gente[i] >= umbral).map(duracionDe))
+}
+
+/** Que parte de las conexiones son pasadas de menos de SEGUNDOS_FUGAZ (0 a 1) */
+export function proporcionFugaz (sesiones: Sesion[], corte = SEGUNDOS_FUGAZ): number {
+  if (sesiones.length === 0) return 0
+  return sesiones.filter((s) => duracionDe(s) < corte).length / sesiones.length
 }
 
 /** Cuanta gente distinta paso por el server */
 export const jugadoresUnicos = (sesiones: Sesion[]) => new Set(sesiones.map((s) => s.jugadorId)).size
 
-/** Promedio y maximo de todas las sesiones juntas */
+/** Mediana, promedio y maximo de todas las sesiones juntas */
 export function permanenciaTotal (sesiones: Sesion[]): Permanencia {
-  if (sesiones.length === 0) return { promedio: 0, maximo: 0 }
-  let suma = 0
-  let maximo = 0
-  for (const s of sesiones) {
-    const duracion = Math.max(0, s.fin - s.inicio) / 1000
-    suma += duracion
-    if (duracion > maximo) maximo = duracion
-  }
-  return { promedio: Math.round(suma / sesiones.length), maximo: Math.round(maximo) }
+  return resumirDuraciones(sesiones.map(duracionDe))
 }
 
 /** El cubo con mas jugadores: "la hora pico". null si no hubo nadie nunca. */
