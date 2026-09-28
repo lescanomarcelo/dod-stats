@@ -9,6 +9,7 @@ import { EnlaceJugador, Cargando } from '@/components/Ui'
 import { ControlPeriodo } from '@/components/Periodo'
 import { Desplegable } from '@/components/Desplegable'
 import { Destacados } from '@/components/Destacados'
+import { NotaTiempo } from '@/components/NotaTiempo'
 
 const PESTANAS: { orden: Orden, texto: string }[] = [
   { orden: 'puntos', texto: 'Puntos' },
@@ -115,7 +116,7 @@ async function Contenido ({ parametros }: { parametros: Busqueda }) {
           <p className='nota'>Camper = porcentaje del tiempo jugado que pasó acostado. Solo jugadores con al menos {MIN_SEGUNDOS_CAMPER / 60} minutos jugados.</p>
         )}
 
-        <p className='nota'>El tiempo es el que estuvo en un bando, sin contar el rato de espectador ni eligiendo clase. Se registra desde el 22/9/2026.</p>
+        <NotaTiempo ventana={ventana} />
 
         {(orden === 'kd' || orden === 'hs') && (
           <p className='nota'>Solo jugadores con al menos {MIN_KILLS_PORCENTAJES} kills, para que el porcentaje sea representativo.</p>
