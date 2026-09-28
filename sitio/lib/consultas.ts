@@ -1092,7 +1092,7 @@ export async function admines (v: Ventana = TODO): Promise<Admin[]> {
     if (!unicos.has(clave)) unicos.set(clave, admin)
   }
 
-  /* Un alta por steamid que nunca se emparejo no tiene nada que mostrar, y el
-     steamid no es algo para publicar: esa fila no va. */
-  return [...unicos.values()].filter((a) => a.id !== null || !a.clave.startsWith('STEAM_'))
+  /* El admin que nunca entro al server (sin jugador emparejado) no va: no hay nada
+     que mostrar, y el steamid no es algo para publicar. */
+  return [...unicos.values()].filter((a) => a.id !== null)
 }
