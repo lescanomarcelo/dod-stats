@@ -69,7 +69,7 @@
 #include <dodstats>
 
 #define PLUGIN_NAME     "DoD Stats - Registro"
-#define PLUGIN_VERSION  "0.9.1"
+#define PLUGIN_VERSION  "0.9.2"
 #define PLUGIN_AUTHOR   "Marcelo Lescano"
 
 #define PARTES_CUERPO   8   /* generico + las 7 zonas: igual a MAX_BODYHITS */
@@ -133,7 +133,7 @@ public plugin_init()
     for (new pedazos = 2; pedazos <= 8; pedazos++)
         register_logevent("evtLogMuerte", pedazos);
 
-    /* Diagnostico: el DeathMsg de DoD no trae el nombre del arma, se anota como viene */
+    /* El DeathMsg de DoD trae el arma como numero: el otro camino para los cohetes */
     register_event("DeathMsg", "evtDeathMsg", "a");
 
     register_concmd("dod_stats_volcar", "cmdVolcar", ADMIN_RCON, "- escribe ya los eventos pendientes al archivo");
@@ -736,22 +736,62 @@ public evtLogMuerte()
 }
 
 /*
- *  El DeathMsg de DoD no sirve para saber el arma, pero se deja anotado una vez
- *  por mapa como viene, por si alguna version del juego si la trae.
+ *  El otro camino para los cohetes: el DeathMsg del juego.
+ *
+ *  El de DoD no trae el nombre del arma como el de Half-Life, sino cuatro numeros.
+ *  El tercero es el codigo del arma de dodx: quedo comprobado con la primera muerte
+ *  del mapa de las 20:00:40 del 29/9, que dijo [3]=5 (DODW_GARAND) mientras dodx
+ *  anotaba "Garand" para esa misma muerte.
+ *
+ *  Se deja junto al camino del log del juego a proposito: si uno de los dos falla,
+ *  el otro anota igual, y registrarMuerte() descarta la repetida del mismo frame.
  */
 public evtDeathMsg()
 {
-    if (g_avisoDeathMsg)
+    new campos = read_datanum();
+    new arma[32];
+    arma[0] = 0;
+
+    new matador = campos >= 1 ? read_data(1) : 0;
+    new victima = campos >= 2 ? read_data(2) : 0;
+    new idArma  = campos >= 3 ? read_data(3) : 0;
+
+    if (idArma > 0)
+        xmod_get_wpnlogname(idArma, arma, charsmax(arma));
+
+    /* Una vez por mapa se anota como vino, para poder comprobarlo contra el archivo */
+    if (!g_avisoDeathMsg)
+    {
+        g_avisoDeathMsg = true;
+
+        new nombreMatador[32], nombreVictima[32];
+        nombreMatador[0] = 0;
+        nombreVictima[0] = 0;
+        if (matador >= 1 && matador <= 32 && is_user_connected(matador))
+            get_user_name(matador, nombreMatador, charsmax(nombreMatador));
+        if (victima >= 1 && victima <= 32 && is_user_connected(victima))
+            get_user_name(victima, nombreVictima, charsmax(nombreVictima));
+
+        log_amx("%s DeathMsg: %d campos [1]=%d (%s) [2]=%d (%s) [3]=%d (%s) [4]=%d",
+            PREFIJO, campos, matador, nombreMatador, victima, nombreVictima, idArma, arma,
+            campos >= 4 ? read_data(4) : -1);
+    }
+
+    if (!esCohete(arma))
         return;
 
-    g_avisoDeathMsg = true;
+    if (victima < 1 || victima > 32 || !is_user_connected(victima))
+        return;
 
-    new campos = read_datanum();
-    log_amx("%s DeathMsg: %d campos [1]=%d [2]=%d [3]=%d [4]=%d", PREFIJO, campos,
-        campos >= 1 ? read_data(1) : -1,
-        campos >= 2 ? read_data(2) : -1,
-        campos >= 3 ? read_data(3) : -1,
-        campos >= 4 ? read_data(4) : -1);
+    /* El cohete lo tira un jugador, pero el que figura puede ser la propia rocket */
+    if (matador < 1 || matador > 32 || !is_user_connected(matador))
+        matador = 0;
+
+    cerrarTramoAcostado(victima, false);
+
+    /* El cohete revienta: no hay parte del cuerpo. El fuego amigo sale del bando */
+    new TK = (matador && matador != victima && get_user_team(matador) == get_user_team(victima)) ? 1 : 0;
+    registrarMuerte(matador, victima, arma, 0, TK);
 }
 
 /* ------------------------------------------------------------------ */
