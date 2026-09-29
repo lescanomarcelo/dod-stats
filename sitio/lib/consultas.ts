@@ -467,7 +467,7 @@ const CUERPO_A_CUERPO = ALIAS_CUERPO_A_CUERPO
 export type FilaDestacado = { id: number, nick: string, valor: number }
 export type Destacado = FilaDestacado | null
 
-export type ClaveDestacado = 'fiel' | 'melee' | 'camper' | 'granadas' | 'banderas' | 'teamkills' | 'headshots'
+export type ClaveDestacado = 'fiel' | 'melee' | 'camper' | 'granadas' | 'banderas' | 'teamkills' | 'headshots' | 'radio'
 
 export type Destacados = Record<ClaveDestacado, Destacado>
 
@@ -494,6 +494,20 @@ const CONSULTA_DESTACADO: Record<ClaveDestacado, (v: Ventana, limite: number) =>
         GROUP BY j.id, j.nick HAVING valor > 0 ORDER BY valor DESC LIMIT ${limite}
       `,
       valores: fjg.valores
+    }
+  },
+
+  /* Radio DoD: el que mas veces hablo por el chat. Cuenta mensajes, no lo que dijo */
+  radio: (v, limite) => {
+    const fch = filtro(null, v)
+    return {
+      sql: `
+        SELECT j.id, j.nick, COUNT(*) AS valor
+        FROM {p}chat ch JOIN {p}jugadores j ON j.id = ch.jugador_id
+        WHERE 1 = 1 ${fch.sql}
+        GROUP BY j.id, j.nick ORDER BY valor DESC LIMIT ${limite}
+      `,
+      valores: fch.valores
     }
   },
 

@@ -31,3 +31,10 @@ export function enlaceDeEquipos (periodo: Periodo, fecha: string | null) {
   const texto = q.toString()
   return texto ? `/equipos?${texto}` : '/equipos'
 }
+
+/* Dirección pública del sitio: la necesitan los enlaces que se comparten afuera */
+export const SITIO = 'https://tributo-stats.vercel.app'
+
+/** Abre WhatsApp con el texto y el enlace listos para mandar */
+export const compartirPorWhatsApp = (ruta: string, texto: string) =>
+  `https://wa.me/?text=${encodeURIComponent(`${texto}\n${SITIO}${ruta}`)}`

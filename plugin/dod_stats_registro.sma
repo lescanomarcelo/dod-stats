@@ -69,7 +69,7 @@
 #include <dodstats>
 
 #define PLUGIN_NAME     "DoD Stats - Registro"
-#define PLUGIN_VERSION  "0.8.1"
+#define PLUGIN_VERSION  "0.9.0"
 #define PLUGIN_AUTHOR   "Marcelo Lescano"
 
 #define PARTES_CUERPO   8   /* generico + las 7 zonas: igual a MAX_BODYHITS */
@@ -86,6 +86,7 @@ new g_mapa[32];
 new g_conectadoDesde[33];
 new g_ultimoComando[33][40];
 new g_ultimoComandoHora[33];
+new g_ultimoChat[33];
 
 /* Impactos acumulados desde la ultima linea H de cada jugador */
 new g_impactos[33][PARTES_CUERPO];
@@ -585,6 +586,31 @@ registrarMuerte(matador, victima, const arma[], lugarImpacto, TK)
  *  jugadores; nos quedamos solo con los que empiezan con "amx_" y anotamos el
  *  nombre del comando, nunca sus argumentos.
  */
+/*
+ *  Radio DoD: cuantas veces hablo cada uno por el chat. Se guarda solo que hablo,
+ *  nunca lo que dijo. Un mensaje por segundo como maximo: un bind repetido no cuenta.
+ */
+anotarChat(id, alEquipo)
+{
+    new texto[16];
+    read_args(texto, charsmax(texto));
+    /* Desde el chat del juego el texto viene entre comillas; desde la consola, no */
+    new inicio = (texto[0] == '"') ? 1 : 0;
+    if (strlen(texto) <= inicio + 1) return;
+    /* Los que arrancan con / o ! son comandos de otros plugins, no charla */
+    if (texto[inicio] == '/' || texto[inicio] == '!') return;
+
+    new ahora = get_systime();
+    if (g_ultimoChat[id] == ahora) return;
+    g_ultimoChat[id] = ahora;
+
+    new steam[35], nick[32], linea[LARGO_LINEA];
+    datosJugador(id, steam, charsmax(steam), nick, charsmax(nick));
+
+    formatex(linea, charsmax(linea), "T^t%d^t%s^t%s^t%d", ahora, steam, nick, alEquipo);
+    ArrayPushString(g_pendientes, linea);
+}
+
 public client_command(id)
 {
     if (!g_conectadoDesde[id])
@@ -592,6 +618,12 @@ public client_command(id)
 
     new comando[40];
     read_argv(0, comando, charsmax(comando));
+
+    if (equal(comando, "say") || equal(comando, "say_team"))
+    {
+        anotarChat(id, equal(comando, "say_team"));
+        return PLUGIN_CONTINUE;
+    }
 
     if (!equali(comando, "amx_", 4))
         return PLUGIN_CONTINUE;
