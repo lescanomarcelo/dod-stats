@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import type { Destacados as DatosDestacados, Destacado } from '@/lib/consultas'
 import { CATEGORIAS_DESTACADO, type CategoriaDestacado } from '@/lib/destacados'
-import { enlaceDeDestacado } from '@/lib/enlaces'
+import { enlaceDeDestacado, compartirPorWhatsApp } from '@/lib/enlaces'
+import { IconoWhatsApp } from '@/components/Iconos'
 import type { Periodo } from '@/lib/periodos'
 
 /*
@@ -22,11 +23,19 @@ function Tarjeta ({ categoria, quien, periodo, fecha }: {
   fecha: string | null
 }) {
   return (
-    <Link href={enlaceDeDestacado(categoria.clave, periodo, fecha)} className={quien ? 'figurita' : 'figurita sin-datos'}>
+    <article className={quien ? 'figurita' : 'figurita sin-datos'}>
       {/* eslint-disable-next-line @next/next/no-img-element -- imagen fija ya optimizada a webp */}
       <img src={categoria.imagen} alt='' width={700} height={700} loading='lazy' />
+      <a
+        className='compartir-figurita'
+        href={compartirPorWhatsApp(`/destacados/${categoria.clave}`, `${categoria.titulo} · ${categoria.subtitulo}`)}
+        target='_blank' rel='noopener noreferrer'
+        aria-label={`Compartir ${categoria.titulo} por WhatsApp`} title='Compartir por WhatsApp'
+      >
+        <IconoWhatsApp className='icono-boton' />
+      </a>
       <div className='figurita-texto'>
-        <span className='figurita-titulo'>{categoria.titulo}</span>
+        <Link href={enlaceDeDestacado(categoria.clave, periodo, fecha)} className='figurita-titulo'>{categoria.titulo}</Link>
         <span className='figurita-subtitulo'>{categoria.subtitulo}</span>
         {quien
           ? (
@@ -37,7 +46,7 @@ function Tarjeta ({ categoria, quien, periodo, fecha }: {
             )
           : <span className='figurita-vacio'>{categoria.vacio}</span>}
       </div>
-    </Link>
+    </article>
   )
 }
 

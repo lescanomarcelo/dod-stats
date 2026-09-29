@@ -5,7 +5,8 @@ import { Suspense } from 'react'
 import { esClaveDestacado, topDestacado } from '@/lib/consultas'
 import { categoriaDeDestacado } from '@/lib/destacados'
 import { rangoDesdeBusqueda } from '@/lib/periodos'
-import { enlaceDeDestacado } from '@/lib/enlaces'
+import { enlaceDeDestacado, compartirPorWhatsApp } from '@/lib/enlaces'
+import { IconoWhatsApp } from '@/components/Iconos'
 import { EnlaceJugador, Cargando } from '@/components/Ui'
 import { ControlPeriodo } from '@/components/Periodo'
 import { NotaTiempo } from '@/components/NotaTiempo'
@@ -21,7 +22,20 @@ const CANTIDAD_TOP = 10
 export async function generateMetadata (props: PageProps<'/destacados/[clave]'>): Promise<Metadata> {
   const clave = (await props.params).clave
   if (!esClaveDestacado(clave)) return { title: 'Destacado' }
-  return { title: categoriaDeDestacado(clave).titulo }
+  const categoria = categoriaDeDestacado(clave)
+  /* La vista previa al compartir: el nombre de la categoria y su imagen */
+  return {
+    title: categoria.titulo,
+    description: categoria.subtitulo,
+    openGraph: {
+      title: `${categoria.titulo} · Tributo Dod Stats!`,
+      description: categoria.subtitulo,
+      siteName: 'Tributo Dod Stats!',
+      type: 'website',
+      locale: 'es_AR',
+      images: [{ url: `/destacados/og/${clave}.jpg`, width: 1200, height: 630 }]
+    }
+  }
 }
 
 async function Contenido ({ parametros, busqueda }: {
@@ -40,13 +54,22 @@ async function Contenido ({ parametros, busqueda }: {
     <>
       <ControlPeriodo rango={rango} enlace={(periodo, fecha) => enlaceDeDestacado(clave, periodo, fecha)} />
 
+      {/* eslint-disable-next-line @next/next/no-img-element -- imagen fija ya optimizada */}
+      <img src={`/destacados/og/${clave}.jpg`} alt='' width={1200} height={630} className='banda-seccion banda-destacado' />
+
       <div className='destacado-retrato'>
-        {/* eslint-disable-next-line @next/next/no-img-element -- imagen fija ya optimizada a webp */}
-        <img src={categoria.imagen} alt='' width={700} height={700} />
         <div className='destacado-retrato-texto'>
           <h2>{categoria.titulo}</h2>
           <p>{categoria.subtitulo}</p>
         </div>
+        <a
+          className='boton-whatsapp'
+          href={compartirPorWhatsApp(`/destacados/${clave}`, `${categoria.titulo} · ${categoria.subtitulo}`)}
+          target='_blank' rel='noopener noreferrer'
+          aria-label='Compartir esta categoría por WhatsApp' title='Compartir por WhatsApp'
+        >
+          <IconoWhatsApp className='icono-boton' />
+        </a>
       </div>
 
       <section className='seccion tabla-envoltorio'>
