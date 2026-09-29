@@ -69,7 +69,7 @@
 #include <dodstats>
 
 #define PLUGIN_NAME     "DoD Stats - Registro"
-#define PLUGIN_VERSION  "0.9.0"
+#define PLUGIN_VERSION  "0.9.1"
 #define PLUGIN_AUTHOR   "Marcelo Lescano"
 
 #define PARTES_CUERPO   8   /* generico + las 7 zonas: igual a MAX_BODYHITS */
@@ -86,7 +86,6 @@ new g_mapa[32];
 new g_conectadoDesde[33];
 new g_ultimoComando[33][40];
 new g_ultimoComandoHora[33];
-new g_ultimoChat[33];
 
 /* Impactos acumulados desde la ultima linea H de cada jugador */
 new g_impactos[33][PARTES_CUERPO];
@@ -124,7 +123,17 @@ public plugin_init()
 
     g_pendientes = ArrayCreate(LARGO_LINEA);
 
-    /* Las muertes con cohete no llegan por dodx: se leen del DeathMsg del juego */
+    /*
+     *  Las muertes con cohete no llegan por dodx: se leen de la linea del log del
+     *  juego. Hay que declarar en cuantos pedazos se parte la linea y la cuenta no
+     *  es evidente (la version 0.6 fallo justo por eso), asi que se registran todas
+     *  las que podrian ser y el filtro se hace adentro: evtLogMuerte() se va enseguida
+     *  salvo que la linea traiga dos jugadores y un cohete.
+     */
+    for (new pedazos = 2; pedazos <= 8; pedazos++)
+        register_logevent("evtLogMuerte", pedazos);
+
+    /* Diagnostico: el DeathMsg de DoD no trae el nombre del arma, se anota como viene */
     register_event("DeathMsg", "evtDeathMsg", "a");
 
     register_concmd("dod_stats_volcar", "cmdVolcar", ADMIN_RCON, "- escribe ya los eventos pendientes al archivo");
@@ -586,31 +595,6 @@ registrarMuerte(matador, victima, const arma[], lugarImpacto, TK)
  *  jugadores; nos quedamos solo con los que empiezan con "amx_" y anotamos el
  *  nombre del comando, nunca sus argumentos.
  */
-/*
- *  Radio DoD: cuantas veces hablo cada uno por el chat. Se guarda solo que hablo,
- *  nunca lo que dijo. Un mensaje por segundo como maximo: un bind repetido no cuenta.
- */
-anotarChat(id, alEquipo)
-{
-    new texto[16];
-    read_args(texto, charsmax(texto));
-    /* Desde el chat del juego el texto viene entre comillas; desde la consola, no */
-    new inicio = (texto[0] == '"') ? 1 : 0;
-    if (strlen(texto) <= inicio + 1) return;
-    /* Los que arrancan con / o ! son comandos de otros plugins, no charla */
-    if (texto[inicio] == '/' || texto[inicio] == '!') return;
-
-    new ahora = get_systime();
-    if (g_ultimoChat[id] == ahora) return;
-    g_ultimoChat[id] = ahora;
-
-    new steam[35], nick[32], linea[LARGO_LINEA];
-    datosJugador(id, steam, charsmax(steam), nick, charsmax(nick));
-
-    formatex(linea, charsmax(linea), "T^t%d^t%s^t%s^t%d", ahora, steam, nick, alEquipo);
-    ArrayPushString(g_pendientes, linea);
-}
-
 public client_command(id)
 {
     if (!g_conectadoDesde[id])
@@ -618,12 +602,6 @@ public client_command(id)
 
     new comando[40];
     read_argv(0, comando, charsmax(comando));
-
-    if (equal(comando, "say") || equal(comando, "say_team"))
-    {
-        anotarChat(id, equal(comando, "say_team"));
-        return PLUGIN_CONTINUE;
-    }
 
     if (!equali(comando, "amx_", 4))
         return PLUGIN_CONTINUE;
@@ -663,61 +641,117 @@ public client_death(matador, victima, indiceArma, lugarImpacto, TK)
  *  Muertes con cohete (bazooka, Panzerschreck, PIAT).
  *
  *  dodx no avisa ninguna: su client_death no llega nunca para estas armas. La
- *  version 0.6 intento leerlas del log del juego con register_logevent(), pero ese
- *  evento exige coincidir en la cantidad EXACTA de argumentos en que se parte la
- *  linea, y la declarada no era la de la linea de muerte: no se disparo ni una vez
- *  (12 bazookazos en el log del 27/9, cero en la base).
+ *  version 0.6 lo intento con register_logevent() declarando mal la cantidad de
+ *  argumentos, y la 0.8 con el DeathMsg, pero el de DoD trae cuatro campos
+ *  numericos y ningun nombre de arma (lo dejo dicho el aviso en el log de AMXX).
  *
- *  Ahora se leen del DeathMsg, el mensaje que el juego le manda a todos los
- *  clientes para dibujar el icono en el marcador de muertes. Trae el matador, la
- *  victima y el nombre del arma tal cual ("bazooka"), que es justamente el que usa
- *  el juego para elegir el dibujo.
+ *  Ahora se lee la linea del log del juego, que si trae el arma:
+ *
+ *    "NICK<208><STEAM_0:0:476060><Axis>" killed "OTRO<203><STEAM_...><Axis>" with "pschreck"
+ *
+ *  En vez de confiar en la posicion de cada pedazo se recorren todos: los que
+ *  tienen un STEAM_ adentro son los jugadores (primero el matador, despues la
+ *  victima) y el que coincide con el nombre de un cohete es el arma.
  *
  *  Solo se toman esas tres armas: las demas ya vienen por dodx y se duplicarian.
  *  Igual, registrarMuerte() ignora una segunda muerte de la misma victima en el
- *  mismo frame, asi que si algun dia dodx empieza a avisarlas, no se cuentan dos veces.
+ *  mismo frame, asi que tampoco se contarian dos veces.
  */
 bool:esCohete(const arma[])
 {
     return equal(arma, "bazooka") || equal(arma, "pschreck") || equal(arma, "piat");
 }
 
-public evtDeathMsg()
+/* Saca el STEAM_... de "NICK<208><STEAM_0:0:476060><Axis>". Devuelve false si no hay */
+bool:steamDelPedazo(const pedazo[], steam[], largo)
 {
-    new campos = read_datanum();
-    new arma[32];
+    new desde = contain(pedazo, "<STEAM_");
+    if (desde == -1)
+        return false;
 
-    /* El nombre del arma va en el tercer campo; se prueba el cuarto por las dudas */
-    if (campos >= 3)
-        read_data(3, arma, charsmax(arma));
-    if (!esCohete(arma) && campos >= 4)
-        read_data(4, arma, charsmax(arma));
+    copy(steam, largo, pedazo[desde + 1]);
+    new hasta = contain(steam, ">");
+    if (hasta == -1)
+        return false;
 
-    if (!esCohete(arma))
+    steam[hasta] = 0;
+    return true;
+}
+
+/* El jugador conectado con ese STEAM_, o 0 si ya no esta */
+buscarPorSteam(const steam[])
+{
+    new suyo[35];
+    for (new id = 1; id <= 32; id++)
     {
-        /* Si no vino ningun nombre de arma, el mensaje no es como se espera: avisar una vez */
-        if (!g_avisoDeathMsg && arma[0] == 0)
+        if (!is_user_connected(id))
+            continue;
+
+        get_user_authid(id, suyo, charsmax(suyo));
+        if (equal(suyo, steam))
+            return id;
+    }
+    return 0;
+}
+
+public evtLogMuerte()
+{
+    new pedazo[96], steam[35], arma[32], steamMatador[35], steamVictima[35];
+    arma[0] = 0; steamMatador[0] = 0; steamVictima[0] = 0;
+
+    for (new i = 0; i < 8; i++)
+    {
+        read_logargv(i, pedazo, charsmax(pedazo));
+        if (!pedazo[0])
+            break;
+
+        if (steamDelPedazo(pedazo, steam, charsmax(steam)))
         {
-            g_avisoDeathMsg = true;
-            log_amx("%s DeathMsg con %d campos y sin nombre de arma: revisar el plugin", PREFIJO, campos);
+            if (!steamMatador[0])
+                copy(steamMatador, charsmax(steamMatador), steam);
+            else if (!steamVictima[0])
+                copy(steamVictima, charsmax(steamVictima), steam);
         }
-        return;
+        else if (esCohete(pedazo))
+        {
+            copy(arma, charsmax(arma), pedazo);
+        }
     }
 
-    new victima = read_data(2);
-    if (victima < 1 || victima > 32 || !is_user_connected(victima))
+    /* Las demas armas ya las avisa dodx: esta linea no es asunto nuestro */
+    if (!arma[0] || !steamVictima[0])
         return;
 
-    /* El cohete lo tira un jugador, pero el que figura puede ser la propia rocket */
-    new matador = read_data(1);
-    if (matador < 1 || matador > 32 || !is_user_connected(matador))
-        matador = 0;
+    new victima = buscarPorSteam(steamVictima);
+    if (!victima)
+        return;
+
+    new matador = buscarPorSteam(steamMatador);
 
     cerrarTramoAcostado(victima, false);
 
     /* El cohete revienta: no hay parte del cuerpo. El fuego amigo sale del bando */
     new TK = (matador && matador != victima && get_user_team(matador) == get_user_team(victima)) ? 1 : 0;
     registrarMuerte(matador, victima, arma, 0, TK);
+}
+
+/*
+ *  El DeathMsg de DoD no sirve para saber el arma, pero se deja anotado una vez
+ *  por mapa como viene, por si alguna version del juego si la trae.
+ */
+public evtDeathMsg()
+{
+    if (g_avisoDeathMsg)
+        return;
+
+    g_avisoDeathMsg = true;
+
+    new campos = read_datanum();
+    log_amx("%s DeathMsg: %d campos [1]=%d [2]=%d [3]=%d [4]=%d", PREFIJO, campos,
+        campos >= 1 ? read_data(1) : -1,
+        campos >= 2 ? read_data(2) : -1,
+        campos >= 3 ? read_data(3) : -1,
+        campos >= 4 ? read_data(4) : -1);
 }
 
 /* ------------------------------------------------------------------ */

@@ -30,14 +30,6 @@ export const CATEGORIAS_DESTACADO: CategoriaDestacado[] = [
     vacio: 'Todavía nadie jugó en este período.'
   },
   {
-    clave: 'radio',
-    titulo: 'Radio DoD!!!',
-    subtitulo: 'Más mensajes en el chat',
-    imagen: '/destacados/radio.webp',
-    valor: (v) => plural(v, 'mensaje', 'mensajes'),
-    vacio: 'Se registra desde la versión 0.9 del plugin.'
-  },
-  {
     clave: 'melee',
     titulo: 'La vieja más pelada',
     subtitulo: 'Más kills con pala o cuchillo',
