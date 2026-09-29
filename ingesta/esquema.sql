@@ -172,18 +172,6 @@ CREATE TABLE IF NOT EXISTS {p}comandos (
   CONSTRAINT fk_{p}comandos_jugador FOREIGN KEY (jugador_id) REFERENCES {p}jugadores (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Cada mensaje de chat. Se guarda que hablo, nunca que dijo. Desde la version 0.9 del plugin.
-CREATE TABLE IF NOT EXISTS {p}chat (
-  id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  momento     DATETIME        NOT NULL,
-  jugador_id  INT UNSIGNED    NOT NULL,
-  al_equipo   TINYINT(1)      NOT NULL DEFAULT 0,
-  PRIMARY KEY (id),
-  KEY ix_jugador (jugador_id),
-  KEY ix_momento (momento),
-  CONSTRAINT fk_{p}chat_jugador FOREIGN KEY (jugador_id) REFERENCES {p}jugadores (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 -- Contador de visitas del sitio: una sola fila, sube una vez cada 30 min por navegador (cookie).
 CREATE TABLE IF NOT EXISTS {p}visitas (
   id     TINYINT UNSIGNED NOT NULL,
