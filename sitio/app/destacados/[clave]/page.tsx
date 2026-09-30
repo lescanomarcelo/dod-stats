@@ -54,15 +54,12 @@ async function Contenido ({ parametros, busqueda }: {
     <>
       <ControlPeriodo rango={rango} enlace={(periodo, fecha) => enlaceDeDestacado(clave, periodo, fecha)} />
 
-      {/* En el celular la banda es casi cuadrada: ahi va la imagen entera, que se ve mejor recortada */}
-      <picture>
-        <source media='(max-width: 640px)' srcSet={categoria.imagen} />
-        <img
-          src={`/destacados/og/${clave}.jpg`} alt='' width={1200} height={630}
-          className='banda-seccion banda-destacado'
-          style={{ '--foco': categoria.foco } as CSSProperties}
-        />
-      </picture>
+      {/* eslint-disable-next-line @next/next/no-img-element -- imagen fija ya optimizada */}
+      <img
+        src={`/destacados/og/${clave}.jpg`} alt='' width={1200} height={630}
+        className='banda-seccion banda-destacado'
+        style={{ '--foco': categoria.foco } as CSSProperties}
+      />
 
       <div className='destacado-retrato'>
         <div className='destacado-retrato-texto'>
