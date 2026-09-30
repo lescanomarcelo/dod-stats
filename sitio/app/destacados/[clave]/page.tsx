@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { Suspense } from 'react'
+import { Suspense, type CSSProperties } from 'react'
 import { esClaveDestacado, topDestacado } from '@/lib/consultas'
 import { categoriaDeDestacado } from '@/lib/destacados'
 import { rangoDesdeBusqueda } from '@/lib/periodos'
@@ -54,8 +54,15 @@ async function Contenido ({ parametros, busqueda }: {
     <>
       <ControlPeriodo rango={rango} enlace={(periodo, fecha) => enlaceDeDestacado(clave, periodo, fecha)} />
 
-      {/* eslint-disable-next-line @next/next/no-img-element -- imagen fija ya optimizada */}
-      <img src={`/destacados/og/${clave}.jpg`} alt='' width={1200} height={630} className='banda-seccion banda-destacado' />
+      {/* En el celular la banda es casi cuadrada: ahi va la imagen entera, que se ve mejor recortada */}
+      <picture>
+        <source media='(max-width: 640px)' srcSet={categoria.imagen} />
+        <img
+          src={`/destacados/og/${clave}.jpg`} alt='' width={1200} height={630}
+          className='banda-seccion banda-destacado'
+          style={{ '--foco': categoria.foco } as CSSProperties}
+        />
+      </picture>
 
       <div className='destacado-retrato'>
         <div className='destacado-retrato-texto'>

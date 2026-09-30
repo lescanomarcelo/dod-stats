@@ -69,7 +69,7 @@
 #include <dodstats>
 
 #define PLUGIN_NAME     "DoD Stats - Registro"
-#define PLUGIN_VERSION  "0.9.1"
+#define PLUGIN_VERSION  "0.9.3"
 #define PLUGIN_AUTHOR   "Marcelo Lescano"
 
 #define PARTES_CUERPO   8   /* generico + las 7 zonas: igual a MAX_BODYHITS */
@@ -114,8 +114,9 @@ new g_fallos;
    si llega por dodx y por DeathMsg en el mismo frame. -1.0 = ninguna todavia. */
 new Float:g_muerteRegistrada[33];
 
-/* Un solo aviso por mapa si el DeathMsg no trae el nombre del arma donde se espera */
+/* Un aviso por mapa con la primera muerte y con el primer cohete, para comprobarlos */
 new bool:g_avisoDeathMsg;
+new bool:g_avisoCohete;
 
 public plugin_init()
 {
@@ -123,17 +124,7 @@ public plugin_init()
 
     g_pendientes = ArrayCreate(LARGO_LINEA);
 
-    /*
-     *  Las muertes con cohete no llegan por dodx: se leen de la linea del log del
-     *  juego. Hay que declarar en cuantos pedazos se parte la linea y la cuenta no
-     *  es evidente (la version 0.6 fallo justo por eso), asi que se registran todas
-     *  las que podrian ser y el filtro se hace adentro: evtLogMuerte() se va enseguida
-     *  salvo que la linea traiga dos jugadores y un cohete.
-     */
-    for (new pedazos = 2; pedazos <= 8; pedazos++)
-        register_logevent("evtLogMuerte", pedazos);
-
-    /* Diagnostico: el DeathMsg de DoD no trae el nombre del arma, se anota como viene */
+    /* Las muertes con cohete no llegan por dodx: salen del DeathMsg del juego */
     register_event("DeathMsg", "evtDeathMsg", "a");
 
     register_concmd("dod_stats_volcar", "cmdVolcar", ADMIN_RCON, "- escribe ya los eventos pendientes al archivo");
@@ -161,6 +152,7 @@ public plugin_cfg()
     g_marcadorValido = false;
 
     g_avisoDeathMsg = false;
+    g_avisoCohete = false;
 
     /* Cambio de mapa: los que ya estaban en un bando siguen jugando desde ahora */
     for (new id = 1; id <= 32; id++)
@@ -640,118 +632,83 @@ public client_death(matador, victima, indiceArma, lugarImpacto, TK)
 /*
  *  Muertes con cohete (bazooka, Panzerschreck, PIAT).
  *
- *  dodx no avisa ninguna: su client_death no llega nunca para estas armas. La
- *  version 0.6 lo intento con register_logevent() declarando mal la cantidad de
- *  argumentos, y la 0.8 con el DeathMsg, pero el de DoD trae cuatro campos
- *  numericos y ningun nombre de arma (lo dejo dicho el aviso en el log de AMXX).
+ *  dodx no las avisa: su client_death no llega nunca para estas armas. Se probaron
+ *  dos caminos que no sirven y quedan descartados: register_logevent() no dispara
+ *  (31 muertes con cohete el 29/9 y ni una anotada) y el DeathMsg de DoD no trae el
+ *  nombre del arma como el de Half-Life, sino cuatro numeros.
  *
- *  Ahora se lee la linea del log del juego, que si trae el arma:
+ *  De esos cuatro, el tercero es el codigo de arma de dodx. Comprobado contra lo que
+ *  anoto dodx para esas mismas muertes: 5 = Garand, 13 = handgrenade, 14 = stickgrenade.
+ *  El primero es el matador y el segundo la victima (la muerte de las 20:37:55 dijo
+ *  [1]=5 MedikO [2]=3 TigerOne, y dodx anoto que MedikO mato a TigerOne).
  *
- *    "NICK<208><STEAM_0:0:476060><Axis>" killed "OTRO<203><STEAM_...><Axis>" with "pschreck"
- *
- *  En vez de confiar en la posicion de cada pedazo se recorren todos: los que
- *  tienen un STEAM_ adentro son los jugadores (primero el matador, despues la
- *  victima) y el que coincide con el nombre de un cohete es el arma.
- *
- *  Solo se toman esas tres armas: las demas ya vienen por dodx y se duplicarian.
- *  Igual, registrarMuerte() ignora una segunda muerte de la misma victima en el
- *  mismo frame, asi que tampoco se contarian dos veces.
+ *  Se compara por codigo y no por nombre a proposito: xmod_get_wpnlogname() devuelve
+ *  los nombres de dodx, que no son los del log del juego (para la 13 dice "grenade" y
+ *  el log dice "handgrenade"), asi que el nombre se pone aca.
  */
-bool:esCohete(const arma[])
+new const COHETES[][] = { "bazooka", "pschreck", "piat" };
+
+/* El nombre del cohete para ese codigo de arma, o "" si no es un cohete */
+nombreDeCohete(idArma, arma[], largo)
 {
-    return equal(arma, "bazooka") || equal(arma, "pschreck") || equal(arma, "piat");
-}
+    arma[0] = 0;
 
-/* Saca el STEAM_... de "NICK<208><STEAM_0:0:476060><Axis>". Devuelve false si no hay */
-bool:steamDelPedazo(const pedazo[], steam[], largo)
-{
-    new desde = contain(pedazo, "<STEAM_");
-    if (desde == -1)
-        return false;
-
-    copy(steam, largo, pedazo[desde + 1]);
-    new hasta = contain(steam, ">");
-    if (hasta == -1)
-        return false;
-
-    steam[hasta] = 0;
-    return true;
-}
-
-/* El jugador conectado con ese STEAM_, o 0 si ya no esta */
-buscarPorSteam(const steam[])
-{
-    new suyo[35];
-    for (new id = 1; id <= 32; id++)
+    switch (idArma)
     {
-        if (!is_user_connected(id))
-            continue;
-
-        get_user_authid(id, suyo, charsmax(suyo));
-        if (equal(suyo, steam))
-            return id;
+        case DODW_BAZOOKA:       copy(arma, largo, COHETES[0]);
+        case DODW_PANZERSCHRECK: copy(arma, largo, COHETES[1]);
+        case DODW_PIAT:          copy(arma, largo, COHETES[2]);
     }
-    return 0;
 }
 
-public evtLogMuerte()
+public evtDeathMsg()
 {
-    new pedazo[96], steam[35], arma[32], steamMatador[35], steamVictima[35];
-    arma[0] = 0; steamMatador[0] = 0; steamVictima[0] = 0;
+    new campos = read_datanum();
 
-    for (new i = 0; i < 8; i++)
+    new matador = campos >= 1 ? read_data(1) : 0;
+    new victima = campos >= 2 ? read_data(2) : 0;
+    new idArma  = campos >= 3 ? read_data(3) : 0;
+
+    new arma[16];
+    nombreDeCohete(idArma, arma, charsmax(arma));
+
+    /* Una vez por mapa se anota la primera muerte como vino, para poder comprobarla */
+    if (!g_avisoDeathMsg)
     {
-        read_logargv(i, pedazo, charsmax(pedazo));
-        if (!pedazo[0])
-            break;
+        g_avisoDeathMsg = true;
 
-        if (steamDelPedazo(pedazo, steam, charsmax(steam)))
-        {
-            if (!steamMatador[0])
-                copy(steamMatador, charsmax(steamMatador), steam);
-            else if (!steamVictima[0])
-                copy(steamVictima, charsmax(steamVictima), steam);
-        }
-        else if (esCohete(pedazo))
-        {
-            copy(arma, charsmax(arma), pedazo);
-        }
+        new nombreArma[32];
+        nombreArma[0] = 0;
+        if (idArma > 0)
+            xmod_get_wpnlogname(idArma, nombreArma, charsmax(nombreArma));
+
+        log_amx("%s DeathMsg: %d campos [1]=%d [2]=%d [3]=%d (%s) [4]=%d",
+            PREFIJO, campos, matador, victima, idArma, nombreArma,
+            campos >= 4 ? read_data(4) : -1);
     }
 
-    /* Las demas armas ya las avisa dodx: esta linea no es asunto nuestro */
-    if (!arma[0] || !steamVictima[0])
+    if (!arma[0])
         return;
 
-    new victima = buscarPorSteam(steamVictima);
-    if (!victima)
+    /* Y una vez por mapa, el primer cohete: si esto no sale, el mensaje no llega */
+    if (!g_avisoCohete)
+    {
+        g_avisoCohete = true;
+        log_amx("%s DeathMsg con cohete: [1]=%d [2]=%d [3]=%d (%s)", PREFIJO, matador, victima, idArma, arma);
+    }
+
+    if (victima < 1 || victima > 32 || !is_user_connected(victima))
         return;
 
-    new matador = buscarPorSteam(steamMatador);
+    /* El cohete lo tira un jugador, pero el que figura puede ser la propia rocket */
+    if (matador < 1 || matador > 32 || !is_user_connected(matador))
+        matador = 0;
 
     cerrarTramoAcostado(victima, false);
 
     /* El cohete revienta: no hay parte del cuerpo. El fuego amigo sale del bando */
     new TK = (matador && matador != victima && get_user_team(matador) == get_user_team(victima)) ? 1 : 0;
     registrarMuerte(matador, victima, arma, 0, TK);
-}
-
-/*
- *  El DeathMsg de DoD no sirve para saber el arma, pero se deja anotado una vez
- *  por mapa como viene, por si alguna version del juego si la trae.
- */
-public evtDeathMsg()
-{
-    if (g_avisoDeathMsg)
-        return;
-
-    g_avisoDeathMsg = true;
-
-    new campos = read_datanum();
-    log_amx("%s DeathMsg: %d campos [1]=%d [2]=%d [3]=%d [4]=%d", PREFIJO, campos,
-        campos >= 1 ? read_data(1) : -1,
-        campos >= 2 ? read_data(2) : -1,
-        campos >= 3 ? read_data(3) : -1,
-        campos >= 4 ? read_data(4) : -1);
 }
 
 /* ------------------------------------------------------------------ */

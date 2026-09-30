@@ -14,6 +14,8 @@ export type CategoriaDestacado = {
   titulo: string
   subtitulo: string
   imagen: string
+  /** Donde cae el recorte de la banda ancha: el personaje no esta en el mismo lugar en todas */
+  foco?: string
   /** Como se muestra el numero del que lidera */
   valor: (v: number) => string
   /** Mensaje cuando todavia no hay datos de ese rubro */
@@ -42,6 +44,7 @@ export const CATEGORIAS_DESTACADO: CategoriaDestacado[] = [
     titulo: 'El más Kenny',
     subtitulo: 'Más tiempo acostado',
     imagen: '/destacados/kenny.webp',
+    foco: '100%',
     valor: (v) => `${v}% del tiempo`,
     vacio: 'Se registra desde la versión 0.4 del plugin.'
   },
@@ -66,6 +69,7 @@ export const CATEGORIAS_DESTACADO: CategoriaDestacado[] = [
     titulo: 'm_rawinput 1',
     subtitulo: 'Más teamkills',
     imagen: '/destacados/teamkills.webp',
+    foco: '95%',
     valor: (v) => plural(v, 'teamkill', 'teamkills'),
     vacio: 'Nadie mató a un compañero. Por ahora.'
   },
@@ -74,6 +78,7 @@ export const CATEGORIAS_DESTACADO: CategoriaDestacado[] = [
     titulo: 'El chiterazo',
     subtitulo: 'Mayor % de headshots',
     imagen: '/destacados/headshots.webp',
+    foco: '95%',
     valor: (v) => `${v}% a la cabeza`,
     vacio: 'Todavía nadie tiene kills suficientes.'
   }

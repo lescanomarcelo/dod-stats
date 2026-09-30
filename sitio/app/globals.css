@@ -662,8 +662,9 @@ tbody tr.sin-uso { color: var(--tenue); }
 tbody tr.sin-uso .arma-dibujo { opacity: 0.45; filter: grayscale(1); }
 
 /* Detalle de un destacado: la misma foto de la tarjeta, mas grande, y su texto al lado */
-.banda-destacado { aspect-ratio: 1200 / 430; object-position: center 45%; margin-bottom: 1rem; }
-@media (max-width: 640px) { .banda-destacado { aspect-ratio: 4 / 3; } }
+.banda-seccion.banda-destacado { aspect-ratio: 1200 / 430; object-position: center var(--foco, 45%); margin-bottom: 1rem; }
+/* En el celular la imagen es otra (la cuadrada) y el recorte propio de cada una no aplica */
+@media (max-width: 640px) { .banda-seccion.banda-destacado { aspect-ratio: 4 / 3; object-position: center 42%; } }
 
 .destacado-retrato {
   position: relative; display: flex; align-items: center; gap: 1.1rem; flex-wrap: wrap;
