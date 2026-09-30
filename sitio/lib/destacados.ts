@@ -44,7 +44,7 @@ export const CATEGORIAS_DESTACADO: CategoriaDestacado[] = [
     titulo: 'El más Kenny',
     subtitulo: 'Más tiempo acostado',
     imagen: '/destacados/kenny.webp',
-    foco: '100%',
+    foco: '30%',
     valor: (v) => `${v}% del tiempo`,
     vacio: 'Se registra desde la versión 0.4 del plugin.'
   },
