@@ -572,8 +572,8 @@ a.enlace:hover { border-color: var(--acento); }
   width: 2rem; height: 2rem; border-radius: 0.5rem;
   background: rgba(19, 21, 15, 0.7); color: #25d366; border: 1px solid var(--borde);
 }
-.compartir-figurita:hover { background: #25d366; color: var(--fondo); border-color: #25d366; }
-.compartir-figurita .icono-boton { width: 1.15rem; height: 1.15rem; }
+.compartir-figurita:hover { color: #3ee07a; border-color: #25d366; }
+.compartir-figurita .icono-boton { width: 1.25rem; height: 1.25rem; }
 .figurita img { transition: transform 0.25s ease; }
 .figurita.sin-datos img { filter: grayscale(0.7) brightness(0.7); }
 .figurita-texto {
@@ -771,13 +771,15 @@ tbody tr.sin-uso .arma-dibujo { opacity: 0.45; filter: grayscale(1); }
 /* Compartir la tarjeta del server como imagen */
 .ficha { position: relative; }
 .ficha dl { padding-right: 3rem; }
+/* El logo suelto, como en Links, y no un cuadrado verde con el logo calado */
 .boton-whatsapp {
   position: absolute; top: 0.75rem; right: 0.75rem;
   display: grid; place-items: center; width: 2.5rem; height: 2.5rem;
-  color: #0b1f10; background: #25d366; border: 0; border-radius: 0.6rem; cursor: pointer;
+  color: #25d366; background: rgba(19, 21, 15, 0.7); border: 1px solid var(--borde);
+  border-radius: 0.6rem; cursor: pointer;
 }
-.boton-whatsapp:hover { background: #3ee07a; }
-.boton-whatsapp .icono-boton { width: 1.1rem; height: 1.1rem; flex: none; }
+.boton-whatsapp:hover { color: #3ee07a; border-color: #25d366; }
+.boton-whatsapp .icono-boton { width: 1.5rem; height: 1.5rem; flex: none; }
 .enlace-boton { font: inherit; color: inherit; text-align: left; cursor: pointer; }
 .enlace-boton:hover { border-color: var(--acento); }
 .compartir-aviso { color: var(--tenue); font-size: 0.85rem; }
