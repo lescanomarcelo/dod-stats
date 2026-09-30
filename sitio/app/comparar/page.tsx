@@ -20,7 +20,18 @@ function enlace (p: { periodo: Periodo, fecha?: string | null, a?: number | null
   return texto ? `/comparar?${texto}` : '/comparar'
 }
 
-export const metadata: Metadata = { title: 'Comparar jugadores' }
+export const metadata: Metadata = {
+  title: 'Comparar jugadores',
+  description: 'Dos jugadores lado a lado, y cuántas veces se mataron entre ellos.',
+  openGraph: {
+    title: 'Comparar jugadores · Tributo Dod Stats!',
+    description: 'Dos jugadores lado a lado, y cuántas veces se mataron entre ellos.',
+    siteName: 'Tributo Dod Stats!',
+    type: 'website',
+    locale: 'es_AR',
+    images: [{ url: '/equipos/og.jpg', width: 1200, height: 630 }]
+  }
+}
 
 const leerId = (crudo: unknown): number | null => {
   const id = Number(crudo)
