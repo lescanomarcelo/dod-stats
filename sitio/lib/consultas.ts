@@ -461,13 +461,16 @@ export async function resumenDeArma (nombres: string[], v: Ventana = TODO) {
 /* Armas que son granadas, para "El Aero-Player" */
 const GRANADAS = ['handgrenade', 'stickgrenade', 'mills_bomb', 'grenade']
 
+/* Los fusiles con mira, para "Como estoy con esnaiper!" */
+const CON_MIRA = ['springfield', 'scoped k98', 'scoped enfield']
+
 /* Cuerpo a cuerpo (palas, cuchillos, bayonetas y culatazos): sale del catalogo */
 const CUERPO_A_CUERPO = ALIAS_CUERPO_A_CUERPO
 
 export type FilaDestacado = { id: number, nick: string, valor: number }
 export type Destacado = FilaDestacado | null
 
-export type ClaveDestacado = 'fiel' | 'melee' | 'camper' | 'granadas' | 'banderas' | 'teamkills' | 'headshots'
+export type ClaveDestacado = 'fiel' | 'melee' | 'camper' | 'granadas' | 'banderas' | 'teamkills' | 'headshots' | 'sniper' | 'cocinero'
 
 export type Destacados = Record<ClaveDestacado, Destacado>
 
@@ -508,6 +511,41 @@ const CONSULTA_DESTACADO: Record<ClaveDestacado, (v: Ventana, limite: number) =>
         GROUP BY j.id, j.nick ORDER BY valor DESC LIMIT ${limite}
       `,
       valores: [...CUERPO_A_CUERPO, ...fm.valores]
+    }
+  },
+
+  /* Como estoy con esnaiper: el que mas mato con los fusiles con mira */
+  sniper: (v, limite) => {
+    const fm = filtro(null, v, 'm.')
+    return {
+      sql: `
+        SELECT j.id, j.nick, COUNT(*) AS valor
+        FROM {p}muertes m JOIN {p}jugadores j ON j.id = m.matador_id
+        WHERE m.teamkill = 0 AND LOWER(m.arma) IN (${CON_MIRA.map(() => '?').join(', ')}) ${fm.sql}
+        GROUP BY j.id, j.nick ORDER BY valor DESC LIMIT ${limite}
+      `,
+      valores: [...CON_MIRA, ...fm.valores]
+    }
+  },
+
+  /*
+   *  El cocinero: el que mas tiempo estuvo de espectador. No se mide directo: es lo
+   *  que estuvo conectado menos lo que estuvo en un bando (el rato mirando, eligiendo
+   *  clase o esperando el cambio de mapa).
+   */
+  cocinero: (v, limite) => {
+    const fs = filtro(null, v, '', 'desconexion')
+    const fjg = filtro(null, v, 'g.', 'dia')
+    return {
+      sql: `
+        SELECT j.id, j.nick, GREATEST(s.segundos - COALESCE(g.segundos, 0), 0) AS valor
+        FROM (SELECT jugador_id, SUM(segundos) AS segundos FROM {p}sesiones WHERE 1 = 1 ${fs.sql} GROUP BY jugador_id) s
+        LEFT JOIN (SELECT jugador_id, SUM(segundos) AS segundos FROM {p}jugado g WHERE 1 = 1 ${fjg.sql} GROUP BY jugador_id) g
+          ON g.jugador_id = s.jugador_id
+        JOIN {p}jugadores j ON j.id = s.jugador_id
+        HAVING valor > 0 ORDER BY valor DESC LIMIT ${limite}
+      `,
+      valores: [...fs.valores, ...fjg.valores]
     }
   },
 

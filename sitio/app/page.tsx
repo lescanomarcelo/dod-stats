@@ -1,5 +1,5 @@
 import { Suspense } from 'react'
-import { esOrden, ranking, destacados, type Orden } from '@/lib/consultas'
+import { esOrden, ranking, destacados, figurasPorBando, type Orden } from '@/lib/consultas'
 import { rangoDesdeBusqueda, type Periodo } from '@/lib/periodos'
 import {
   kd, porcentaje, formatoKd, formatoPorcentaje, formatoNumero, formatoTiempo,
@@ -38,7 +38,9 @@ async function Contenido ({ parametros }: { parametros: Busqueda }) {
   const rango = rangoDesdeBusqueda(p)
   const ventana = { desde: rango.desde, hasta: rango.hasta }
 
-  const [filas, figuras] = await Promise.all([ranking(orden, ventana), destacados(ventana)])
+  const [filas, destacadas, figuras] = await Promise.all([
+    ranking(orden, ventana), destacados(ventana), figurasPorBando(null, ventana)
+  ])
 
   return (
     <>
@@ -124,7 +126,7 @@ async function Contenido ({ parametros }: { parametros: Busqueda }) {
       </details>
 
       <section className='seccion'>
-        <Destacados datos={figuras} periodo={rango.periodo} fecha={rango.clave} />
+        <Destacados datos={destacadas} figuras={figuras} periodo={rango.periodo} fecha={rango.clave} />
       </section>
     </>
   )

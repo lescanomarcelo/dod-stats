@@ -102,7 +102,7 @@ async function Contenido ({ parametros, busqueda }: {
       </section>
       <p className='nota'>Top {CANTIDAD_TOP} de este período.{clave === 'headshots' && ' Solo jugadores con kills suficientes.'}</p>
       {/* Estas dos categorias se miden con el tiempo en un bando: va la misma aclaracion que en el ranking */}
-      {(clave === 'fiel' || clave === 'camper') && <NotaTiempo ventana={ventana} />}
+      {(clave === 'fiel' || clave === 'camper' || clave === 'cocinero') && <NotaTiempo ventana={ventana} />}
     </>
   )
 }

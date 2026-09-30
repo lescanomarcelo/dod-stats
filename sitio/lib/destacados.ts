@@ -74,6 +74,23 @@ export const CATEGORIAS_DESTACADO: CategoriaDestacado[] = [
     vacio: 'Nadie mató a un compañero. Por ahora.'
   },
   {
+    clave: 'sniper',
+    titulo: '¡Como estoy con esnaiper!',
+    subtitulo: 'Más frags con mira',
+    imagen: '/destacados/sniper.webp',
+    valor: (v) => plural(v, 'frag', 'frags'),
+    vacio: 'Todavía nadie mató con un fusil con mira.'
+  },
+  {
+    clave: 'cocinero',
+    titulo: 'El cocinero',
+    subtitulo: 'Más tiempo de espectador',
+    imagen: '/destacados/cocinero.webp',
+    foco: '60%',
+    valor: (v) => formatoTiempo(v),
+    vacio: 'Todavía nadie miró desde afuera.'
+  },
+  {
     clave: 'headshots',
     titulo: 'El chiterazo',
     subtitulo: 'Mayor % de headshots',
