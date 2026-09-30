@@ -57,7 +57,7 @@ async function Contenido ({ parametros, busqueda }: {
       {/* eslint-disable-next-line @next/next/no-img-element -- imagen fija ya optimizada */}
       <img
         src={`/destacados/og/${clave}.jpg`} alt='' width={1200} height={630}
-        className='banda-seccion banda-destacado'
+        className='banda-seccion banda-ancha'
         style={{ '--foco': categoria.foco } as CSSProperties}
       />
 

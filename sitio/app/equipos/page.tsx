@@ -13,8 +13,24 @@ import { Barras, EnlaceJugador, Cargando } from '@/components/Ui'
 import { EscudoAliados, EscudoEje } from '@/components/Banderas'
 import { Desplegable } from '@/components/Desplegable'
 import { HistorialBandos } from '@/components/HistorialBandos'
+import { IconoWhatsApp } from '@/components/Iconos'
+import { compartirPorWhatsApp } from '@/lib/enlaces'
 
-export const metadata: Metadata = { title: 'Eje vs Aliados' }
+const TITULO = 'Eje vs Aliados'
+const BAJADA = 'Quién gana en el server, bando contra bando'
+
+export const metadata: Metadata = {
+  title: TITULO,
+  description: BAJADA,
+  openGraph: {
+    title: `${TITULO} · Tributo Dod Stats!`,
+    description: BAJADA,
+    siteName: 'Tributo Dod Stats!',
+    type: 'website',
+    locale: 'es_AR',
+    images: [{ url: '/equipos/og.jpg', width: 1200, height: 630 }]
+  }
+}
 
 type Busqueda = PageProps<'/equipos'>['searchParams']
 
@@ -327,7 +343,21 @@ export default function PaginaEquipos (props: PageProps<'/equipos'>) {
   return (
     <>
       <div className='encabezado-pagina'>
-        <h1>Eje vs Aliados</h1>
+        <h1>{TITULO}</h1>
+        <p>{BAJADA}.</p>
+      </div>
+
+      <div className='banda-compartible'>
+        {/* eslint-disable-next-line @next/next/no-img-element -- imagen fija ya optimizada */}
+        <img src='/equipos/og.jpg' alt='' width={1200} height={630} className='banda-seccion banda-ancha' />
+        <a
+          className='boton-whatsapp'
+          href={compartirPorWhatsApp('/equipos', `${TITULO} · ${BAJADA}`)}
+          target='_blank' rel='noopener noreferrer'
+          aria-label='Compartir Eje vs Aliados por WhatsApp' title='Compartir por WhatsApp'
+        >
+          <IconoWhatsApp className='icono-boton' />
+        </a>
       </div>
       <Suspense fallback={<Cargando />}>
         <Contenido busqueda={props.searchParams} />

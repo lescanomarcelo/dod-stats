@@ -662,9 +662,9 @@ tbody tr.sin-uso { color: var(--tenue); }
 tbody tr.sin-uso .arma-dibujo { opacity: 0.45; filter: grayscale(1); }
 
 /* Detalle de un destacado: la misma foto de la tarjeta, mas grande, y su texto al lado */
-.banda-seccion.banda-destacado { aspect-ratio: 1200 / 430; object-position: center var(--foco, 45%); margin-bottom: 1rem; }
+.banda-seccion.banda-ancha { aspect-ratio: 1200 / 430; object-position: center var(--foco, 45%); margin-bottom: 1rem; }
 /* En el celular la banda es mas alta: entra toda la imagen a lo largo y se recorta a los costados */
-@media (max-width: 640px) { .banda-seccion.banda-destacado { aspect-ratio: 16 / 9; } }
+@media (max-width: 640px) { .banda-seccion.banda-ancha { aspect-ratio: 16 / 9; } }
 
 .destacado-retrato {
   position: relative; display: flex; align-items: center; gap: 1.1rem; flex-wrap: wrap;
@@ -764,6 +764,9 @@ tbody tr.sin-uso .arma-dibujo { opacity: 0.45; filter: grayscale(1); }
 .banda-seccion + .panel.ficha { margin-top: 1.5rem; }
 .ficha { margin-bottom: 1.75rem; }
 .navegador-periodo + .tarjetas { margin-top: 1.5rem; }
+
+/* La banda con el boton de compartir encima */
+.banda-compartible { position: relative; }
 
 /* Compartir la tarjeta del server como imagen */
 .ficha { position: relative; }
