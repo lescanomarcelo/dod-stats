@@ -15,7 +15,7 @@ import { ZONAS } from './parsear.mjs'
 
 const RUTA_ESQUEMA = fileURLToPath(new URL('./esquema.sql', import.meta.url))
 /* En orden de borrado: las que apuntan a jugadores, antes que jugadores */
-const TABLAS = ['muertes', 'sesiones', 'impactos', 'acostado', 'jugado', 'puntos', 'comandos', 'visitas', 'partidas', 'mapas_jugados', 'admines', 'ingesta_estado', 'jugadores']
+const TABLAS = ['muertes', 'sesiones', 'impactos', 'acostado', 'jugado', 'puntos', 'comandos', 'admin_logins', 'visitas', 'partidas', 'mapas_jugados', 'admines', 'ingesta_estado', 'jugadores']
 const FILAS_POR_INSERT = 500
 
 /* Recorta a lo que entra en la columna. Un dato raro no puede trabar la ingesta:
@@ -337,6 +337,20 @@ export async function conectar (config, prefijo = '') {
    * actualiza el acceso de los que ya estaban y borra a los que ya no figuran.
    * Nunca recibe contrasenas: admines.mjs las descarta al parsear.
    */
+  /** Guarda los pares cuenta -> steamid del log de AMX Mod X. No borra los viejos. */
+  async function guardarAdminLogins (logins) {
+    if (!logins.length) return 0
+
+    const momento = new Date()
+    const filas = logins.map((l) => [recortar(l.cuenta, 80), recortar(l.steamid, 32), momento])
+    await conexion.query(
+      `INSERT INTO ${t('admin_logins')} (cuenta, steamid, visto) VALUES ?
+       ON DUPLICATE KEY UPDATE visto = VALUES(visto)`,
+      [filas])
+
+    return logins.length
+  }
+
   async function guardarAdmines (admines) {
     const momento = new Date()
     await conexion.beginTransaction()
@@ -399,6 +413,7 @@ export async function conectar (config, prefijo = '') {
     leerOffset,
     guardarLote,
     guardarAdmines,
+    guardarAdminLogins,
     ranking,
     contar,
     consultar,
