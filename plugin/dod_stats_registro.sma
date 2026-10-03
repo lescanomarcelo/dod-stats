@@ -69,7 +69,7 @@
 #include <dodstats>
 
 #define PLUGIN_NAME     "DoD Stats - Registro"
-#define PLUGIN_VERSION  "0.9.3"
+#define PLUGIN_VERSION  "0.9.4"
 #define PLUGIN_AUTHOR   "Marcelo Lescano"
 
 #define PARTES_CUERPO   8   /* generico + las 7 zonas: igual a MAX_BODYHITS */
@@ -113,6 +113,9 @@ new g_fallos;
 /* Ultima muerte ya anotada de cada jugador (get_gametime), para no contarla dos veces
    si llega por dodx y por DeathMsg en el mismo frame. -1.0 = ninguna todavia. */
 new Float:g_muerteRegistrada[33];
+
+/* En que renglon de los pendientes quedo esa muerte, para poder corregirle el arma. -1 = ninguno */
+new g_renglonMuerte[33];
 
 /* Un aviso por mapa con la primera muerte y con el primer cohete, para comprobarlos */
 new bool:g_avisoDeathMsg;
@@ -158,6 +161,7 @@ public plugin_cfg()
     for (new id = 1; id <= 32; id++)
     {
         g_muerteRegistrada[id] = -1.0;
+        g_renglonMuerte[id] = -1;
         g_enEquipoDesde[id] = 0.0;
         g_jugadoAcumulado[id] = 0.0;
         if (is_user_connected(id))
@@ -216,6 +220,8 @@ volcar()
 
     fclose(archivo);
     ArrayClear(g_pendientes);
+    for (new id = 1; id <= 32; id++)
+        g_renglonMuerte[id] = -1;
     g_escritas += total;
 }
 
@@ -536,14 +542,26 @@ public client_disconnected(id, bool:drop, message[], maxlen)
     ArrayPushString(g_pendientes, linea);
 }
 
-registrarMuerte(matador, victima, const arma[], lugarImpacto, TK)
+/*
+ *  pisa = la muerte viene del DeathMsg con un cohete. Esa misma muerte puede haber
+ *  llegado antes por dodx con otra arma en el mismo frame (pasa con la bazooka: dodx
+ *  la avisa, pero no como bazooka). En ese caso no se descarta: se corrige el renglon
+ *  que ya estaba, porque el arma del DeathMsg es la buena.
+ */
+registrarMuerte(matador, victima, const arma[], lugarImpacto, TK, bool:pisa = false)
 {
     /* La misma muerte puede llegar por dos caminos en el mismo frame: se anota una */
+    new renglon = -1;
+
     if (victima >= 1 && victima <= 32)
     {
         new Float:ahora = get_gametime();
         if (g_muerteRegistrada[victima] == ahora)
-            return;
+        {
+            renglon = g_renglonMuerte[victima];
+            if (!pisa || renglon < 0 || renglon >= ArraySize(g_pendientes))
+                return;
+        }
         g_muerteRegistrada[victima] = ahora;
     }
 
@@ -579,7 +597,16 @@ registrarMuerte(matador, victima, const arma[], lugarImpacto, TK)
         vOrigen[0], vOrigen[1], vOrigen[2],
         mOrigen[0], mOrigen[1], mOrigen[2]);
 
-    ArrayPushString(g_pendientes, linea);
+    if (renglon >= 0)
+    {
+        ArraySetString(g_pendientes, renglon, linea);
+    }
+    else
+    {
+        ArrayPushString(g_pendientes, linea);
+        if (victima >= 1 && victima <= 32)
+            g_renglonMuerte[victima] = ArraySize(g_pendientes) - 1;
+    }
 }
 
 /*
@@ -708,7 +735,7 @@ public evtDeathMsg()
 
     /* El cohete revienta: no hay parte del cuerpo. El fuego amigo sale del bando */
     new TK = (matador && matador != victima && get_user_team(matador) == get_user_team(victima)) ? 1 : 0;
-    registrarMuerte(matador, victima, arma, 0, TK);
+    registrarMuerte(matador, victima, arma, 0, TK, true);
 }
 
 /* ------------------------------------------------------------------ */
