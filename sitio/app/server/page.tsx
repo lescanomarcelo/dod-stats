@@ -73,13 +73,75 @@ const TOP_ADMINES = 10
  *
  *  El que nunca aparecio queda al final, en cero: tambien es un dato.
  */
-function Nombre ({ a }: { a: Admin }) {
-  return a.id ? <EnlaceJugador id={a.id} nick={a.nick} /> : <span className='jugador apagado'>{a.nick}</span>
+/*
+ *  El admin que nunca entro al server no tiene perfil al que ir. Si ademas esta dado
+ *  de alta por steamid, lo unico que sabemos de el es ese numero: se muestra tapado,
+ *  porque no es algo para publicar entero.
+ */
+function nombreDeAdmin (a: Admin) {
+  if (a.id) return a.nick
+  if (a.tipo !== 'steamid') return a.clave
+  const partes = a.clave.split(':')
+  const numero = partes[2] ?? ''
+  return `${partes.slice(0, 2).join(':')}:…${numero.slice(-3)}`
 }
 
-async function Admines ({ ventana }: { ventana: { desde: string | null, hasta: string | null } }) {
+function Nombre ({ a }: { a: Admin }) {
+  return a.id
+    ? <EnlaceJugador id={a.id} nick={a.nick} />
+    : <span className='jugador apagado'>{nombreDeAdmin(a)}</span>
+}
+
+/*
+ *  Los que figuran como admines y en este periodo no hicieron nada: primero los que
+ *  ni siquiera entraron, despues los que estuvieron pero no usaron un solo comando.
+ */
+function AdminsNoquis ({ lista }: { lista: Admin[] }) {
+  const sinComandos = lista.filter((a) => a.comandos === 0)
+  const nunca = sinComandos.filter((a) => a.conectado === 0)
+  const presentes = sinComandos
+    .filter((a) => a.conectado > 0)
+    .sort((x, y) => y.conectado - x.conectado)
+  const noquis = [...nunca, ...presentes]
+
+  if (noquis.length === 0) return null
+
+  return (
+    <details className='seccion lista-plegable'>
+      <summary>
+        Admins ñoquis
+        <span className='cuantos numero'>{noquis.length}</span>
+      </summary>
+
+      <div className='tabla-envoltorio'>
+        <table>
+          <thead>
+            <tr><th>#</th><th>Admin</th><th className='num'>En el server</th></tr>
+          </thead>
+          <tbody>
+            {noquis.map((a, i) => (
+              <tr key={a.clave}>
+                <td className='posicion numero'>{i + 1}</td>
+                <td><Nombre a={a} /></td>
+                <td className='num'>{a.conectado ? formatoTiempo(a.conectado) : 'No entró'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className='nota'>Admines que en este período no usaron ningún comando: primero los que ni aparecieron.</p>
+    </details>
+  )
+}
+
+async function Admines ({ ventana, noquis = false }: {
+  ventana: { desde: string | null, hasta: string | null }
+  noquis?: boolean
+}) {
   const lista = await admines(ventana)
   if (lista.length === 0) return null
+
+  if (noquis) return <AdminsNoquis lista={lista} />
 
   /* Top 10 en las dos: la lista entera de admines es larga y casi toda en cero */
   const presentes = lista.filter((a) => a.conectado > 0)
@@ -227,6 +289,8 @@ async function Tablero ({ parametros }: { parametros: Busqueda }) {
           <p className='nota'>Los mapas que más veces se jugaron en este período.</p>
         </div>
       </section>
+
+      <Admines ventana={ventana} noquis />
     </>
   )
 }

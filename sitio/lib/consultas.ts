@@ -1061,9 +1061,14 @@ export async function mapasMasJugados (v: Ventana = TODO, limite = 8) {
 /*  Campeonato de admines                                              */
 /* ------------------------------------------------------------------ */
 
+/* Comandos que no cuentan: son para mirar, no para administrar */
+const COMANDOS_IGNORADOS = ['amx_who', 'amx_help']
+
 export type Admin = {
   /** Como esta dado de alta en users.ini: su steamid o su nick */
   clave: string
+  /** Si el alta es por steamid o por nick */
+  tipo: 'steamid' | 'nick'
   /** id del jugador en la base, si se lo pudo emparejar */
   id: number | null
   nick: string
@@ -1093,6 +1098,7 @@ export async function admines (v: Ventana = TODO): Promise<Admin[]> {
 
   const filas = await consultar(`
     SELECT a.clave,
+           MAX(a.tipo)                     AS tipo,
            MIN(j.id)                       AS id,
            MAX(j.nick)                     AS nick,
            COALESCE(SUM(s.segundos), 0)    AS conectado,
@@ -1107,14 +1113,16 @@ export async function admines (v: Ventana = TODO): Promise<Admin[]> {
     LEFT JOIN ( SELECT jugador_id, SUM(segundos) AS segundos FROM {p}jugado
                 WHERE 1 = 1 ${fj.sql} GROUP BY jugador_id ) t ON t.jugador_id = j.id
     LEFT JOIN ( SELECT jugador_id, COUNT(*) AS comandos FROM {p}comandos
-                WHERE 1 = 1 ${fc.sql} GROUP BY jugador_id ) c ON c.jugador_id = j.id
+                WHERE comando NOT IN (${COMANDOS_IGNORADOS.map(() => '?').join(', ')}) ${fc.sql}
+                GROUP BY jugador_id ) c ON c.jugador_id = j.id
     WHERE a.tipo <> 'ip' AND a.clave <> 'loopback'
     GROUP BY a.clave
     ORDER BY conectado DESC, comandos DESC, a.clave
-  `, [...fs.valores, ...fj.valores, ...fc.valores])
+  `, [...fs.valores, ...fj.valores, ...COMANDOS_IGNORADOS, ...fc.valores])
 
   const lista = filas.map((f) => ({
     clave: String(f.clave),
+    tipo: f.tipo === 'steamid' ? 'steamid' as const : 'nick' as const,
     id: f.id === null ? null : n(f.id),
     nick: f.nick ? String(f.nick) : String(f.clave),
     conectado: n(f.conectado),
@@ -1130,7 +1138,7 @@ export async function admines (v: Ventana = TODO): Promise<Admin[]> {
     if (!unicos.has(clave)) unicos.set(clave, admin)
   }
 
-  /* El admin que nunca entro al server (sin jugador emparejado) no va: no hay nada
-     que mostrar, y el steamid no es algo para publicar. */
-  return [...unicos.values()].filter((a) => a.id !== null)
+  /* Van todos, tambien el que nunca entro: es el que encabeza la lista de noquis.
+     El steamid de esos no se publica entero, lo tapa nombreDeAdmin(). */
+  return [...unicos.values()]
 }
