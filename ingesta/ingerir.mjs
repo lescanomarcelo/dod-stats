@@ -15,12 +15,14 @@
 
 import { parsearFragmento } from './parsear.mjs'
 import { parsearUsuarios } from './admines.mjs'
+import { parsearLogins, nombresDeLog } from './admin_logins.mjs'
 
 /* users.ini esta dos carpetas mas arriba que los eventos: data/stats -> configs */
 const RUTA_USERS = '../../configs/users.ini'
+const CARPETA_LOGS = '../../logs'
 
 export async function ingerir ({ fuente, base, registrar = () => {} }) {
-  const resultado = { ocupado: false, archivos: 0, admines: 0, muertes: 0, sesiones: 0, mapas: 0, impactos: 0, acostado: 0, jugado: 0, puntos: 0, marcadores: 0, ignorados: 0, descartadas: 0, alertas: [] }
+  const resultado = { ocupado: false, archivos: 0, admines: 0, adminLogins: 0, muertes: 0, sesiones: 0, mapas: 0, impactos: 0, acostado: 0, jugado: 0, puntos: 0, marcadores: 0, ignorados: 0, descartadas: 0, alertas: [] }
 
   if (!await base.tomarCandado()) {
     registrar('Hay otra ingesta corriendo. Esta termina sin hacer nada.')
@@ -30,6 +32,7 @@ export async function ingerir ({ fuente, base, registrar = () => {} }) {
 
   try {
     await refrescarAdmines(fuente, base, registrar, resultado)
+    await refrescarAdminLogins(fuente, base, registrar, resultado)
     await procesarArchivos(fuente, base, registrar, resultado)
   } finally {
     await base.soltarCandado()
@@ -54,6 +57,35 @@ async function refrescarAdmines (fuente, base, registrar, resultado) {
     registrar(`users.ini: ${admines.length} admines`)
   } catch (error) {
     registrar(`No se pudo leer la lista de admines (${error.code || error.message}). Sigo con los eventos.`)
+  }
+}
+
+/*
+ *  Los logins de admin del log de AMX Mod X: atan cada cuenta del users.ini con el
+ *  steamid de quien la usa. Como el de users.ini, es un extra: si no se puede leer,
+ *  se avisa y la ingesta sigue.
+ */
+async function refrescarAdminLogins (fuente, base, registrar, resultado) {
+  if (!fuente.leerTexto) return
+
+  const logins = new Map()
+
+  for (const nombre of nombresDeLog()) {
+    try {
+      const texto = await fuente.leerTexto(`${CARPETA_LOGS}/${nombre}`)
+      for (const l of parsearLogins(texto)) logins.set(`${l.cuenta}\u0000${l.steamid}`, l)
+    } catch {
+      /* El log de ese dia puede no existir (el server no arranco): no es un problema */
+    }
+  }
+
+  if (!logins.size) return
+
+  try {
+    resultado.adminLogins = await base.guardarAdminLogins([...logins.values()])
+    registrar(`logins de admin: ${resultado.adminLogins}`)
+  } catch (error) {
+    registrar(`No se pudieron guardar los logins de admin (${error.code || error.message}).`)
   }
 }
 

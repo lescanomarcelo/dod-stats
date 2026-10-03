@@ -172,6 +172,16 @@ CREATE TABLE IF NOT EXISTS {p}comandos (
   CONSTRAINT fk_{p}comandos_jugador FOREIGN KEY (jugador_id) REFERENCES {p}jugadores (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Que steamid usa cada cuenta del users.ini, sacado del log de AMX Mod X.
+-- Sirve para emparejar al admin que juega con un nick distinto al que tiene dado de alta.
+CREATE TABLE IF NOT EXISTS {p}admin_logins (
+  cuenta   VARCHAR(80) NOT NULL,
+  steamid  VARCHAR(32) NOT NULL,
+  visto    DATETIME    NOT NULL,
+  PRIMARY KEY (cuenta, steamid),
+  KEY ix_steamid (steamid)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Contador de visitas del sitio: una sola fila, sube una vez cada 30 min por navegador (cookie).
 CREATE TABLE IF NOT EXISTS {p}visitas (
   id     TINYINT UNSIGNED NOT NULL,

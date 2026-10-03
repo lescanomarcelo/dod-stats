@@ -1105,9 +1105,21 @@ export async function admines (v: Ventana = TODO): Promise<Admin[]> {
            COALESCE(SUM(t.segundos), 0)    AS jugado,
            COALESCE(SUM(c.comandos), 0)    AS comandos
     FROM {p}admines a
-    LEFT JOIN {p}jugadores j
-      ON (a.tipo = 'steamid' AND j.steamid = a.clave)
-      OR (a.tipo = 'nick'    AND j.nick    = a.clave)
+    /*
+     *  El jugador que esta detras del admin. Se busca por el alta (steamid o nick) y,
+     *  si por ahi no aparece, por los logins que anoto el server: ahi queda atado el
+     *  steamid real de quien uso esa cuenta, aunque juegue con otro nick.
+     *
+     *  Va como subconsulta y no como JOIN a secas para que sea UN jugador y no varios:
+     *  si matchearan dos, cada LEFT JOIN de abajo sumaria dos veces.
+     */
+    LEFT JOIN {p}jugadores j ON j.id = (
+      SELECT j2.id FROM {p}jugadores j2
+      WHERE (a.tipo = 'steamid' AND j2.steamid = a.clave)
+         OR (a.tipo = 'nick'    AND j2.nick    = a.clave)
+         OR j2.steamid IN (SELECT al.steamid FROM {p}admin_logins al WHERE al.cuenta = a.clave)
+      ORDER BY j2.id LIMIT 1
+    )
     LEFT JOIN ( SELECT jugador_id, SUM(segundos) AS segundos FROM {p}sesiones
                 WHERE 1 = 1 ${fs.sql} GROUP BY jugador_id ) s ON s.jugador_id = j.id
     LEFT JOIN ( SELECT jugador_id, SUM(segundos) AS segundos FROM {p}jugado
@@ -1124,7 +1136,8 @@ export async function admines (v: Ventana = TODO): Promise<Admin[]> {
     clave: String(f.clave),
     tipo: f.tipo === 'steamid' ? 'steamid' as const : 'nick' as const,
     id: f.id === null ? null : n(f.id),
-    nick: f.nick ? String(f.nick) : String(f.clave),
+    /* El alta por nick manda: es el nombre con el que esta anotado, aunque juegue con otro */
+    nick: f.tipo === 'nick' ? String(f.clave) : (f.nick ? String(f.nick) : String(f.clave)),
     conectado: n(f.conectado),
     jugado: n(f.jugado),
     comandos: n(f.comandos)
@@ -1135,7 +1148,9 @@ export async function admines (v: Ventana = TODO): Promise<Admin[]> {
   const unicos = new Map<string, Admin>()
   for (const admin of lista) {
     const clave = admin.id ? `id:${admin.id}` : `alta:${admin.clave}`
-    if (!unicos.has(clave)) unicos.set(clave, admin)
+    const anterior = unicos.get(clave)
+    /* Entre las dos altas del mismo admin gana la que lleva su nick registrado */
+    if (!anterior || (anterior.tipo === 'steamid' && admin.tipo === 'nick')) unicos.set(clave, admin)
   }
 
   /* Van todos, tambien el que nunca entro: es el que encabeza la lista de noquis.
