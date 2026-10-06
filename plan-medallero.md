@@ -1,83 +1,98 @@
 # Medallero Dodero — plan
 
-Cada semana que cierra reparte **ojitos**: dorado al primero de cada rubro, plateado
-al segundo y de bronce al tercero. Con eso se arma un ranking de doderos por medallas
-("Trevor es el dodero dorado del mes") y un detalle de quién ganó qué y cuándo.
+Medallas de **skill**, al estilo de los logros de Steam: cada rubro tiene una terna de
+marcas y el que la alcanza se lleva el ojito, de bronce, de plata o dorado. No hay
+semana ni plazo: es lo acumulado de toda la historia y, una vez conseguida, no se
+pierde. Con eso se arma un ranking de doderos por medallas y, en cada perfil, lo que
+falta para la próxima.
 
-## Decidido
+Es mejor que el medallero semanal que habíamos pensado (queda guardado al final):
+arranca con todo el historial en vez de con dos semanas, no tiene empates ni mínimos
+que resolver, y premia a cualquiera que juegue, no solo al podio.
 
-| Qué | Cómo |
-|---|---|
-| Rubros | 9: las seis figuritas "buenas" + kills + puntos + K/D |
-| Podio | Tres por rubro: oro, plata y bronce. 27 ojitos por semana |
-| Mínimos | No hay mínimo extra: el que puntea se lleva el oro igual |
-| Semana | De lunes a domingo, hora de Argentina. Ya está resuelto en `lib/periodos.ts` |
-| Cuándo se otorga | Cuando la semana cierra. La semana en curso no reparte |
+## Las ternas
 
-Los nueve rubros:
+Calibradas contra los datos reales del 22/9 al 6/10 (dos semanas). La última columna
+es cuántos doderos la tendrían **hoy**, apenas se publique:
 
-| Rubro | Qué mide | De dónde sale |
-|---|---|---|
-| `fiel` | Más horas jugadas | figurita El dodero fiel |
-| `banderas` | Más banderas tomadas | figurita El dodero ejemplar |
-| `melee` | Más kills con pala o cuchillo | figurita La vieja más pelada |
-| `granadas` | Más kills con granadas | figurita El Aero-Player |
-| `headshots` | Mayor % de headshots | figurita El chiterazo |
-| `sniper` | Más frags con mira | figurita ¡Como estoy con esnaiper! |
-| `kills` | Más kills | ranking general |
-| `puntos` | Más puntos | ranking general |
-| `kd` | Mejor K/D | ranking general |
+| Rubro | Bronce | Plata | Oro | Hoy la tienen |
+|---|---|---|---|---|
+| Kills | 100 | 1.000 | 10.000 | 48 / 14 / 0 |
+| Muertes (te mataron) | 100 | 1.000 | 10.000 | 52 / 15 / 0 |
+| Banderas tomadas | 25 | 250 | 2.000 | 45 / 8 / 0 |
+| Headshots | 50 | 500 | 2.500 | 32 / 2 / 0 |
+| Cuerpo a cuerpo | 10 | 100 | 500 | 26 / 2 / 0 |
+| Granadas | 25 | 250 | 2.000 | 37 / 6 / 0 |
+| Con mira | 25 | 250 | 1.500 | 24 / 4 / 0 |
+| Cohete (bazooka, Panzerschreck, PIAT) | 3 | 20 | 100 | ~10 / 1 / 0 |
+| Teamkills | 10 | 100 | 500 | 44 / 5 / 0 |
+| Horas jugadas | 5h | 50h | 250h | 28 / 0 / 0 |
+| Tiempo acostado (Kenny) | 30m | 2h | 10h | a revisar |
 
-Quedan afuera teamkills, El más Kenny y El cocinero: el medallero premia solo cosas
-de las que uno se enorgullece.
+La idea del reparto: el **bronce** lo saca cualquiera que venga seguido unas semanas,
+la **plata** pide meses de constancia y el **oro** es de veterano. Hoy no hay ningún
+oro, y eso está bien: al ritmo actual, los 10.000 kills son unos seis meses del que
+más juega.
 
-> **Ojo con los porcentajes.** `headshots` y `kd` ya piden un mínimo de kills para
-> entrar (`MIN_KILLS_PORCENTAJES`), porque si no el que mató una sola vez a la cabeza
-> sale primero con 100%. Eso no es un mínimo nuevo: es parte de cómo está definido el
-> rubro y se respeta tal cual.
+Dos avisos sobre los números:
+
+- **Están calibrados sobre dos semanas.** Es lo único que hay. Conviene mirarlos de
+  nuevo en un mes, cuando se vea el ritmo real de cada rubro.
+- **El cohete y el Kenny son los más flojos.** Las muertes con cohete recién se
+  registran bien desde el 1/10, y el tiempo acostado desde la versión 0.4 del plugin,
+  así que sus marcas son las menos confiables.
+
+Los rubros "malos" entran igual, que era la gracia: el ojito dorado de teamkills y el
+Kenny dorado se ganan con todo honor.
 
 ## Cómo se calcula
 
-Las medallas de una semana cerrada no cambian nunca, así que se guardan una sola vez
-en vez de recalcularlas en cada visita:
+No hace falta tabla nueva. Una medalla es una cuenta sobre los totales de siempre, así
+que sale de las consultas que ya existen:
 
-```sql
-CREATE TABLE medallas (
-  semana      DATE         NOT NULL,  -- el lunes de esa semana
-  rubro       VARCHAR(20)  NOT NULL,
-  puesto      TINYINT      NOT NULL,  -- 1 oro, 2 plata, 3 bronce
-  jugador_id  INT UNSIGNED NOT NULL,
-  valor       BIGINT       NOT NULL,  -- el número con el que lo gano
-  PRIMARY KEY (semana, rubro, puesto)
-)
-```
+- La vista `ranking` ya trae kills, muertes, headshots, teamkills, puntos y los
+  segundos jugados y acostados de cada uno: **una sola consulta**.
+- Faltan cinco más, una por rubro de arma (cuerpo a cuerpo, granadas, con mira,
+  cohete) y una para contar banderas.
 
-**Quién las escribe.** Las consultas de cada rubro ya están en el sitio
-(`CONSULTA_DESTACADO` y el ranking). Copiarlas a la ingesta sería tener el mismo SQL
-en dos lugares, así que el cálculo va en una ruta del sitio, `POST /api/medallas`,
-protegida por un secreto. El workflow de ingesta la llama después de cargar los
-eventos: recalcula las dos últimas semanas cerradas (por si llegaron datos tarde) y
-completa las que falten. Es idempotente.
+Son seis consultas para todo el medallero, cacheadas como el resto del sitio. Si más
+adelante se pone pesado, recién ahí se materializa en una tabla.
+
+**Lo que no se puede sin tabla** es la fecha en que se consiguió cada medalla, que es
+lindo tenerlo ("conseguiste el ojito dorado el 3/10"). Hay dos caminos y los dos
+quedan para después: guardar la fecha cuando se cruza la marca, o calcularla al vuelo
+buscando el momento del kill número 1.000. Lo segundo no necesita tabla pero es una
+consulta pesada, así que iría solo en el detalle.
 
 ## Fases
 
-1. **Tabla y cálculo.** `medallas` en el esquema, los tres rubros nuevos (kills,
-   puntos, K/D) como consultas, `POST /api/medallas` y la llamada desde el workflow.
-   Al final: las dos semanas cerradas que ya hay, con sus 54 ojitos, en la base.
+1. **Catálogo y cálculo.** Las ternas en un solo lugar (`lib/medallas.ts`), las seis
+   consultas y la función que devuelve las medallas de un dodero. Con tests sobre los
+   bordes: justo en la marca, uno abajo, cero.
 2. **Página Medallero.** El ranking de doderos ordenado por oro, después plata,
-   después bronce, con el filtro de período de siempre (mes, global) para que exista
-   el "dodero dorado del mes". Debajo, el detalle por rubro.
-3. **Detalle por rubro.** Quién ganó cada rubro semana por semana.
-4. **En el perfil.** Las medallas de cada dodero en su página, con el rubro y la
-   semana de cada una.
-5. **Terminaciones.** Las imágenes de los ojitos, el botón de compartir por WhatsApp
-   y la vista previa, como el resto del sitio.
+   después bronce. Debajo, el catálogo de rubros con sus tres marcas y cuánta gente
+   llegó a cada una.
+3. **En el perfil.** Las medallas del dodero y, para cada rubro, lo que le falta para
+   la próxima: "812 / 1.000 kills".
+4. **Terminaciones.** Las imágenes de los ojitos (las hace Trevor), el botón de
+   compartir por WhatsApp y la vista previa, como el resto del sitio.
+5. **Más adelante.** La fecha de cada medalla y un aviso de las nuevas de la semana.
 
 ## Falta definir
 
-- **Las tres imágenes del ojito** (dorado, plateado, de bronce), que las hace Trevor.
-- **Desempates.** Si dos salen iguales en un rubro, por ahora gana el de id más bajo.
-  Habría que decidir si se reparte el mismo puesto a los dos o si desempata algo
-  (más tiempo jugado, por ejemplo).
-- **Si el medallero arranca desde el 21/9**, que es la primera semana con datos, o si
-  se espera a tener más historia.
+- **Las tres imágenes del ojito**: dorado, plateado y de bronce.
+- **La terna del Kenny**, que es la más dudosa: hoy solo cuatro doderos pasan la hora
+  acostados.
+- **Si los rubros de arma necesitan nombre propio**, como las figuritas, o alcanza con
+  "Cuerpo a cuerpo" y "Con mira".
+
+---
+
+## Guardado: el medallero semanal
+
+La idea anterior, por si se quiere sumar después. Cada semana cerrada repartía oro,
+plata y bronce al podio de cada rubro, con una tabla `medallas` que se llenaba sola y
+el cálculo en una ruta del sitio llamada desde el workflow de ingesta. Se dejó de lado
+porque con dos semanas de datos queda flaco y porque obliga a resolver empates y
+mínimos. Los dos medalleros pueden convivir: este premia la constancia y aquel, la
+semana.
