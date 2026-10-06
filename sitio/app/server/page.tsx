@@ -13,6 +13,8 @@ import { CompartirServer } from '@/components/CompartirServer'
 import { NotaTiempo } from '@/components/NotaTiempo'
 import { Columnas } from '@/components/Grafico'
 import { Barras, Tarjeta, Cargando, EnlaceJugador } from '@/components/Ui'
+import { IconoWhatsApp } from '@/components/Iconos'
+import { compartirPorWhatsApp } from '@/lib/enlaces'
 
 export const metadata: Metadata = { title: 'El Server' }
 
@@ -106,31 +108,42 @@ function AdminsNoquis ({ lista }: { lista: Admin[] }) {
 
   if (noquis.length === 0) return null
 
+  /* El boton va afuera del details: lo de adentro no se muestra cuando esta cerrado */
   return (
-    <details className='seccion lista-plegable'>
-      <summary>
-        Admins ñoquis
-        <span className='cuantos numero'>{noquis.length}</span>
-      </summary>
+    <section className='seccion con-compartir'>
+      <a
+        className='boton-whatsapp'
+        href={compartirPorWhatsApp('/server#noquis', `Admins ñoquis: ${noquis.length} que no usaron ni un comando`)}
+        target='_blank' rel='noopener noreferrer'
+        aria-label='Compartir los admins ñoquis por WhatsApp' title='Compartir por WhatsApp'
+      >
+        <IconoWhatsApp className='icono-boton' />
+      </a>
+      <details className='lista-plegable' id='noquis'>
+        <summary>
+          Admins ñoquis
+          <span className='cuantos numero'>{noquis.length}</span>
+        </summary>
 
-      <div className='tabla-envoltorio'>
-        <table>
-          <thead>
-            <tr><th>#</th><th>Admin</th><th className='num'>En el server</th></tr>
-          </thead>
-          <tbody>
-            {noquis.map((a, i) => (
-              <tr key={a.clave}>
-                <td className='posicion numero'>{i + 1}</td>
-                <td><Nombre a={a} /></td>
-                <td className='num'>{a.conectado ? formatoTiempo(a.conectado) : 'No entró'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <p className='nota'>Admines que en este período no usaron ningún comando: primero los que ni aparecieron.</p>
-    </details>
+        <div className='tabla-envoltorio'>
+          <table>
+            <thead>
+              <tr><th>#</th><th>Admin</th><th className='num'>En el server</th></tr>
+            </thead>
+            <tbody>
+              {noquis.map((a, i) => (
+                <tr key={a.clave}>
+                  <td className='posicion numero'>{i + 1}</td>
+                  <td><Nombre a={a} /></td>
+                  <td className='num'>{a.conectado ? formatoTiempo(a.conectado) : 'No entró'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className='nota'>Admines que en este período no usaron ningún comando: primero los que ni aparecieron.</p>
+      </details>
+    </section>
   )
 }
 
