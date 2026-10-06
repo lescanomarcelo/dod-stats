@@ -111,9 +111,11 @@ las tres.
 
 ## Fases
 
-1. **Catálogo y cálculo.** Las ternas en un solo lugar (`lib/medallas.ts`), las seis
-   consultas y la función que devuelve las medallas de un dodero. Con tests sobre los
-   bordes: justo en la marca, uno abajo, cero.
+1. ~~**Catálogo y cálculo.**~~ Hecho. El catálogo y las cuentas puras en
+   `lib/medallas.ts` (con 12 tests sobre los bordes: justo en la marca, uno abajo,
+   cero, pasarse de largo) y `totalesDeMedallas()` en `lib/consultas.ts`, que son
+   seis consultas para los once rubros. Probado contra los datos reales: 274 doderos,
+   17 con alguna medalla, todas de bronce, y El Uru con los once.
 2. **Página Medallero.** El ranking de doderos ordenado por oro, después plata,
    después bronce. Debajo, el catálogo de rubros con sus tres marcas y cuánta gente
    llegó a cada una.

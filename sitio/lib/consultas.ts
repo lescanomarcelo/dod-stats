@@ -5,6 +5,7 @@ import { MIN_KILLS_PORCENTAJES, MIN_SEGUNDOS_CAMPER } from './calculos'
 import { HORAS_ARGENTINA, type Ventana, type Balance } from './periodos'
 import { ALIAS_CUERPO_A_CUERPO } from './armas'
 import type { Sesion } from './actividad'
+import type { TotalesDeMedallas } from './medallas'
 
 /*
  *  Cuanto vive lo cacheado. La ingesta carga datos nuevos cada 15 minutos, asi que
@@ -1156,4 +1157,83 @@ export async function admines (v: Ventana = TODO): Promise<Admin[]> {
   /* Van todos, tambien el que nunca entro: es el que encabeza la lista de noquis.
      El steamid de esos no se publica entero, lo tapa nombreDeAdmin(). */
   return [...unicos.values()]
+}
+
+/* ------------------------------------------------------------------ */
+/*  Medallero dodero                                                   */
+/*  Ver lib/medallas.ts: ahi estan los rubros y las marcas de cada uno */
+/* ------------------------------------------------------------------ */
+
+/* Las que mata el cohete: dodx no las avisa, llegan por el DeathMsg (plugin 0.9.4) */
+const COHETES = ['bazooka', 'pschreck', 'piat']
+
+export type TotalesDeDodero = { id: number, nick: string, totales: Partial<TotalesDeMedallas> }
+
+/* Cuenta las kills de un grupo de armas, por jugador. Mismo molde para las cuatro */
+function porArmas (armas: string[]) {
+  return {
+    sql: `
+      SELECT m.matador_id AS id, COUNT(*) AS valor
+      FROM {p}muertes m
+      WHERE m.teamkill = 0 AND m.matador_id IS NOT NULL AND LOWER(m.arma) IN (${armas.map(() => '?').join(', ')})
+      GROUP BY m.matador_id
+    `,
+    valores: armas
+  }
+}
+
+/**
+ * Lo acumulado de cada dodero en los once rubros del medallero, de toda la historia.
+ *
+ * La vista ranking ya trae siete de los once en una sola consulta; las otras cuatro
+ * son una cuenta por grupo de armas, mas las banderas. Son seis consultas para todo
+ * el medallero, y como las marcas se miden sobre el total, no hay ventana de tiempo.
+ */
+export async function totalesDeMedallas (): Promise<TotalesDeDodero[]> {
+  'use cache'
+  cacheLife(VIDA_CACHE)
+
+  const [generales, banderas, melee, granadas, sniper, cohete] = await Promise.all([
+    consultar(`
+      SELECT id, nick, kills, muertes, headshots, teamkills,
+             segundos_en_juego AS horas, segundos_acostado AS acostado
+      FROM {p}ranking
+    `),
+    consultar('SELECT jugador_id AS id, COUNT(*) AS valor FROM {p}puntos GROUP BY jugador_id'),
+    ...[CUERPO_A_CUERPO, GRANADAS, CON_MIRA, COHETES].map((armas) => {
+      const { sql, valores } = porArmas(armas)
+      return consultar(sql, valores)
+    })
+  ])
+
+  const porId = new Map<number, TotalesDeDodero>()
+  for (const f of generales) {
+    porId.set(n(f.id), {
+      id: n(f.id),
+      nick: String(f.nick),
+      totales: {
+        kills: n(f.kills),
+        muertes: n(f.muertes),
+        headshots: n(f.headshots),
+        teamkills: n(f.teamkills),
+        horas: n(f.horas),
+        acostado: n(f.acostado)
+      }
+    })
+  }
+
+  const sumar = (filas: Record<string, unknown>[], clave: keyof TotalesDeMedallas) => {
+    for (const f of filas) {
+      const dodero = porId.get(n(f.id))
+      if (dodero) dodero.totales[clave] = n(f.valor)
+    }
+  }
+
+  sumar(banderas, 'banderas')
+  sumar(melee, 'melee')
+  sumar(granadas, 'granadas')
+  sumar(sniper, 'sniper')
+  sumar(cohete, 'cohete')
+
+  return [...porId.values()]
 }
