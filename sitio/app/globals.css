@@ -700,6 +700,12 @@ tbody tr.sin-uso .arma-dibujo { opacity: 0.45; filter: grayscale(1); }
 .lista-plegable > summary .cuantos { margin-left: auto; color: var(--tenue); font-size: 0.8rem; text-transform: none; }
 .lista-plegable > .tabla-envoltorio { margin-top: 0.75rem; }
 
+/* La seccion que se puede compartir: el boton va sobre la barra que abre y cierra */
+.seccion.con-compartir { position: relative; }
+.seccion.con-compartir > .lista-plegable > summary { padding-right: 3.4rem; }
+.seccion.con-compartir > .boton-whatsapp { z-index: 2; top: 0.4rem; right: 0.5rem; width: 2.1rem; height: 2.1rem; }
+.seccion.con-compartir > .boton-whatsapp .icono-boton { width: 1.25rem; height: 1.25rem; }
+
 /* ------------------------------------------------------------------ */
 /*  Graficos de columnas (El Server)                                   */
 /* ------------------------------------------------------------------ */
