@@ -17,22 +17,23 @@ es cuántos doderos la tendrían **hoy**, apenas se publique:
 
 | Rubro | Bronce | Plata | Oro | Hoy la tienen |
 |---|---|---|---|---|
-| Kills | 100 | 1.000 | 10.000 | 48 / 14 / 0 |
-| Muertes (te mataron) | 100 | 1.000 | 10.000 | 52 / 15 / 0 |
-| Banderas tomadas | 25 | 250 | 2.000 | 45 / 8 / 0 |
-| Headshots | 50 | 500 | 2.500 | 32 / 2 / 0 |
-| Cuerpo a cuerpo | 10 | 100 | 500 | 26 / 2 / 0 |
-| Granadas | 25 | 250 | 2.000 | 37 / 6 / 0 |
-| Con mira | 25 | 250 | 1.500 | 24 / 4 / 0 |
-| Cohete (bazooka, Panzerschreck, PIAT) | 3 | 20 | 100 | ~10 / 1 / 0 |
-| Teamkills | 10 | 100 | 500 | 44 / 5 / 0 |
-| Horas jugadas | 5h | 50h | 250h | 28 / 0 / 0 |
-| Tiempo acostado (Kenny) | 30m | 2h | 10h | a revisar |
+| Kills | 1.500 | 5.000 | 20.000 | 8 / 0 / 0 |
+| Muertes (te mataron) | 1.500 | 5.000 | 20.000 | 5 / 0 / 0 |
+| Banderas tomadas | 300 | 1.000 | 5.000 | 6 / 0 / 0 |
+| Headshots | 250 | 1.000 | 5.000 | 7 / 0 / 0 |
+| Cuerpo a cuerpo | 50 | 300 | 1.000 | 7 / 0 / 0 |
+| Granadas | 250 | 1.500 | 5.000 | 6 / 0 / 0 |
+| Con mira | 150 | 1.000 | 3.000 | 6 / 0 / 0 |
+| Cohete (bazooka, Panzerschreck, PIAT) | 10 | 100 | 500 | 2 / 0 / 0 |
+| Teamkills | 100 | 300 | 1.000 | 5 / 0 / 0 |
+| Horas jugadas | 15h | 50h | 250h | 5 / 0 / 0 |
+| Tiempo acostado (Kenny) | 1h | 10h | 50h | 4 / 0 / 0 |
 
-La idea del reparto: el **bronce** lo saca cualquiera que venga seguido unas semanas,
-la **plata** pide meses de constancia y el **oro** es de veterano. Hoy no hay ningún
-oro, y eso está bien: al ritmo actual, los 10.000 kills son unos seis meses del que
-más juega.
+El reparto es exigente a propósito: **nadie tiene plata ni oro en ningún rubro**, y el
+bronce lo tienen entre dos y ocho doderos por rubro, 61 medallas en total para 240
+jugadores. El bronce ya es de los que vienen seguido; la plata pide varios meses y el
+oro es de veterano. Al ritmo actual, los 20.000 kills del oro son más de un año del
+que más juega.
 
 Dos avisos sobre los números:
 
@@ -41,6 +42,9 @@ Dos avisos sobre los números:
 - **El cohete y el Kenny son los más flojos.** Las muertes con cohete recién se
   registran bien desde el 1/10, y el tiempo acostado desde la versión 0.4 del plugin,
   así que sus marcas son las menos confiables.
+- **El bronce se va a ir aflojando solo.** Las marcas son fijas y los totales crecen,
+  así que dentro de unos meses lo va a tener mucha más gente. Es lo esperable en un
+  sistema de logros, pero conviene mirarlo.
 
 Los rubros "malos" entran igual, que era la gracia: el ojito dorado de teamkills y el
 Kenny dorado se ganan con todo honor.
@@ -64,6 +68,18 @@ quedan para después: guardar la fecha cuando se cruza la marca, o calcularla al
 buscando el momento del kill número 1.000. Lo segundo no necesita tabla pero es una
 consulta pesada, así que iría solo en el detalle.
 
+## Las imágenes: tres y no treinta y tres
+
+El ojito es siempre el mismo dibujo, cambia el metal. Así que alcanza con **tres
+imágenes para todo el medallero**: el ojito dorado, el plateado y el de bronce. La
+tarjeta de cada rubro lleva el ojito del metal que corresponda más el nombre del
+rubro; no hace falta un dibujo por rubro, que serían treinta y tres.
+
+Si incluso tres son muchas, hay una salida: un solo ojito claro y que el color del
+metal lo ponga el sitio con CSS. Queda bien con dibujos de un solo tono y ahorra dos
+imágenes, pero se pierde el brillo de un dorado hecho a mano. Yo probaría primero con
+las tres.
+
 ## Fases
 
 1. **Catálogo y cálculo.** Las ternas en un solo lugar (`lib/medallas.ts`), las seis
@@ -80,9 +96,8 @@ consulta pesada, así que iría solo en el detalle.
 
 ## Falta definir
 
-- **Las tres imágenes del ojito**: dorado, plateado y de bronce.
-- **La terna del Kenny**, que es la más dudosa: hoy solo cuatro doderos pasan la hora
-  acostados.
+- **Las tres imágenes del ojito**: dorado, plateado y de bronce, una sola vez para
+  todos los rubros.
 - **Si los rubros de arma necesitan nombre propio**, como las figuritas, o alcanza con
   "Cuerpo a cuerpo" y "Con mira".
 
