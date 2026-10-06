@@ -17,8 +17,8 @@ es cuántos doderos la tendrían **hoy**, apenas se publique:
 
 | Rubro | Bronce | Plata | Oro | Hoy la tienen |
 |---|---|---|---|---|
-| Kills | 1.500 | 5.000 | 20.000 | 8 / 0 / 0 |
-| Muertes (te mataron) | 1.500 | 5.000 | 20.000 | 5 / 0 / 0 |
+| Kills | 1.500 | 5.000 | 10.000 | 8 / 0 / 0 |
+| Muertes (te mataron) | 1.500 | 5.000 | 10.000 | 5 / 0 / 0 |
 | Banderas tomadas | 300 | 1.000 | 5.000 | 6 / 0 / 0 |
 | Headshots | 250 | 1.000 | 5.000 | 7 / 0 / 0 |
 | Cuerpo a cuerpo | 50 | 300 | 1.000 | 7 / 0 / 0 |
@@ -31,9 +31,25 @@ es cuántos doderos la tendrían **hoy**, apenas se publique:
 
 El reparto es exigente a propósito: **nadie tiene plata ni oro en ningún rubro**, y el
 bronce lo tienen entre dos y ocho doderos por rubro, 61 medallas en total para 240
-jugadores. El bronce ya es de los que vienen seguido; la plata pide varios meses y el
-oro es de veterano. Al ritmo actual, los 20.000 kills del oro son más de un año del
-que más juega.
+jugadores.
+
+Cuánto tardarían en llegar, al ritmo de estos quince días, el que va primero en cada
+rubro y el octavo (que es más o menos el que hoy saca el bronce):
+
+| Rubro | Plata, el 1ro | Plata, el 8vo | Oro, el 1ro | Oro, el 8vo |
+|---|---|---|---|---|
+| Kills | 3 semanas | 1,6 meses | 1,6 meses | 3,2 meses |
+| Muertes | 3 semanas | 1,8 meses | 1,7 meses | 3,7 meses |
+| Banderas | 2 semanas | 1,7 meses | 3 meses | 8,7 meses |
+| Headshots | 3 semanas | 2 meses | 3,5 meses | 10 meses |
+| Cuerpo a cuerpo | 2 semanas | 3,4 meses | 2,2 meses | 11,4 meses |
+| Granadas | 2 semanas | 3,3 meses | 2 meses | 11,2 meses |
+| Con mira | 3 semanas | 4,2 meses | 2,2 meses | 12,7 meses |
+| Teamkills | 3 semanas | 2,1 meses | 2,5 meses | 6,9 meses |
+| Horas jugadas | 4 semanas | 1,9 meses | 4,7 meses | 9,6 meses |
+
+Son proyecciones de quince días de datos, así que hay que tomarlas como un orden de
+magnitud y no como una promesa.
 
 Dos avisos sobre los números:
 
@@ -42,9 +58,10 @@ Dos avisos sobre los números:
 - **El cohete y el Kenny son los más flojos.** Las muertes con cohete recién se
   registran bien desde el 1/10, y el tiempo acostado desde la versión 0.4 del plugin,
   así que sus marcas son las menos confiables.
-- **El bronce se va a ir aflojando solo.** Las marcas son fijas y los totales crecen,
-  así que dentro de unos meses lo va a tener mucha más gente. Es lo esperable en un
-  sistema de logros, pero conviene mirarlo.
+- **Todo se va a ir aflojando solo.** Las marcas son fijas y los totales crecen, así
+  que dentro de unos meses el bronce lo va a tener mucha más gente y van a empezar a
+  caer los oros. Es lo esperable en un sistema de logros, y para eso está pensado el
+  ojito de titanio más abajo.
 
 Los rubros "malos" entran igual, que era la gracia: el ojito dorado de teamkills y el
 Kenny dorado se ganan con todo honor.
@@ -67,6 +84,18 @@ lindo tenerlo ("conseguiste el ojito dorado el 3/10"). Hay dos caminos y los dos
 quedan para después: guardar la fecha cuando se cruza la marca, o calcularla al vuelo
 buscando el momento del kill número 1.000. Lo segundo no necesita tabla pero es una
 consulta pesada, así que iría solo en el detalle.
+
+## Más adelante: el ojito de titanio
+
+Las marcas son fijas y los totales no paran de crecer, así que el oro se va a ir
+alcanzando y en algún momento deja de ser un desafío. Para eso queda abierta la puerta
+a un cuarto metal, el **ojito de titanio**, con marcas muy por encima del oro, que se
+sumaría cuando se vea que la gente engancha y que los oros empiezan a repartirse.
+
+Eso tiene una consecuencia de diseño que conviene respetar desde el día uno: el
+catálogo guarda **una lista de escalones** (metal y marca), no tres campos fijos
+llamados bronce, plata y oro. Agregar el titanio después tiene que ser una línea en el
+catálogo y una imagen más, no rehacer las consultas ni la tabla.
 
 ## Las imágenes: tres y no treinta y tres
 
