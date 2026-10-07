@@ -116,9 +116,9 @@ las tres.
    cero, pasarse de largo) y `totalesDeMedallas()` en `lib/consultas.ts`, que son
    seis consultas para los once rubros. Probado contra los datos reales: 274 doderos,
    17 con alguna medalla, todas de bronce, y El Uru con los once.
-2. **Página Medallero.** El ranking de doderos ordenado por oro, después plata,
-   después bronce. Debajo, el catálogo de rubros con sus tres marcas y cuánta gente
-   llegó a cada una.
+2. ~~**Página Medallero.**~~ Hecha. `/medallas`: la portada con la estatuilla, el
+   ranking de doderos y el catálogo de los once rubros con cuánta gente llegó a cada
+   marca. Entrada propia en el menú y un enlace abajo de los titulares.
 3. **En el perfil.** Las medallas del dodero y, para cada rubro, lo que le falta para
    la próxima: "812 / 1.000 kills".
 4. **Terminaciones.** Las imágenes de los ojitos (las hace Trevor), el botón de

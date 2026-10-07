@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import type { SlideTitular } from '@/lib/titulares'
 import { formatoNumero, formatoTiempo } from '@/lib/calculos'
 import { EscudoAliados, EscudoEje } from '@/components/Banderas'
+import { Ojito } from '@/components/Ojito'
 
 /*
  *  Va mostrando "Ayer", la semana pasada y el mes pasado de a uno. Todo el
@@ -99,7 +100,13 @@ export function TitularesCarrusel ({ slides, totales }: { slides: SlideTitular[]
         <Contenido slide={slide} />
       </Link>
 
-      {slides.length > 1 && (
+      <div className='titulares-pie'>
+        <Link href='/medallas' className='titulares-medallero'>
+          <Ojito metal='oro' chico />
+          Medallero dodero
+        </Link>
+
+        {slides.length > 1 && (
         <div className='titulares-puntos' role='tablist' aria-label='Período de los titulares'>
           {slides.map((s, i) => (
             <button
@@ -113,7 +120,8 @@ export function TitularesCarrusel ({ slides, totales }: { slides: SlideTitular[]
             />
           ))}
         </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
