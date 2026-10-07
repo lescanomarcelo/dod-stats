@@ -84,10 +84,6 @@ async function Contenido () {
                 ))}
               </ol>
               )}
-          <p className='nota'>
-            Primero el que tiene más ojitos dorados; si empatan, se mira la plata y después el bronce.
-            Un dorado le gana a cualquier cantidad de plata.
-          </p>
         </div>
       </section>
 
