@@ -833,22 +833,39 @@ tbody tr.sin-uso .arma-dibujo { opacity: 0.45; filter: grayscale(1); }
 .titulares-medallero:hover { color: var(--acento); }
 .titulares-medallero .ojito.chico { width: 1.1rem; height: 1.1rem; }
 
-/* La vitrina de ojitos del perfil */
-.ojitos-vitrina { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 0.9rem; }
-.ojito-ficha { display: flex; flex-direction: column; gap: 0.5rem; }
-.ojito-ficha.sin-ojito { opacity: 0.62; }
-.ojito-ficha-cabecera { display: flex; align-items: center; gap: 0.7rem; }
+/* La vitrina de ojitos del perfil: mosaico chico, que once fichas grandes son un rollo */
+.ojitos-vitrina { display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 0.55rem; }
+.ojito-ficha { display: flex; flex-direction: column; gap: 0.3rem; padding: 0.6rem 0.7rem; }
+.ojito-ficha.sin-ojito { opacity: 0.55; }
+.ojito-ficha-cabecera { display: flex; align-items: center; gap: 0.4rem; min-width: 0; }
 .ojito-ficha-nombre {
-  display: block; font-family: var(--font-oswald), sans-serif; text-transform: uppercase;
-  letter-spacing: 0.03em; color: var(--acento); font-size: 0.95rem;
+  font-family: var(--font-oswald), sans-serif; text-transform: uppercase;
+  letter-spacing: 0.03em; color: var(--acento); font-size: 0.72rem;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .ojito-ficha.sin-ojito .ojito-ficha-nombre { color: var(--texto); }
-.ojito-ficha-valor { display: block; font-size: 1.05rem; }
+.ojito-ficha-valor { font-size: 1rem; line-height: 1.1; }
 .ojito-vacio {
-  width: 2.2rem; height: 2.2rem; border-radius: 50%; flex: none;
+  width: 1.35rem; height: 1.35rem; border-radius: 50%; flex: none;
   border: 2px dashed var(--borde);
 }
-.ojito-barra { height: 5px; border-radius: 3px; background: var(--panel-alto); overflow: hidden; }
-.ojito-barra span { display: block; height: 100%; background: var(--acento); border-radius: 3px; }
-.ojito-falta { color: var(--tenue); font-size: 0.75rem; }
+.ojito-barra { height: 4px; border-radius: 2px; background: var(--panel-alto); overflow: hidden; }
+.ojito-barra span { display: block; height: 100%; background: var(--acento); border-radius: 2px; }
+.ojito-falta {
+  display: flex; align-items: center; gap: 0.3rem;
+  color: var(--tenue); font-size: 0.68rem;
+}
+.ojito-falta .ojito.chico { width: 0.95rem; height: 0.95rem; opacity: 0.75; }
 .ojito-falta.completo { color: var(--acento); }
+
+/* El medallero va en lista y no en tabla: tres monedas con sus números no entran en el celular */
+.medallero-lista { list-style: none; margin: 0; padding: 0; }
+.medallero-lista li {
+  display: flex; align-items: center; gap: 0.6rem;
+  padding: 0.5rem 0.2rem; border-bottom: 1px solid var(--borde);
+}
+.medallero-lista li:last-child { border-bottom: 0; }
+.medallero-lista .posicion { min-width: 1.6rem; color: var(--tenue); }
+.medallero-lista li:first-child .posicion { color: var(--acento); }
+.medallero-lista .jugador { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.medallero-lista .ojitos-cuenta { flex: none; }

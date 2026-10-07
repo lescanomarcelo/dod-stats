@@ -9,7 +9,7 @@ import { compartirPorWhatsApp } from '@/lib/enlaces'
 import { Ojito } from '@/components/Ojito'
 
 const TITULO = 'Medallero Dodero'
-const BAJADA = 'Ojitos por lo que juntaste desde siempre: el que llega a la marca se lo lleva y no lo pierde más'
+const BAJADA = 'Medallero de ojitos: se ganan y no se pierden'
 
 export const metadata: Metadata = {
   title: TITULO,
@@ -74,28 +74,15 @@ async function Contenido () {
           {conMedallas.length === 0
             ? <p className='vacio'>Todavía nadie llegó a ninguna marca.</p>
             : (
-              <div className='tabla-envoltorio'>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Dodero</th>
-                      <th className='num'>Ojitos</th>
-                      <th className='num'>Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {conMedallas.map((d, i) => (
-                      <tr key={d.id}>
-                        <td className='posicion numero'>{i + 1}</td>
-                        <td><EnlaceJugador id={d.id} nick={d.nick} /></td>
-                        <td className='num'><Cuentita cuenta={d.cuenta} /></td>
-                        <td className='num destacado'>{d.ganadas.length}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <ol className='medallero-lista'>
+                {conMedallas.map((d, i) => (
+                  <li key={d.id}>
+                    <span className='posicion numero'>{i + 1}</span>
+                    <EnlaceJugador id={d.id} nick={d.nick} />
+                    <Cuentita cuenta={d.cuenta} />
+                  </li>
+                ))}
+              </ol>
               )}
           <p className='nota'>
             Primero el que tiene más ojitos dorados; si empatan, se mira la plata y después el bronce.

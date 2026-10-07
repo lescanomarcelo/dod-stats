@@ -33,27 +33,34 @@ export function Ojitos ({ totales }: { totales: Partial<TotalesDeMedallas> }) {
     <>
       <div className='ojitos-vitrina'>
         {filas.map(({ rubro, valor, metal, proximo, avance }) => (
-          <div className={metal ? 'panel ojito-ficha' : 'panel ojito-ficha sin-ojito'} key={rubro.clave}>
+          <div
+            className={metal ? 'panel ojito-ficha' : 'panel ojito-ficha sin-ojito'}
+            key={rubro.clave}
+            title={proximo
+              ? `Le falta ${rubro.formato(proximo.falta)} para el ojito ${NOMBRE_METAL[proximo.metal]}`
+              : 'Ya tiene el último escalón de este rubro'}
+          >
             <div className='ojito-ficha-cabecera'>
               {metal
-                ? <Ojito metal={metal} />
+                ? <Ojito metal={metal} chico />
                 : <span className='ojito-vacio' aria-hidden='true' />}
-              <div>
-                <strong className='ojito-ficha-nombre'>{rubro.nombre}</strong>
-                <span className='ojito-ficha-valor numero'>{rubro.formato(valor)}</span>
-              </div>
+              <strong className='ojito-ficha-nombre'>{rubro.nombre}</strong>
             </div>
+
+            <span className='ojito-ficha-valor numero'>{rubro.formato(valor)}</span>
 
             {proximo
               ? (
                 <>
                   <div className='ojito-barra'><span style={{ width: `${Math.max(avance, 2)}%` }} /></div>
+                  {/* El metal que viene, apagado al final de la barra: se entiende sin leer */}
                   <span className='ojito-falta'>
-                    Le falta {rubro.formato(proximo.falta)} para el {NOMBRE_METAL[proximo.metal]}
+                    faltan {rubro.formato(proximo.falta)}
+                    <Ojito metal={proximo.metal} chico />
                   </span>
                 </>
                 )
-              : <span className='ojito-falta completo'>No queda nada por ganar acá</span>}
+              : <span className='ojito-falta completo'>completo</span>}
           </div>
         ))}
       </div>
