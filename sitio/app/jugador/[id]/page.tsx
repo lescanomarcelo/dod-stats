@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
 import {
   jugador, armasDeJugador, hitboxesDeJugador, rivales, mapasDeJugador,
-  mapasJugadosPor, puntosDeCalor, impactosDeJugador, MAX_PUNTOS_CALOR, type TipoCalor
+  mapasJugadosPor, puntosDeCalor, impactosDeJugador, totalesDeMedallas, MAX_PUNTOS_CALOR, type TipoCalor
 } from '@/lib/consultas'
 import {
   kd, porcentaje, formatoKd, formatoPorcentaje, formatoNumero, formatoTiempo,
@@ -17,6 +17,7 @@ import { Tarjeta, Barras, EnlaceJugador, Cargando } from '@/components/Ui'
 import { Hace } from '@/components/Hace'
 import { MapaDeCalor } from '@/components/MapaDeCalor'
 import { Cuerpo, type Zonas } from '@/components/Cuerpo'
+import { Ojitos } from '@/components/Ojitos'
 import { Desplegable } from '@/components/Desplegable'
 
 /** El id llega por la URL: solo enteros positivos, cualquier otra cosa es 404 */
@@ -140,14 +141,18 @@ async function Perfil ({ parametros, busqueda }: { parametros: PageProps<'/jugad
   const j = await jugador(id)
   if (!j) notFound()
 
-  const [armas, hitboxes, impactos, nemesis, victimas, mapas] = await Promise.all([
+  const [armas, hitboxes, impactos, nemesis, victimas, mapas, medallero] = await Promise.all([
     armasDeJugador(id),
     hitboxesDeJugador(id),
     impactosDeJugador(id),
     rivales(id, 'nemesis'),
     rivales(id, 'victimas'),
-    mapasDeJugador(id)
+    mapasDeJugador(id),
+    /* Viene cacheado para todo el server: no son seis consultas mas por cada perfil */
+    totalesDeMedallas()
   ])
+
+  const susTotales = medallero.find((d) => d.id === id)?.totales ?? {}
 
   const dondePega = zonasParaElMuneco(impactos, hitboxes)
 
@@ -177,6 +182,11 @@ async function Perfil ({ parametros, busqueda }: { parametros: PageProps<'/jugad
         <Tarjeta etiqueta='Suicidios' valor={j.suicidios} />
         <Tarjeta etiqueta='Camper' valor={j.segundosAcostado > 0 ? formatoPorcentaje(camper(j.segundosAcostado, j.segundosEnJuego)) : '—'} />
       </div>
+
+      <section className='seccion'>
+        <h2 className='titulo-seccion'>Sus ojitos</h2>
+        <Ojitos totales={susTotales} />
+      </section>
 
       <section className='seccion panel'>
         <h2>Dónde pega</h2>
