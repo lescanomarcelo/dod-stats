@@ -119,8 +119,9 @@ las tres.
 2. ~~**Página Medallero.**~~ Hecha. `/medallas`: la portada con la estatuilla, el
    ranking de doderos y el catálogo de los once rubros con cuánta gente llegó a cada
    marca. Entrada propia en el menú y un enlace abajo de los titulares.
-3. **En el perfil.** Las medallas del dodero y, para cada rubro, lo que le falta para
-   la próxima: "812 / 1.000 kills".
+3. ~~**En el perfil.**~~ Hecha. La vitrina de los once rubros en cada perfil, con el
+   ojito que tiene, lo acumulado, una barra y lo que le falta para el que sigue. Los
+   que todavía no empezó van apagados, como la vitrina de logros de Steam.
 4. **Terminaciones.** Las imágenes de los ojitos (las hace Trevor), el botón de
    compartir por WhatsApp y la vista previa, como el resto del sitio.
 5. **Más adelante.** La fecha de cada medalla y un aviso de las nuevas de la semana.

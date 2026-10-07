@@ -832,3 +832,23 @@ tbody tr.sin-uso .arma-dibujo { opacity: 0.45; filter: grayscale(1); }
 }
 .titulares-medallero:hover { color: var(--acento); }
 .titulares-medallero .ojito.chico { width: 1.1rem; height: 1.1rem; }
+
+/* La vitrina de ojitos del perfil */
+.ojitos-vitrina { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 0.9rem; }
+.ojito-ficha { display: flex; flex-direction: column; gap: 0.5rem; }
+.ojito-ficha.sin-ojito { opacity: 0.62; }
+.ojito-ficha-cabecera { display: flex; align-items: center; gap: 0.7rem; }
+.ojito-ficha-nombre {
+  display: block; font-family: var(--font-oswald), sans-serif; text-transform: uppercase;
+  letter-spacing: 0.03em; color: var(--acento); font-size: 0.95rem;
+}
+.ojito-ficha.sin-ojito .ojito-ficha-nombre { color: var(--texto); }
+.ojito-ficha-valor { display: block; font-size: 1.05rem; }
+.ojito-vacio {
+  width: 2.2rem; height: 2.2rem; border-radius: 50%; flex: none;
+  border: 2px dashed var(--borde);
+}
+.ojito-barra { height: 5px; border-radius: 3px; background: var(--panel-alto); overflow: hidden; }
+.ojito-barra span { display: block; height: 100%; background: var(--acento); border-radius: 3px; }
+.ojito-falta { color: var(--tenue); font-size: 0.75rem; }
+.ojito-falta.completo { color: var(--acento); }
