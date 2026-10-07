@@ -801,3 +801,34 @@ tbody tr.sin-uso .arma-dibujo { opacity: 0.45; filter: grayscale(1); }
 /* En el celular no hay Steam con el juego: el boton solo estorba */
 @media (max-width: 640px) { .ip-servidor.conectar { display: none; } }
 .visitas { color: var(--tenue); font-size: 0.8rem; }
+
+/* ------------------------------------------------------------------ */
+/*  Medallero: los ojitos y el catalogo de rubros                      */
+/* ------------------------------------------------------------------ */
+
+.ojito { width: 2.2rem; height: 2.2rem; display: block; }
+.ojito.chico { width: 1.35rem; height: 1.35rem; }
+
+.ojitos-cuenta { display: inline-flex; align-items: center; gap: 0.7rem; justify-content: flex-end; }
+.ojitos-par { display: inline-flex; align-items: center; gap: 0.25rem; }
+
+.rubros { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.9rem; }
+.rubro { display: flex; flex-direction: column; gap: 0.15rem; }
+.rubro-nombre {
+  font-family: var(--font-oswald), sans-serif; text-transform: uppercase;
+  letter-spacing: 0.03em; color: var(--acento); font-size: 1.05rem;
+}
+.rubro-detalle { color: var(--tenue); font-size: 0.78rem; margin-bottom: 0.5rem; }
+.rubro-marcas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.35rem; }
+.rubro-marcas li { display: flex; align-items: center; gap: 0.5rem; }
+.rubro-marcas .numero { min-width: 4.5rem; }
+.rubro-cuantos { color: var(--tenue); font-size: 0.75rem; margin-left: auto; }
+
+/* El enlace al medallero, abajo de los titulares */
+.titulares-pie { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-top: 0.4rem; }
+.titulares-medallero {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  color: var(--tenue); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em;
+}
+.titulares-medallero:hover { color: var(--acento); }
+.titulares-medallero .ojito.chico { width: 1.1rem; height: 1.1rem; }

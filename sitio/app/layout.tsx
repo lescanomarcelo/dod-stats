@@ -54,6 +54,7 @@ const SECCIONES = [
   { href: '/equipos', texto: 'Eje vs Aliados' },
   { href: '/armas', texto: 'Armas' },
   { href: '/comparar', texto: 'Comparar' },
+  { href: '/medallas', texto: 'Medallero' },
   { href: '/server', texto: 'El Server' },
   { href: '/links', texto: 'Links' }
 ] as const
