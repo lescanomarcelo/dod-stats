@@ -3,20 +3,12 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
+import { SECCIONES } from '@/lib/secciones'
 
 /*
  *  Menu de las tres rayitas, arriba a la derecha. Se cierra solo al elegir una
  *  pagina, al tocar afuera o con Escape.
  */
-
-const PAGINAS = [
-  { href: '/', texto: 'Ranking' },
-  { href: '/equipos', texto: 'Eje vs Aliados' },
-  { href: '/armas', texto: 'Armas' },
-  { href: '/comparar', texto: 'Comparar' },
-  { href: '/server', texto: 'El Server' },
-  { href: '/links', texto: 'Links' }
-]
 
 export function Menu () {
   const [abierto, setAbierto] = useState(false)
@@ -51,7 +43,7 @@ export function Menu () {
 
       {abierto && (
         <nav className='menu-panel' aria-label='Secciones'>
-          {PAGINAS.map((p) => (
+          {SECCIONES.map((p) => (
             <Link
               key={p.href}
               href={p.href}
