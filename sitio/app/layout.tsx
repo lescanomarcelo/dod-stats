@@ -12,6 +12,7 @@ import { estadoServidor, jugadoresEnLinea, SERVIDOR } from '@/lib/estado'
 import { JugadoresEnLinea } from '@/components/JugadoresEnLinea'
 import { IconoWhatsApp, IconoDiscord, IconoCafecito, IconoSteam } from '@/components/Iconos'
 import { GRUPOS, enlaceCafecito } from '@/lib/links'
+import { SECCIONES } from '@/lib/secciones'
 import { Titulares } from '@/components/Titulares'
 import './globals.css'
 import './diario.css'
@@ -49,16 +50,6 @@ async function UltimaActualizacion () {
 const DIRECCION = `${SERVIDOR.host}:${SERVIDOR.puerto}`
 
 /* Las secciones del sitio, listadas abajo de todo ademas de en el menu */
-const SECCIONES = [
-  { href: '/', texto: 'Ranking' },
-  { href: '/equipos', texto: 'Eje vs Aliados' },
-  { href: '/armas', texto: 'Armas' },
-  { href: '/comparar', texto: 'Comparar' },
-  { href: '/medallas', texto: 'Medallero' },
-  { href: '/server', texto: 'El Server' },
-  { href: '/links', texto: 'Links' }
-] as const
-
 /* Los links de la comunidad salen de lib/links.ts: se cargan en un solo lugar */
 const deComunidad = (nombre: string) =>
   GRUPOS.flatMap((g) => g.enlaces).find((e) => e.nombre === nombre)?.url ?? '#'

@@ -92,7 +92,7 @@ async function Contenido () {
       </section>
 
       <section className='seccion'>
-        <h2 className='titulo-seccion'>Los rubros</h2>
+        <h2 className='titulo-seccion'>¿Cómo ganar ojitos?</h2>
         <div className='rubros'>
           {RUBROS.map((rubro) => (
             <div className='panel rubro' key={rubro.clave}>
