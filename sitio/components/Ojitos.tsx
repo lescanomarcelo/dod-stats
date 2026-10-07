@@ -27,11 +27,8 @@ export function Ojitos ({ totales }: { totales: Partial<TotalesDeMedallas> }) {
     return peso(b.metal) - peso(a.metal) || b.avance - a.avance
   })
 
-  const conseguidos = filas.filter((f) => f.metal).length
-
   return (
-    <>
-      <div className='ojitos-vitrina'>
+    <div className='ojitos-vitrina'>
         {filas.map(({ rubro, valor, metal, proximo, avance }) => (
           <div
             className={metal ? 'panel ojito-ficha' : 'panel ojito-ficha sin-ojito'}
@@ -63,13 +60,6 @@ export function Ojitos ({ totales }: { totales: Partial<TotalesDeMedallas> }) {
               : <span className='ojito-falta completo'>completo</span>}
           </div>
         ))}
-      </div>
-
-      <p className='nota'>
-        {conseguidos === 0
-          ? 'Todavía no llegó a ninguna marca. Los ojitos se cuentan sobre todo lo jugado, así que no hay apuro.'
-          : `${conseguidos} de ${RUBROS.length} rubros con ojito. Se cuentan sobre todo lo jugado y no se pierden.`}
-      </p>
-    </>
+    </div>
   )
 }

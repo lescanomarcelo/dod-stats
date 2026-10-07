@@ -109,10 +109,6 @@ async function Contenido () {
             </div>
           ))}
         </div>
-        <p className='nota'>
-          Las marcas son de toda la historia y no se reinician. Cuando los dorados se empiecen a
-          repartir, se suma un escalón más difícil.
-        </p>
       </section>
     </>
   )
