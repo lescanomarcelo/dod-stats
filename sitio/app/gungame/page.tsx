@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
-import { ganadoresDeGungame, partidasDeGungame } from '@/lib/consultas'
+import { ganadoresDeGungame } from '@/lib/consultas'
 import { formatoNumero } from '@/lib/calculos'
 import { EnlaceJugador, Cargando } from '@/components/Ui'
 import { IconoWhatsApp } from '@/components/Iconos'
@@ -23,8 +23,7 @@ export const metadata: Metadata = {
 }
 
 async function Contenido () {
-  const [ganadores, partidas] = await Promise.all([ganadoresDeGungame(), partidasDeGungame()])
-  const total = ganadores.reduce((suma, g) => suma + g.ganadas, 0)
+  const ganadores = await ganadoresDeGungame()
 
   return (
     <>
@@ -59,30 +58,6 @@ async function Contenido () {
                 ))}
               </ol>
               )}
-        </div>
-      </section>
-
-      <section className='seccion'>
-        <div className='panel'>
-          <h2>Cómo se cuenta</h2>
-          <p>
-            El gungame lo prende un admin de vez en cuando: a cada uno le va tocando un arma
-            distinta y gana el que llega al final de la escalera. Van{' '}
-            <strong className='numero'>{formatoNumero(total)}</strong>{' '}
-            {total === 1 ? 'gungame ganado' : 'gungames ganados'} en{' '}
-            <strong className='numero'>{formatoNumero(partidas)}</strong>{' '}
-            {partidas === 1 ? 'partida' : 'partidas'}.
-          </p>
-          <p>
-            Las victorias las lleva el propio gungame, no nosotros, así que son de toda la
-            historia y no se pueden cortar por semana o por mes como el resto del sitio.
-          </p>
-          <p>
-            Lo que pasa en gungame <strong>no cuenta</strong> para ninguna otra estadística: las
-            kills, las muertes, las banderas y el tiempo de esas partidas quedan afuera del
-            ranking y del medallero. Ahí el arma te la reparte el modo, no la elegís, así que
-            esos números no dirían nada de cómo juega cada uno.
-          </p>
         </div>
       </section>
     </>

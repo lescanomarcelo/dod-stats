@@ -1284,12 +1284,3 @@ export async function ganadoresDeGungame (): Promise<GanadorGungame[]> {
   `)
   return filas.map((f) => ({ id: n(f.id), nick: String(f.nick), ganadas: n(f.ganadas) }))
 }
-
-/** Cuantas partidas se jugaron en gungame, para la linea de contexto */
-export async function partidasDeGungame (): Promise<number> {
-  'use cache'
-  cacheLife(VIDA_CACHE)
-
-  const [fila] = await consultar('SELECT COUNT(*) AS n FROM {p}mapas_jugados WHERE gg = 1')
-  return n(fila?.n)
-}
