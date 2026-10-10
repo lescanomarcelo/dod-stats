@@ -22,7 +22,7 @@ const RUTA_USERS = '../../configs/users.ini'
 const CARPETA_LOGS = '../../logs'
 
 export async function ingerir ({ fuente, base, registrar = () => {} }) {
-  const resultado = { ocupado: false, archivos: 0, admines: 0, adminLogins: 0, muertes: 0, sesiones: 0, mapas: 0, impactos: 0, acostado: 0, jugado: 0, puntos: 0, marcadores: 0, ignorados: 0, descartadas: 0, alertas: [] }
+  const resultado = { ocupado: false, archivos: 0, admines: 0, adminLogins: 0, muertes: 0, sesiones: 0, mapas: 0, impactos: 0, acostado: 0, jugado: 0, puntos: 0, marcadores: 0, ignorados: 0, descartadas: 0, sesionesGg: 0, alertas: [] }
 
   if (!await base.tomarCandado()) {
     registrar('Hay otra ingesta corriendo. Esta termina sin hacer nada.')
@@ -34,6 +34,7 @@ export async function ingerir ({ fuente, base, registrar = () => {} }) {
     await refrescarAdmines(fuente, base, registrar, resultado)
     await refrescarAdminLogins(fuente, base, registrar, resultado)
     await procesarArchivos(fuente, base, registrar, resultado)
+    await marcarGungame(base, registrar, resultado)
   } finally {
     await base.soltarCandado()
   }
@@ -86,6 +87,28 @@ async function refrescarAdminLogins (fuente, base, registrar, resultado) {
     registrar(`logins de admin: ${resultado.adminLogins}`)
   } catch (error) {
     registrar(`No se pudieron guardar los logins de admin (${error.code || error.message}).`)
+  }
+}
+
+/*
+ *  Marca las partidas de gungame, para que no ensucien las estadisticas. Se
+ *  recalcula entero en cada pasada: una partida puede empezar en un archivo y
+ *  terminar en el siguiente, asi que recien se la puede juzgar cuando estan todas
+ *  sus muertes.
+ *
+ *  Como los otros extras, no puede trabar la ingesta: los eventos ya estan
+ *  guardados y el marcado se reintenta solo en la proxima pasada.
+ */
+async function marcarGungame (base, registrar, resultado) {
+  if (!base.marcarGungame) return
+
+  try {
+    const { sesiones, sesionesGg, mapasPuros } = await base.marcarGungame()
+    resultado.sesionesGg = sesionesGg
+    registrar(`gungame: ${sesionesGg} de ${sesiones} sesiones de mapa` +
+      (mapasPuros.length ? `, mapas solo de gg: ${mapasPuros.join(', ')}` : ''))
+  } catch (error) {
+    registrar(`No se pudo marcar el gungame (${error.code || error.message}).`)
   }
 }
 

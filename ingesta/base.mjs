@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url'
 import mysql from 'mysql2/promise'
 import { identidadDe } from './identidad.mjs'
 import { ZONAS } from './parsear.mjs'
+import { ARMAS_DELATORAS, clasificarSesiones } from './gungame.mjs'
 
 const RUTA_ESQUEMA = fileURLToPath(new URL('./esquema.sql', import.meta.url))
 /* En orden de borrado: las que apuntan a jugadores, antes que jugadores */
@@ -394,6 +395,112 @@ export async function conectar (config, prefijo = '') {
     }))
   }
 
+  /* ---------------------------------------------------------------- */
+  /*  GunGame                                                         */
+  /* ---------------------------------------------------------------- */
+
+  /*
+   *  Marca que paso en gungame y que no. La regla vive en gungame.mjs; aca esta
+   *  solo el ir y venir con la base.
+   *
+   *  Se recalcula entero en cada ingesta, a proposito: una partida puede empezar
+   *  en un archivo y seguir en el siguiente, asi que recien se la puede juzgar
+   *  cuando estan todas sus muertes. Recalcular es barato (son un par de cientos
+   *  de sesiones) y hace que el resultado no dependa del orden en que se cargo.
+   *
+   *  Una sesion de mapa va desde su linea P hasta la P siguiente. No se usa la
+   *  tabla de partidas para esto: su inicio y fin salen de las lineas de marcador,
+   *  y hay un 11% de las muertes que caen fuera de esas ventanas.
+   */
+  async function marcarGungame () {
+    const SESIONES = `
+      SELECT id, mapa, inicio, gg,
+             LEAD(inicio) OVER (ORDER BY inicio, id) AS fin
+      FROM ${t('mapas_jugados')}`
+    const DENTRO = `mu.momento >= s.inicio AND (s.fin IS NULL OR mu.momento < s.fin)`
+
+    /* Cuantas muertes tuvo cada sesion de mapa */
+    const [totales] = await conexion.query(
+      `WITH s AS (${SESIONES})
+       SELECT s.id, s.mapa, COUNT(mu.id) AS muertes
+       FROM s LEFT JOIN ${t('muertes')} mu ON ${DENTRO}
+       GROUP BY s.id, s.mapa`)
+
+    /* Y cuantas con cada arma de las que delatan el gungame. Son pocas filas:
+       solo las armas de los dos arsenales, no todas. */
+    const [detalle] = await conexion.query(
+      `WITH s AS (${SESIONES})
+       SELECT s.id, mu.arma, COUNT(*) AS n
+       FROM s JOIN ${t('muertes')} mu ON ${DENTRO}
+       WHERE mu.arma IN (?)
+       GROUP BY s.id, mu.arma`,
+      [ARMAS_DELATORAS])
+
+    const armasPorSesion = new Map()
+    for (const f of detalle) {
+      const id = Number(f.id)
+      if (!armasPorSesion.has(id)) armasPorSesion.set(id, {})
+      armasPorSesion.get(id)[f.arma] = Number(f.n)
+    }
+
+    const sesiones = totales.map((f) => ({
+      id: Number(f.id),
+      mapa: f.mapa,
+      muertes: Number(f.muertes),
+      armas: armasPorSesion.get(Number(f.id)) ?? {}
+    }))
+
+    const { gg, mapasPuros } = clasificarSesiones(sesiones)
+
+    /* Las sesiones. Se pone todo en 0 y se prende lo que corresponde, asi un
+       cambio en la regla tambien puede DESmarcar lo que ya estaba marcado. */
+    await conexion.query(`UPDATE ${t('mapas_jugados')} SET gg = 0 WHERE gg = 1`)
+    if (gg.length) {
+      await conexion.query(`UPDATE ${t('mapas_jugados')} SET gg = 1 WHERE id IN (?)`, [gg])
+    }
+
+    /* Los eventos con momento propio: se copia la marca de su sesion */
+    const ventanas = await rangosGungame(SESIONES)
+
+    for (const tabla of ['muertes', 'puntos']) {
+      await conexion.query(`UPDATE ${t(tabla)} SET gg = 0 WHERE gg = 1`)
+      for (const [desde, hasta] of ventanas) {
+        await conexion.query(
+          hasta
+            ? `UPDATE ${t(tabla)} SET gg = 1 WHERE momento >= ? AND momento < ?`
+            : `UPDATE ${t(tabla)} SET gg = 1 WHERE momento >= ?`,
+          hasta ? [desde, hasta] : [desde])
+      }
+    }
+
+    /* Las partidas se identifican por su inicio */
+    await conexion.query(`UPDATE ${t('partidas')} SET gg = 0 WHERE gg = 1`)
+    for (const [desde, hasta] of ventanas) {
+      await conexion.query(
+        hasta
+          ? `UPDATE ${t('partidas')} SET gg = 1 WHERE inicio >= ? AND inicio < ?`
+          : `UPDATE ${t('partidas')} SET gg = 1 WHERE inicio >= ?`,
+        hasta ? [desde, hasta] : [desde])
+    }
+
+    /* Las que suman por jugador y mapa: solo se puede marcar el mapa entero */
+    for (const tabla of ['impactos', 'acostado', 'jugado']) {
+      await conexion.query(`UPDATE ${t(tabla)} SET gg = 0 WHERE gg = 1`)
+      if (mapasPuros.length) {
+        await conexion.query(`UPDATE ${t(tabla)} SET gg = 1 WHERE mapa IN (?)`, [mapasPuros])
+      }
+    }
+
+    return { sesiones: sesiones.length, sesionesGg: gg.length, mapasPuros }
+  }
+
+  /** Las ventanas [desde, hasta) de las sesiones marcadas como gungame */
+  async function rangosGungame (SESIONES) {
+    const [filas] = await conexion.query(
+      `WITH s AS (${SESIONES}) SELECT inicio, fin FROM s WHERE gg = 1 ORDER BY inicio`)
+    return filas.map((f) => [f.inicio, f.fin])
+  }
+
   async function contar (tabla) {
     const [filas] = await conexion.query(`SELECT COUNT(*) AS n FROM ${t(tabla)}`)
     return Number(filas[0].n)
@@ -414,6 +521,7 @@ export async function conectar (config, prefijo = '') {
     guardarLote,
     guardarAdmines,
     guardarAdminLogins,
+    marcarGungame,
     ranking,
     contar,
     consultar,

@@ -32,6 +32,8 @@ CREATE TABLE IF NOT EXISTS {p}muertes (
   hitbox          TINYINT UNSIGNED NOT NULL,
   headshot        TINYINT(1)       NOT NULL,
   teamkill        TINYINT(1)       NOT NULL,
+  -- 1 = paso en una partida de gungame. La marca la ingesta, ver gungame.mjs
+  gg              TINYINT(1)       NOT NULL DEFAULT 0,
   -- Coordenadas en unidades del mundo de HL1. Para los heatmaps de la fase 3.
   victima_x       INT              NOT NULL,
   victima_y       INT              NOT NULL,
@@ -62,8 +64,12 @@ CREATE TABLE IF NOT EXISTS {p}mapas_jugados (
   id      BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   mapa    VARCHAR(40)     NOT NULL,
   inicio  DATETIME        NOT NULL,
+  -- 1 = esta sesion de mapa se jugo en gungame. Es el origen de todas las demas
+  -- marcas gg: lo que se decide aca se copia a los eventos. Ver gungame.mjs
+  gg      TINYINT(1)      NOT NULL DEFAULT 0,
   PRIMARY KEY (id),
-  KEY ix_mapa (mapa)
+  KEY ix_mapa (mapa),
+  KEY ix_inicio (inicio)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Donde pega cada jugador: todos los impactos (no solo el tiro que mata), por zona
@@ -84,6 +90,9 @@ CREATE TABLE IF NOT EXISTS {p}impactos (
   danio        BIGINT UNSIGNED NOT NULL DEFAULT 0,
   disparos     BIGINT UNSIGNED NOT NULL DEFAULT 0,
   actualizado  DATETIME        NOT NULL,
+  -- 1 = el mapa SOLO se jugo en gungame. Esta tabla suma por jugador y mapa, no
+  -- tiene una fila por evento, asi que un mapa mixto no se puede partir
+  gg           TINYINT(1)      NOT NULL DEFAULT 0,
   PRIMARY KEY (jugador_id, mapa),
   CONSTRAINT fk_{p}impactos_jugador FOREIGN KEY (jugador_id) REFERENCES {p}jugadores (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -98,6 +107,8 @@ CREATE TABLE IF NOT EXISTS {p}acostado (
   dia          DATETIME        NOT NULL,
   segundos     BIGINT UNSIGNED NOT NULL DEFAULT 0,
   actualizado  DATETIME        NOT NULL,
+  -- 1 = el mapa SOLO se jugo en gungame, igual que en impactos
+  gg           TINYINT(1)      NOT NULL DEFAULT 0,
   PRIMARY KEY (jugador_id, mapa, dia),
   KEY ix_dia (dia),
   CONSTRAINT fk_{p}acostado_jugador FOREIGN KEY (jugador_id) REFERENCES {p}jugadores (id)
@@ -112,6 +123,8 @@ CREATE TABLE IF NOT EXISTS {p}jugado (
   dia          DATETIME        NOT NULL,
   segundos     BIGINT UNSIGNED NOT NULL DEFAULT 0,
   actualizado  DATETIME        NOT NULL,
+  -- 1 = el mapa SOLO se jugo en gungame, igual que en impactos
+  gg           TINYINT(1)      NOT NULL DEFAULT 0,
   PRIMARY KEY (jugador_id, mapa, dia),
   KEY ix_dia (dia),
   CONSTRAINT fk_{p}jugado_jugador FOREIGN KEY (jugador_id) REFERENCES {p}jugadores (id)
@@ -126,6 +139,8 @@ CREATE TABLE IF NOT EXISTS {p}puntos (
   jugador_id  INT UNSIGNED      NOT NULL,
   equipo      TINYINT UNSIGNED  NOT NULL,
   puntos      SMALLINT UNSIGNED NOT NULL,
+  -- 1 = se sumaron en una partida de gungame
+  gg          TINYINT(1)        NOT NULL DEFAULT 0,
   PRIMARY KEY (id),
   KEY ix_jugador (jugador_id),
   KEY ix_momento (momento),
@@ -141,6 +156,8 @@ CREATE TABLE IF NOT EXISTS {p}partidas (
   fin      DATETIME          NOT NULL,
   aliados  SMALLINT UNSIGNED NOT NULL,
   eje      SMALLINT UNSIGNED NOT NULL,
+  -- 1 = partida de gungame: el marcador de bandos no significa nada
+  gg       TINYINT(1)        NOT NULL DEFAULT 0,
   PRIMARY KEY (inicio, mapa),
   KEY ix_mapa (mapa)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -201,6 +218,19 @@ CREATE TABLE IF NOT EXISTS {p}ingesta_estado (
   actualizado          DATETIME        NOT NULL,
   PRIMARY KEY (archivo)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Agregados de columnas a tablas que ya existian. Los CREATE TABLE de arriba son
+-- IF NOT EXISTS, asi que a una base ya creada no le agregan nada: para eso van
+-- estos ALTER. Son idempotentes (IF NOT EXISTS de MariaDB), se pueden correr
+-- todas las veces que haga falta.
+ALTER TABLE {p}muertes       ADD COLUMN IF NOT EXISTS gg TINYINT(1) NOT NULL DEFAULT 0;
+ALTER TABLE {p}puntos        ADD COLUMN IF NOT EXISTS gg TINYINT(1) NOT NULL DEFAULT 0;
+ALTER TABLE {p}impactos      ADD COLUMN IF NOT EXISTS gg TINYINT(1) NOT NULL DEFAULT 0;
+ALTER TABLE {p}acostado      ADD COLUMN IF NOT EXISTS gg TINYINT(1) NOT NULL DEFAULT 0;
+ALTER TABLE {p}jugado        ADD COLUMN IF NOT EXISTS gg TINYINT(1) NOT NULL DEFAULT 0;
+ALTER TABLE {p}partidas      ADD COLUMN IF NOT EXISTS gg TINYINT(1) NOT NULL DEFAULT 0;
+ALTER TABLE {p}mapas_jugados ADD COLUMN IF NOT EXISTS gg TINYINT(1) NOT NULL DEFAULT 0;
+ALTER TABLE {p}mapas_jugados ADD KEY    IF NOT EXISTS ix_inicio (inicio);
 
 -- Ranking calculado desde los eventos.
 -- Un teamkill NO suma como kill. Un suicidio SI suma como muerte.
