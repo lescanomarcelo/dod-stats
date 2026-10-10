@@ -11,7 +11,7 @@ export const SECCIONES = [
   { href: '/armas', texto: 'Armas' },
   { href: '/comparar', texto: 'Comparar' },
   { href: '/medallas', texto: 'Medallero' },
-  { href: '/gungame', texto: 'GunGame' },
+  { href: '/gungame', texto: 'Campeonato GG' },
   { href: '/server', texto: 'El Server' },
   { href: '/links', texto: 'Links' }
 ] as const

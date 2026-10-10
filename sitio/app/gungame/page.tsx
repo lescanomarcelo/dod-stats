@@ -6,7 +6,7 @@ import { EnlaceJugador, Cargando } from '@/components/Ui'
 import { IconoWhatsApp } from '@/components/Iconos'
 import { compartirPorWhatsApp } from '@/lib/enlaces'
 
-const TITULO = 'GunGame'
+const TITULO = 'Campeonato GG'
 const BAJADA = 'Quiénes ganaron el gungame'
 
 export const metadata: Metadata = {
@@ -35,7 +35,7 @@ async function Contenido () {
           className='boton-whatsapp'
           href={compartirPorWhatsApp('/gungame', `${TITULO} · ${BAJADA}`)}
           target='_blank' rel='noopener noreferrer'
-          aria-label='Compartir el gungame por WhatsApp' title='Compartir por WhatsApp'
+          aria-label='Compartir el Campeonato GG por WhatsApp' title='Compartir por WhatsApp'
         >
           <IconoWhatsApp className='icono-boton' />
         </a>

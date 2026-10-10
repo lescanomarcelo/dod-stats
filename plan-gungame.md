@@ -147,7 +147,7 @@ jugadores que ya están en la base; el que no aparezca se avisa y no frena nada.
 
 Corrido contra el server: 11 jugadores, 28 victorias, ninguno sin emparejar.
 
-**Fase 4 — Mostrarlo. HECHA.** Página `/gungame` con la imagen, el ranking de
+**Fase 4 — Mostrarlo. HECHA.** Sección **Campeonato GG** (en `/gungame`) con la imagen, el ranking de
 ganadores, el botón de compartir y una explicación de por qué el gungame no cuenta
 para el resto de las estadísticas. Entra al menú y al pie por `lib/secciones.ts`.
 
