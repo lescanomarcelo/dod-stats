@@ -20,6 +20,12 @@ const FUENTE = readFileSync(fileURLToPath(new URL('./consultas.ts', import.meta.
 const TABLAS = ['muertes', 'puntos', 'partidas', 'acostado', 'jugado', 'impactos']
 
 /*
+ *  El nombre tiene que terminar ahi: {p}jugado no es {p}jugadores, y sin esto
+ *  cualquier consulta que haga JOIN con jugadores parecia tocar la tabla jugado.
+ */
+const mencion = (tabla: string) => new RegExp(`\\{p\\}${tabla}\\b`)
+
+/*
  *  Las que miran la tabla sin ser una estadistica. Van con el motivo al lado: si
  *  alguna vez hay que agregar una, que se vea por que.
  */
@@ -42,7 +48,7 @@ test('toda consulta que toque una tabla con gungame lo filtra', () => {
   const olvidadas: string[] = []
 
   for (const sql of consultasDelArchivo(FUENTE)) {
-    const tabla = TABLAS.find((t) => sql.includes(`{p}${t}`))
+    const tabla = TABLAS.find((t) => mencion(t).test(sql))
     if (!tabla) continue
     if (PERDONADAS.some((p) => sql.includes(p))) continue
 
@@ -65,6 +71,6 @@ test('el test se da cuenta cuando falta el filtro', () => {
 
 test('encuentra una cantidad razonable de consultas', () => {
   /* Un cambio que rompa el troceado dejaria el test anterior sin nada que mirar */
-  const conTabla = consultasDelArchivo(FUENTE).filter((s) => TABLAS.some((t) => s.includes(`{p}${t}`)))
+  const conTabla = consultasDelArchivo(FUENTE).filter((s) => TABLAS.some((t) => mencion(t).test(s)))
   assert.ok(conTabla.length >= 25, `solo encontro ${conTabla.length} consultas`)
 })

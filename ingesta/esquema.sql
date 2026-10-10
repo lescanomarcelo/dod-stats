@@ -219,6 +219,22 @@ CREATE TABLE IF NOT EXISTS {p}ingesta_estado (
   PRIMARY KEY (archivo)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Cuantos gungames gano cada uno. No lo contamos nosotros: lo lleva el propio
+-- plugin del gungame en dod/gungame.stats y la ingesta lo copia aca. Es un contador
+-- acumulado, no un registro de rondas: dice cuantos gano, no cuando.
+-- Se guarda el maximo visto, porque el gungame puede podar jugadores viejos de su
+-- planilla (gg_stats_prune) y asi no perdemos a nadie.
+CREATE TABLE IF NOT EXISTS {p}gungame_ganadas (
+  jugador_id  INT UNSIGNED NOT NULL,
+  ganadas     INT UNSIGNED NOT NULL DEFAULT 0,
+  -- La ultima vez que el gungame lo vio, segun su propia planilla
+  visto       DATETIME     NULL,
+  actualizado DATETIME     NOT NULL,
+  PRIMARY KEY (jugador_id),
+  KEY ix_ganadas (ganadas),
+  CONSTRAINT fk_{p}gungame_ganadas_jugador FOREIGN KEY (jugador_id) REFERENCES {p}jugadores (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Agregados de columnas a tablas que ya existian. Los CREATE TABLE de arriba son
 -- IF NOT EXISTS, asi que a una base ya creada no le agregan nada: para eso van
 -- estos ALTER. Son idempotentes (IF NOT EXISTS de MariaDB), se pueden correr

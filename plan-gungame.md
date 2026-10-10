@@ -127,20 +127,32 @@ Lo que **no** se filtra, a propósito:
 Sobre los datos de hoy saca 1.197 kills, 1.225 muertes, 296 headshots y 988 banderas:
 exactamente lo que estaba marcado.
 
-### Pendiente de decidir: dos medallas
+### Las dos medallas: se pierden
 
 El medallero dice "se ganan y no se pierden", pero al sacar el gungame hacia atrás
 **dos doderos bajan del bronce de banderas**: Peinate q viene Gente !!! (364 → 283) y
 Elvis Nieto (317 → 292). En kills no pierde nadie.
 
-Las opciones son dejarlo así (la medalla estaba inflada por el gg), o no aplicar el
-filtro hacia atrás solo en el medallero. Sin decidir.
+Decidido dejar que se pierdan: la medalla estaba inflada por el gg, que premia las
+capturas aparte con `gg_dod_flagcap_bonus`. Son dos casos, y la alternativa era
+cargar con una excepción permanente en el código para siempre.
 
-**Fase 3 — Leer `gungame.stats`.** Una función de parseo con sus tests, una tabla
-`gungame_ganadas (jugador_id, ganadas, visto)` que guarda el máximo visto, y la
-llamada en la ingesta al lado de la de `users.ini`.
+**Fase 3 — Leer `gungame.stats`. HECHA.** El parser en `ingesta/gungame_stats.mjs`
+(10 tests), la tabla `gungame_ganadas` y `base.guardarGungameGanadas()` (5 tests de
+integración), leído por SFTP igual que `users.ini`.
 
-**Fase 4 — Mostrarlo.** Ranking de ganadores del gungame en el sitio.
+Se guarda el **máximo** entre lo que ya teníamos y lo que dice el archivo: si el
+gungame poda a alguien de su planilla, de este lado no se pierde. Solo se guardan
+jugadores que ya están en la base; el que no aparezca se avisa y no frena nada.
+
+Corrido contra el server: 11 jugadores, 28 victorias, ninguno sin emparejar.
+
+**Fase 4 — Mostrarlo. HECHA.** Página `/gungame` con la imagen, el ranking de
+ganadores, el botón de compartir y una explicación de por qué el gungame no cuenta
+para el resto de las estadísticas. Entra al menú y al pie por `lib/secciones.ts`.
+
+No se hizo como "destacado" del ranking a propósito: los destacados se cortan por
+semana y por mes, y las victorias del gungame son un acumulado sin fechas.
 
 **Más adelante:** un rubro del medallero por ganar gungames, cuando haya suficientes
 rondas para poner una marca que filtre de verdad. Con 28 victorias en total todavía

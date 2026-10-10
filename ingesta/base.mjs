@@ -16,7 +16,7 @@ import { ARMAS_DELATORAS, clasificarSesiones } from './gungame.mjs'
 
 const RUTA_ESQUEMA = fileURLToPath(new URL('./esquema.sql', import.meta.url))
 /* En orden de borrado: las que apuntan a jugadores, antes que jugadores */
-const TABLAS = ['muertes', 'sesiones', 'impactos', 'acostado', 'jugado', 'puntos', 'comandos', 'admin_logins', 'visitas', 'partidas', 'mapas_jugados', 'admines', 'ingesta_estado', 'jugadores']
+const TABLAS = ['muertes', 'sesiones', 'impactos', 'acostado', 'jugado', 'puntos', 'comandos', 'admin_logins', 'gungame_ganadas', 'visitas', 'partidas', 'mapas_jugados', 'admines', 'ingesta_estado', 'jugadores']
 const FILAS_POR_INSERT = 500
 
 /* Recorta a lo que entra en la columna. Un dato raro no puede trabar la ingesta:
@@ -352,6 +352,53 @@ export async function conectar (config, prefijo = '') {
     return logins.length
   }
 
+  /*
+   *  Las victorias de gungame, tal como las lleva el propio plugin del gungame.
+   *
+   *  Se guarda el MAXIMO entre lo que ya teniamos y lo que dice el archivo: el
+   *  gungame puede podar jugadores viejos de su planilla (gg_stats_prune), y si
+   *  despues vuelven a jugar arrancarian de cero. De este lado no se pierde nada.
+   *
+   *  Solo se guardan los que ya estan en la base. No se crea un jugador desde este
+   *  archivo: el que gano un gungame mato a alguien, asi que ya tiene que estar.
+   */
+  async function guardarGungameGanadas (jugadores) {
+    if (!jugadores.length) return { guardados: 0, sinJugador: [] }
+
+    const porIdentidad = new Map()
+    for (const j of jugadores) {
+      const quien = identidadDe(j.steamid, j.nick)
+      if (quien) porIdentidad.set(quien.identidad, j)
+    }
+    if (!porIdentidad.size) return { guardados: 0, sinJugador: [] }
+
+    const filas = await conexion.query(
+      `SELECT id, identidad FROM ${t('jugadores')} WHERE identidad IN (?)`,
+      [[...porIdentidad.keys()]])
+
+    const momento = new Date()
+    const aGuardar = []
+    const encontrados = new Set()
+    for (const f of filas[0]) {
+      const j = porIdentidad.get(f.identidad)
+      encontrados.add(f.identidad)
+      aGuardar.push([Number(f.id), j.ganadas, j.visto, momento])
+    }
+
+    if (aGuardar.length) {
+      await conexion.query(
+        `INSERT INTO ${t('gungame_ganadas')} (jugador_id, ganadas, visto, actualizado) VALUES ?
+         ON DUPLICATE KEY UPDATE
+           ganadas     = GREATEST(ganadas, VALUES(ganadas)),
+           visto       = GREATEST(COALESCE(visto, VALUES(visto)), COALESCE(VALUES(visto), visto)),
+           actualizado = VALUES(actualizado)`,
+        [aGuardar])
+    }
+
+    const sinJugador = [...porIdentidad.keys()].filter((i) => !encontrados.has(i))
+    return { guardados: aGuardar.length, sinJugador }
+  }
+
   async function guardarAdmines (admines) {
     const momento = new Date()
     await conexion.beginTransaction()
@@ -521,6 +568,7 @@ export async function conectar (config, prefijo = '') {
     guardarLote,
     guardarAdmines,
     guardarAdminLogins,
+    guardarGungameGanadas,
     marcarGungame,
     ranking,
     contar,

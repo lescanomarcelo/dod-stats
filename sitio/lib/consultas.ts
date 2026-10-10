@@ -1257,3 +1257,39 @@ export async function totalesDeMedallas (): Promise<TotalesDeDodero[]> {
 
   return [...porId.values()]
 }
+
+/* ------------------------------------------------------------------ */
+/*  GunGame                                                            */
+/* ------------------------------------------------------------------ */
+
+export type GanadorGungame = { id: number, nick: string, ganadas: number }
+
+/**
+ * Quienes ganaron gungames, de mas a menos.
+ *
+ * Las victorias no las contamos nosotros: las lleva el propio plugin del gungame y
+ * la ingesta las copia (ver ingesta/gungame_stats.mjs). Es un acumulado historico,
+ * sin fechas, asi que no tiene ventana de tiempo como el resto del sitio.
+ */
+export async function ganadoresDeGungame (): Promise<GanadorGungame[]> {
+  'use cache'
+  cacheLife(VIDA_CACHE)
+
+  const filas = await consultar(`
+    SELECT j.id, j.nick, g.ganadas
+    FROM {p}gungame_ganadas g
+    JOIN {p}jugadores j ON j.id = g.jugador_id
+    WHERE g.ganadas > 0
+    ORDER BY g.ganadas DESC, j.nick
+  `)
+  return filas.map((f) => ({ id: n(f.id), nick: String(f.nick), ganadas: n(f.ganadas) }))
+}
+
+/** Cuantas partidas se jugaron en gungame, para la linea de contexto */
+export async function partidasDeGungame (): Promise<number> {
+  'use cache'
+  cacheLife(VIDA_CACHE)
+
+  const [fila] = await consultar('SELECT COUNT(*) AS n FROM {p}mapas_jugados WHERE gg = 1')
+  return n(fila?.n)
+}

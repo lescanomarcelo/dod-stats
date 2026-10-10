@@ -195,3 +195,75 @@ test('una base sin mapas ni muertes no rompe', async () => {
   assert.equal(r.sesionesGg, 0)
   assert.deepEqual(r.mapasPuros, [])
 })
+
+/* ------------------------------------------------------------------ */
+/*  Victorias del gungame (la planilla que lleva el propio plugin)     */
+/* ------------------------------------------------------------------ */
+
+const TREVOR = 'STEAM_0:1:111'
+const PEPE = 'STEAM_0:0:222'
+
+/* Deja jugadores en la base para poder emparejarlos */
+const conJugadores = () => escribir([
+  P(1000, 'dod_kalt'),
+  C(1001, TREVOR, 'Trevor'),
+  C(1002, PEPE, 'Pepe'),
+  M({ ts: 1010, mapa: 'dod_kalt', arma: 'BAR', mS: TREVOR, mN: 'Trevor', vS: PEPE, vN: 'Pepe' }),
+  M({ ts: 1011, mapa: 'dod_kalt', arma: 'BAR', mS: PEPE, mN: 'Pepe', vS: TREVOR, vN: 'Trevor' })
+])
+
+const ganadas = () => traer('SELECT j.nick, g.ganadas FROM {p}gungame_ganadas g JOIN {p}jugadores j ON j.id = g.jugador_id ORDER BY g.ganadas DESC, j.nick')
+
+test('guarda las victorias de los jugadores que estan en la base', async () => {
+  await conJugadores()
+  await correr()
+
+  const r = await base.guardarGungameGanadas([
+    { steamid: TREVOR, nick: 'Trevor', ganadas: 5, visto: new Date(1791587749000) },
+    { steamid: PEPE, nick: 'Pepe', ganadas: 2, visto: new Date(1791587749000) }
+  ])
+
+  assert.equal(r.guardados, 2)
+  assert.deepEqual(r.sinJugador, [])
+  assert.deepEqual(await ganadas(), [{ nick: 'Trevor', ganadas: 5 }, { nick: 'Pepe', ganadas: 2 }])
+})
+
+test('el que no esta en la base se avisa y no frena a los demas', async () => {
+  await conJugadores()
+  await correr()
+
+  const r = await base.guardarGungameGanadas([
+    { steamid: TREVOR, nick: 'Trevor', ganadas: 5, visto: null },
+    { steamid: 'STEAM_0:1:999', nick: 'Fantasma', ganadas: 9, visto: null }
+  ])
+
+  assert.equal(r.guardados, 1)
+  assert.deepEqual(r.sinJugador, ['STEAM_0:1:999'])
+  assert.deepEqual(await ganadas(), [{ nick: 'Trevor', ganadas: 5 }])
+})
+
+test('se queda con el maximo: si el gungame poda y vuelve a cero, no se pierde', async () => {
+  await conJugadores()
+  await correr()
+
+  await base.guardarGungameGanadas([{ steamid: TREVOR, nick: 'Trevor', ganadas: 5, visto: null }])
+  /* El gungame lo podo y arranco de nuevo */
+  await base.guardarGungameGanadas([{ steamid: TREVOR, nick: 'Trevor', ganadas: 1, visto: null }])
+
+  assert.deepEqual(await ganadas(), [{ nick: 'Trevor', ganadas: 5 }])
+})
+
+test('si gana mas, sube', async () => {
+  await conJugadores()
+  await correr()
+
+  await base.guardarGungameGanadas([{ steamid: TREVOR, nick: 'Trevor', ganadas: 5, visto: null }])
+  await base.guardarGungameGanadas([{ steamid: TREVOR, nick: 'Trevor', ganadas: 8, visto: null }])
+
+  assert.deepEqual(await ganadas(), [{ nick: 'Trevor', ganadas: 8 }])
+})
+
+test('una planilla vacia no rompe', async () => {
+  const r = await base.guardarGungameGanadas([])
+  assert.equal(r.guardados, 0)
+})

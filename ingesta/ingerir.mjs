@@ -16,13 +16,16 @@
 import { parsearFragmento } from './parsear.mjs'
 import { parsearUsuarios } from './admines.mjs'
 import { parsearLogins, nombresDeLog } from './admin_logins.mjs'
+import { parsearGungameStats } from './gungame_stats.mjs'
 
 /* users.ini esta dos carpetas mas arriba que los eventos: data/stats -> configs */
 const RUTA_USERS = '../../configs/users.ini'
 const CARPETA_LOGS = '../../logs'
+/* La planilla del gungame esta en la raiz del server: data/stats -> dod */
+const RUTA_GUNGAME = '../../../../gungame.stats'
 
 export async function ingerir ({ fuente, base, registrar = () => {} }) {
-  const resultado = { ocupado: false, archivos: 0, admines: 0, adminLogins: 0, muertes: 0, sesiones: 0, mapas: 0, impactos: 0, acostado: 0, jugado: 0, puntos: 0, marcadores: 0, ignorados: 0, descartadas: 0, sesionesGg: 0, alertas: [] }
+  const resultado = { ocupado: false, archivos: 0, admines: 0, adminLogins: 0, muertes: 0, sesiones: 0, mapas: 0, impactos: 0, acostado: 0, jugado: 0, puntos: 0, marcadores: 0, ignorados: 0, descartadas: 0, sesionesGg: 0, ganadasGg: 0, alertas: [] }
 
   if (!await base.tomarCandado()) {
     registrar('Hay otra ingesta corriendo. Esta termina sin hacer nada.')
@@ -33,6 +36,7 @@ export async function ingerir ({ fuente, base, registrar = () => {} }) {
   try {
     await refrescarAdmines(fuente, base, registrar, resultado)
     await refrescarAdminLogins(fuente, base, registrar, resultado)
+    await refrescarGungameGanadas(fuente, base, registrar, resultado)
     await procesarArchivos(fuente, base, registrar, resultado)
     await marcarGungame(base, registrar, resultado)
   } finally {
@@ -109,6 +113,35 @@ async function marcarGungame (base, registrar, resultado) {
       (mapasPuros.length ? `, mapas solo de gg: ${mapasPuros.join(', ')}` : ''))
   } catch (error) {
     registrar(`No se pudo marcar el gungame (${error.code || error.message}).`)
+  }
+}
+
+/*
+ *  Las victorias de gungame, de la planilla que lleva el propio plugin del gungame.
+ *  Como users.ini, es un extra: si el archivo no esta (nunca se jugo un gungame) se
+ *  avisa y la ingesta sigue igual.
+ */
+async function refrescarGungameGanadas (fuente, base, registrar, resultado) {
+  if (!fuente.leerTexto || !base.guardarGungameGanadas) return
+
+  let jugadores
+  try {
+    jugadores = parsearGungameStats(await fuente.leerTexto(RUTA_GUNGAME))
+  } catch (error) {
+    registrar(`No se pudo leer la planilla del gungame (${error.code || error.message}). Sigo.`)
+    return
+  }
+
+  if (!jugadores.length) return
+
+  try {
+    const { guardados, sinJugador } = await base.guardarGungameGanadas(jugadores)
+    resultado.ganadasGg = guardados
+    const total = jugadores.reduce((s, j) => s + j.ganadas, 0)
+    registrar(`gungame ganadas: ${guardados} jugadores, ${total} victorias` +
+      (sinJugador.length ? `, ${sinJugador.length} sin jugador en la base` : ''))
+  } catch (error) {
+    registrar(`No se pudieron guardar las victorias de gungame (${error.code || error.message}).`)
   }
 }
 
