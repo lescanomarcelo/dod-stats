@@ -107,10 +107,34 @@ evento, así que ahí la marca es a nivel mapa: solo se pueden marcar los mapas 
 en medio de un mapa normal, esas tres tablas se quedan con algo de gg adentro; las
 otras, las importantes, siguen exactas.
 
-**Fase 2 — Filtrar.** Las consultas de rendimiento dejan afuera los eventos cuyo
-momento cae dentro de una partida marcada como gg. Toca `ranking`, los rubros, los
-destacados, armas, comparar, eje vs aliados y el medallero. Es el trabajo más
-extendido de todo esto.
+**Fase 2 — Filtrar. HECHA.** La vista `ranking` y todas las consultas del sitio dejan
+afuera lo que pasó en gungame.
+
+En vez de ir agregando `gg = 0` a mano en cuarenta consultas y confiar en no saltearse
+ninguna, `filtro()` ahora recibe **la tabla**, obligatoria y de una lista cerrada. El
+compilador obliga a elegirla en cada consulta nueva, y la marca sale sola. Las que no
+usan `filtro()` lo llevan escrito, y un test (`sitio/lib/consultas-gg.test.ts`) lee el
+código fuente y falla si alguna consulta toca una tabla con gg sin filtrarla. Está
+probado al revés: sacando un filtro, el test lo encuentra.
+
+Lo que **no** se filtra, a propósito:
+
+- `sesiones`: el tiempo conectado es tiempo conectado, jugue lo que jugue.
+- `mapas_jugados`: ahí se cuenta actividad del server (cuántas partidas hubo, qué
+  mapas se jugaron), y la partida de gungame se jugó igual. Si alguna vez se quiere
+  que El Server tampoco la cuente, es sacar `mapas_jugados` de la excepción.
+
+Sobre los datos de hoy saca 1.197 kills, 1.225 muertes, 296 headshots y 988 banderas:
+exactamente lo que estaba marcado.
+
+### Pendiente de decidir: dos medallas
+
+El medallero dice "se ganan y no se pierden", pero al sacar el gungame hacia atrás
+**dos doderos bajan del bronce de banderas**: Peinate q viene Gente !!! (364 → 283) y
+Elvis Nieto (317 → 292). En kills no pierde nadie.
+
+Las opciones son dejarlo así (la medalla estaba inflada por el gg), o no aplicar el
+filtro hacia atrás solo en el medallero. Sin decidir.
 
 **Fase 3 — Leer `gungame.stats`.** Una función de parseo con sus tests, una tabla
 `gungame_ganadas (jugador_id, ganadas, visto)` que guarda el máximo visto, y la
