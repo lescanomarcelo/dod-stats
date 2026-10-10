@@ -234,6 +234,9 @@ ALTER TABLE {p}mapas_jugados ADD KEY    IF NOT EXISTS ix_inicio (inicio);
 
 -- Ranking calculado desde los eventos.
 -- Un teamkill NO suma como kill. Un suicidio SI suma como muerte.
+-- Lo que paso en gungame no cuenta: ahi las armas te las reparte el modo, no las
+-- elegis, asi que esos numeros no dicen nada del jugador. Ver gungame.mjs.
+-- El tiempo conectado (sesiones) SI cuenta: estuvo en el server igual.
 CREATE OR REPLACE VIEW {p}ranking AS
 SELECT
   j.id,
@@ -258,7 +261,7 @@ LEFT JOIN (
          SUM(teamkill = 0 AND headshot = 1) AS headshots,
          SUM(teamkill = 1)                  AS teamkills
   FROM {p}muertes
-  WHERE matador_id IS NOT NULL
+  WHERE matador_id IS NOT NULL AND gg = 0
   GROUP BY matador_id
 ) k ON k.matador_id = j.id
 LEFT JOIN (
@@ -266,6 +269,7 @@ LEFT JOIN (
          COUNT(*)                AS muertes,
          SUM(matador_id IS NULL) AS suicidios
   FROM {p}muertes
+  WHERE gg = 0
   GROUP BY victima_id
 ) d ON d.victima_id = j.id
 LEFT JOIN (
@@ -276,15 +280,18 @@ LEFT JOIN (
 LEFT JOIN (
   SELECT jugador_id, SUM(puntos) AS puntos
   FROM {p}puntos
+  WHERE gg = 0
   GROUP BY jugador_id
 ) pt ON pt.jugador_id = j.id
 LEFT JOIN (
   SELECT jugador_id, SUM(segundos) AS segundos
   FROM {p}acostado
+  WHERE gg = 0
   GROUP BY jugador_id
 ) ac ON ac.jugador_id = j.id
 LEFT JOIN (
   SELECT jugador_id, SUM(segundos) AS segundos
   FROM {p}jugado
+  WHERE gg = 0
   GROUP BY jugador_id
 ) tj ON tj.jugador_id = j.id;
