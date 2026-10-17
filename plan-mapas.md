@@ -53,15 +53,20 @@ equivocado se corrige ahí sin tocar nada más.
 - **La votación se renueva cada quincena**: del 1 al 15 y del 16 a fin de mes. Al
   cambiar, el resultado anterior queda guardado y visible como "la quincena pasada".
 
-> **A confirmar antes de arrancar:** lo de "hasta 3" lo leí como **3 por día en cada
-> votación** (hasta 9 por día entre las tres). La otra lectura posible es 3 por día en
-> total. Lo dejo así salvo que digas lo contrario.
+Son 3 por día **en cada votación**: hasta 9 por día entre las tres.
 
 ## Qué hay que hacer
 
-**Fase 1 — El catálogo de mapas.** Un script `mapas/tamanos.mjs` que lee la caja del
-mundo de cada `.bsp` por SFTP y carga una tabla `mapas_catalogo (mapa, area, tamano,
-activo)`. Se corre a mano cuando se agregan mapas, no en cada ingesta.
+**Fase 1 — El catálogo de mapas. HECHA.** El script es `mapas/catalogo.mjs` (con
+`--ver` lista sin escribir), la regla de los tamaños está en
+`ingesta/tamano_mapas.mjs` (6 tests) y el guardado en `base.guardarCatalogoMapas()`
+(7 tests de integración).
+
+Cargado contra el server: **83 mapas, 83 activos**, repartidos 24 / 29 / 30.
+
+Dos detalles que resuelve el guardado: un mapa que sale del server queda **inactivo en
+vez de borrarse**, así los votos que ya tenga siguen apuntando a algo; y un tamaño
+corregido a mano (`a_mano = 1`) no se pisa aunque el script vuelva a correr.
 
 **Fase 2 — La sección.** Página `/mapas` con el ranking de los más jugados: partidas,
 y de paso el tamaño de cada uno. Es toda lectura de datos que ya están.

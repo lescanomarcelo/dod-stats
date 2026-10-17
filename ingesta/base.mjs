@@ -13,10 +13,11 @@ import mysql from 'mysql2/promise'
 import { identidadDe } from './identidad.mjs'
 import { ZONAS } from './parsear.mjs'
 import { ARMAS_DELATORAS, clasificarSesiones } from './gungame.mjs'
+import { tamanoDe } from './tamano_mapas.mjs'
 
 const RUTA_ESQUEMA = fileURLToPath(new URL('./esquema.sql', import.meta.url))
 /* En orden de borrado: las que apuntan a jugadores, antes que jugadores */
-const TABLAS = ['muertes', 'sesiones', 'impactos', 'acostado', 'jugado', 'puntos', 'comandos', 'admin_logins', 'gungame_ganadas', 'visitas', 'partidas', 'mapas_jugados', 'admines', 'ingesta_estado', 'jugadores']
+const TABLAS = ['muertes', 'sesiones', 'impactos', 'acostado', 'jugado', 'puntos', 'comandos', 'admin_logins', 'gungame_ganadas', 'mapas_catalogo', 'visitas', 'partidas', 'mapas_jugados', 'admines', 'ingesta_estado', 'jugadores']
 const FILAS_POR_INSERT = 500
 
 /* Recorta a lo que entra en la columna. Un dato raro no puede trabar la ingesta:
@@ -399,6 +400,51 @@ export async function conectar (config, prefijo = '') {
     return { guardados: aGuardar.length, sinJugador }
   }
 
+  /*
+   *  El catalogo de mapas que se pueden votar, con su tamaño.
+   *
+   *  Los que no vengan en la lista quedan como inactivos en vez de borrarse: si un
+   *  mapa se saca del server, los votos que ya tiene siguen apuntando a algo.
+   *
+   *  Un tamaño puesto a mano (a_mano = 1) no se pisa: el area se actualiza igual,
+   *  pero la clasificacion que eligio una persona manda sobre la cuenta.
+   */
+  async function guardarCatalogoMapas (mapas) {
+    const momento = new Date()
+    await conexion.beginTransaction()
+    try {
+      if (mapas.length) {
+        const filas = mapas.map((m) => [
+          recortar(m.mapa, 40),
+          Number.isFinite(m.area) ? m.area : null,
+          tamanoDe(m.area),
+          momento
+        ])
+        await conexion.query(
+          `INSERT INTO ${t('mapas_catalogo')} (mapa, area, tamano, actualizado) VALUES ?
+           ON DUPLICATE KEY UPDATE
+             area        = VALUES(area),
+             tamano      = IF(a_mano = 1, tamano, VALUES(tamano)),
+             activo      = 1,
+             actualizado = VALUES(actualizado)`,
+          [filas])
+
+        /* Los que ya no estan en la lista dejan de poder votarse */
+        await conexion.query(
+          `UPDATE ${t('mapas_catalogo')} SET activo = 0 WHERE mapa NOT IN (?)`,
+          [mapas.map((m) => recortar(m.mapa, 40))])
+      }
+      await conexion.commit()
+    } catch (error) {
+      await conexion.rollback()
+      throw error
+    }
+
+    const [[fila]] = await conexion.query(
+      `SELECT COUNT(*) AS activos FROM ${t('mapas_catalogo')} WHERE activo = 1`)
+    return { guardados: mapas.length, activos: Number(fila.activos) }
+  }
+
   async function guardarAdmines (admines) {
     const momento = new Date()
     await conexion.beginTransaction()
@@ -569,6 +615,7 @@ export async function conectar (config, prefijo = '') {
     guardarAdmines,
     guardarAdminLogins,
     guardarGungameGanadas,
+    guardarCatalogoMapas,
     marcarGungame,
     ranking,
     contar,

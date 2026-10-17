@@ -235,6 +235,25 @@ CREATE TABLE IF NOT EXISTS {p}gungame_ganadas (
   CONSTRAINT fk_{p}gungame_ganadas_jugador FOREIGN KEY (jugador_id) REFERENCES {p}jugadores (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Los mapas que el server puede poner (los de addons/amxmodx/configs/maps.ini) con
+-- su tamaño, para repartir las tres votaciones. La carga el script mapas/catalogo.mjs,
+-- a mano: no cambia salvo que se agreguen o saquen mapas del server.
+-- El area es ancho x largo de la caja del mundo del .bsp, en millones de unidades.
+-- El tamaño se calcula del area (ver tamano_mapas.mjs) pero queda editable: si un
+-- mapa quedo en el grupo equivocado se corrige aca y el script no lo pisa.
+CREATE TABLE IF NOT EXISTS {p}mapas_catalogo (
+  mapa        VARCHAR(40)   NOT NULL,
+  area        DECIMAL(7,1)  NULL,
+  tamano      ENUM('chico','mediano','grande') NULL,
+  -- 0 = sigue en la tabla pero no se puede votar (se saco del server)
+  activo      TINYINT(1)    NOT NULL DEFAULT 1,
+  -- 1 = el tamaño lo puso una persona a mano; el script no lo vuelve a calcular
+  a_mano      TINYINT(1)    NOT NULL DEFAULT 0,
+  actualizado DATETIME      NOT NULL,
+  PRIMARY KEY (mapa),
+  KEY ix_tamano (tamano, activo)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Agregados de columnas a tablas que ya existian. Los CREATE TABLE de arriba son
 -- IF NOT EXISTS, asi que a una base ya creada no le agregan nada: para eso van
 -- estos ALTER. Son idempotentes (IF NOT EXISTS de MariaDB), se pueden correr
