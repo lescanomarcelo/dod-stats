@@ -39,8 +39,10 @@ distribución. Contrastado con lo que se juega de verdad: `dod_orange_ctf` (8,1,
 jugado de todos) queda chico y se juega con unas 11 personas; `au_gris_torres` (10,7)
 mediano con 14; `dod_clash_v3` (64) grande con 21.
 
-El tamaño se guarda en una tabla, no en el código: si algún mapa quedó en el grupo
-equivocado se corrige ahí sin tocar nada más.
+La medida es solo el punto de partida. **Manda la lista revisada a mano**, en
+`ingesta/tamanos-mapas.tsv`: la medida dice qué tan grande es el mapa físicamente, que
+no es lo mismo que para cuánta gente va bien, y eso lo sabe el que juega. Los mapas
+nuevos arrancan con el tamaño que les toca por medida hasta que alguien los revise.
 
 ## Cómo se vota
 

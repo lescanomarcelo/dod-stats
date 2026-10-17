@@ -406,25 +406,31 @@ export async function conectar (config, prefijo = '') {
    *  Los que no vengan en la lista quedan como inactivos en vez de borrarse: si un
    *  mapa se saca del server, los votos que ya tiene siguen apuntando a algo.
    *
-   *  Un tamaño puesto a mano (a_mano = 1) no se pisa: el area se actualiza igual,
-   *  pero la clasificacion que eligio una persona manda sobre la cuenta.
+   *  El tamaño sale de tamanos-mapas.tsv, la lista que se revisa a mano, y si el
+   *  mapa no esta ahi, de la medida del .bsp. La medida dice que tan grande es el
+   *  mapa fisicamente, que no es lo mismo que para cuanta gente va bien.
    */
-  async function guardarCatalogoMapas (mapas) {
+  async function guardarCatalogoMapas (mapas, aMano = new Map()) {
     const momento = new Date()
     await conexion.beginTransaction()
     try {
       if (mapas.length) {
-        const filas = mapas.map((m) => [
-          recortar(m.mapa, 40),
-          Number.isFinite(m.area) ? m.area : null,
-          tamanoDe(m.area),
-          momento
-        ])
+        const filas = mapas.map((m) => {
+          const decidido = aMano.get(m.mapa)
+          return [
+            recortar(m.mapa, 40),
+            Number.isFinite(m.area) ? m.area : null,
+            decidido ?? tamanoDe(m.area),
+            decidido ? 1 : 0,
+            momento
+          ]
+        })
         await conexion.query(
-          `INSERT INTO ${t('mapas_catalogo')} (mapa, area, tamano, actualizado) VALUES ?
+          `INSERT INTO ${t('mapas_catalogo')} (mapa, area, tamano, a_mano, actualizado) VALUES ?
            ON DUPLICATE KEY UPDATE
              area        = VALUES(area),
-             tamano      = IF(a_mano = 1, tamano, VALUES(tamano)),
+             tamano      = VALUES(tamano),
+             a_mano      = VALUES(a_mano),
              activo      = 1,
              actualizado = VALUES(actualizado)`,
           [filas])

@@ -23,6 +23,7 @@ import { LARGO_CABECERA, lumpDeModelos, areaDelMundo } from '../mapas/bsp.mjs'
 import { tamanoDe, JUGADORES } from './tamano_mapas.mjs'
 import { conectar, configDesdeEntorno } from './base.mjs'
 import { configSftpDesdeEntorno } from './fuentes.mjs'
+import { leerTamanosAMano } from './tamanos_a_mano.mjs'
 
 /* Las credenciales apuntan a la carpeta de eventos; el server arranca mas arriba */
 const RAIZ = (carpeta) => carpeta.replace(/\/addons\/.*$/, '')
@@ -147,7 +148,13 @@ if (import.meta.main) {
       }
       console.log('\n--ver: no se escribio nada en la base.')
     } else {
-      const { guardados, activos } = await base.guardarCatalogoMapas(catalogo)
+      const aMano = await leerTamanosAMano((m) => console.log(`  ${m}`))
+      console.log(`tamanos-mapas.tsv: ${aMano.size} mapas revisados a mano`)
+
+      const sinRevisar = catalogo.filter((m) => !aMano.has(m.mapa)).map((m) => m.mapa)
+      if (sinRevisar.length) console.log(`Sin revisar, van por medida: ${sinRevisar.join(', ')}`)
+
+      const { guardados, activos } = await base.guardarCatalogoMapas(catalogo, aMano)
       console.log(`Guardados ${guardados} mapas, ${activos} activos para votar.`)
     }
   } finally {

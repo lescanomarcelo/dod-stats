@@ -76,17 +76,35 @@ test('un mapa que vuelve a la lista se reactiva', async () => {
   assert.equal(vuelto.activo, 1)
 })
 
-test('el tamaño puesto a mano no se pisa, pero el area se actualiza igual', async () => {
-  await base.guardarCatalogoMapas([{ mapa: 'dod_raro', area: 9 }])
-  /* Alguien lo corrige: por area daba chico, pero se juega como grande */
-  await base.consultar(
-    `UPDATE ${PREFIJO}mapas_catalogo SET tamano = 'grande', a_mano = 1 WHERE mapa = 'dod_raro'`)
-
-  await base.guardarCatalogoMapas([{ mapa: 'dod_raro', area: 9.5 }])
+test('la lista revisada a mano manda sobre la medida', async () => {
+  /* Por area daria chico, pero el que juega dice que es grande */
+  const aMano = new Map([['dod_raro', 'grande']])
+  await base.guardarCatalogoMapas([{ mapa: 'dod_raro', area: 9 }], aMano)
 
   const [m] = await catalogo()
-  assert.equal(m.tamano, 'grande', 'la correccion a mano manda')
-  assert.equal(Number(m.area), 9.5, 'el area si se actualiza')
+  assert.equal(m.tamano, 'grande')
+  assert.equal(m.a_mano, 1, 'queda marcado como revisado')
+  assert.equal(Number(m.area), 9, 'la medida se guarda igual, de referencia')
+})
+
+test('un mapa que no esta en la lista va por medida', async () => {
+  await base.guardarCatalogoMapas(
+    [{ mapa: 'dod_raro', area: 9 }, { mapa: 'dod_nuevo', area: 40 }],
+    new Map([['dod_raro', 'grande']]))
+
+  const porMapa = Object.fromEntries((await catalogo()).map((m) => [m.mapa, m]))
+  assert.equal(porMapa.dod_nuevo.tamano, 'grande', 'por area, 40 es grande')
+  assert.equal(porMapa.dod_nuevo.a_mano, 0, 'no esta revisado')
+})
+
+test('sacar un mapa de la lista lo devuelve a la medida', async () => {
+  await base.guardarCatalogoMapas([{ mapa: 'dod_raro', area: 9 }], new Map([['dod_raro', 'grande']]))
+  /* Se arrepintio y lo borro del archivo */
+  await base.guardarCatalogoMapas([{ mapa: 'dod_raro', area: 9 }], new Map())
+
+  const [m] = await catalogo()
+  assert.equal(m.tamano, 'chico', 'vuelve a lo que dice la medida')
+  assert.equal(m.a_mano, 0)
 })
 
 test('un mapa sin medir queda sin tamaño en vez de caer en el grupo equivocado', async () => {
