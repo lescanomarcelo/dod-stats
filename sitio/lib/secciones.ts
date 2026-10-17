@@ -9,6 +9,7 @@ export const SECCIONES = [
   { href: '/', texto: 'Ranking' },
   { href: '/equipos', texto: 'Eje vs Aliados' },
   { href: '/armas', texto: 'Armas' },
+  { href: '/mapas', texto: 'Mapas' },
   { href: '/comparar', texto: 'Comparar' },
   { href: '/medallas', texto: 'Medallero' },
   { href: '/gungame', texto: 'Campeonato GG' },

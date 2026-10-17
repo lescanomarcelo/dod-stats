@@ -68,8 +68,13 @@ Dos detalles que resuelve el guardado: un mapa que sale del server queda **inact
 vez de borrarse**, así los votos que ya tenga siguen apuntando a algo; y un tamaño
 corregido a mano (`a_mano = 1`) no se pisa aunque el script vuelva a correr.
 
-**Fase 2 — La sección.** Página `/mapas` con el ranking de los más jugados: partidas,
-y de paso el tamaño de cada uno. Es toda lectura de datos que ya están.
+**Fase 2 — La sección. HECHA.** Página `/mapas` con el ranking de los más jugados y
+el tamaño de cada uno, más el reparto por tamaño arriba. Entra al menú después de
+Armas. Falta la imagen de la sección.
+
+No lleva selector de período, igual que el resto de lo que cuenta actividad del
+server: es el histórico completo. El gungame tampoco se filtra acá, porque la partida
+se jugó igual.
 
 **Fase 3 — La votación.** La tabla `votos_mapas (quincena, mapa, jugador_id, dia)` con
 clave única `(mapa, jugador_id, dia)`, que es la que hace cumplir el "una vez por día"

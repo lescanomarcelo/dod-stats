@@ -1284,3 +1284,62 @@ export async function ganadoresDeGungame (): Promise<GanadorGungame[]> {
   `)
   return filas.map((f) => ({ id: n(f.id), nick: String(f.nick), ganadas: n(f.ganadas) }))
 }
+
+/* ------------------------------------------------------------------ */
+/*  Mapas                                                              */
+/* ------------------------------------------------------------------ */
+
+export type Tamano = 'chico' | 'mediano' | 'grande'
+
+export type MapaDelRanking = {
+  mapa: string
+  partidas: number
+  /** null si el mapa no esta en el catalogo (se jugo pero ya no esta en el server) */
+  tamano: Tamano | null
+  area: number | null
+  /** false si salio del server: se jugo, pero ya no se puede poner */
+  enElServer: boolean
+}
+
+/**
+ * Todos los mapas que se jugaron, del mas jugado al menos.
+ *
+ * Es de todo el historico y SIN ventana de tiempo, igual que el resto de lo que
+ * cuenta actividad del server. El gungame tampoco se filtra: la partida se jugo.
+ */
+export async function rankingDeMapas (): Promise<MapaDelRanking[]> {
+  'use cache'
+  cacheLife(VIDA_CACHE)
+
+  const filas = await consultar(`
+    SELECT m.mapa, m.partidas, c.tamano, c.area, c.activo
+    FROM (
+      SELECT LOWER(mapa) AS mapa, COUNT(*) AS partidas
+      FROM {p}mapas_jugados
+      GROUP BY LOWER(mapa)
+    ) m
+    LEFT JOIN {p}mapas_catalogo c ON LOWER(c.mapa) = m.mapa
+    ORDER BY m.partidas DESC, m.mapa
+  `)
+
+  return filas.map((f) => ({
+    mapa: String(f.mapa),
+    partidas: n(f.partidas),
+    tamano: (f.tamano as Tamano | null) ?? null,
+    area: f.area === null ? null : n(f.area),
+    enElServer: f.activo === 1
+  }))
+}
+
+/** Cuantos mapas hay de cada tamaño entre los que se pueden poner hoy */
+export async function mapasPorTamano (): Promise<Record<Tamano, number>> {
+  'use cache'
+  cacheLife(VIDA_CACHE)
+
+  const filas = await consultar(
+    'SELECT tamano, COUNT(*) AS n FROM {p}mapas_catalogo WHERE activo = 1 AND tamano IS NOT NULL GROUP BY tamano')
+
+  const cuenta = { chico: 0, mediano: 0, grande: 0 }
+  for (const f of filas) cuenta[f.tamano as Tamano] = n(f.n)
+  return cuenta
+}
