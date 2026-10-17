@@ -98,8 +98,18 @@ Dos cosas que salieron de probarlo en el navegador:
   recargar justo después de votar, se veía el tilde propio pero el contador en cero.
   En una votación eso confunde, y son 83 filas en una página que ya es dinámica.
 
-**Fase 4 — La quincena.** El cierre automático, el histórico y la vista de "la quincena
-pasada".
+**Fase 4 — La quincena. HECHA.** Un plegable entre la votación y la lista completa:
+"Cómo quedó la quincena pasada", con el podio de cada tamaño y cuántos doderos
+votaron. Si la quincena pasada no tuvo ni un voto, no se muestra nada.
+
+**No hay nada que cerrar cuando termina una quincena**, y eso vale la pena decirlo:
+cada voto queda atado a la suya desde que se guarda, así que el 1 y el 16 la nueva
+arranca vacía sola y la vieja queda como estaba. No hace falta ningún trabajo
+programado ni ningún botón.
+
+El podio usa el tamaño que el mapa tiene **hoy**: si un mapa cambia de grupo, aparece
+en el grupo nuevo aunque los votos sean viejos. Es lo razonable mientras la lista se
+siga afinando.
 
 **Pendiente:** una imagen para la sección, como las del Medallero y el Campeonato GG.
 

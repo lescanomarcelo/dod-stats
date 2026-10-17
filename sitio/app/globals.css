@@ -1051,3 +1051,27 @@ tbody tr.sin-uso .arma-dibujo { opacity: 0.45; filter: grayscale(1); }
   .votar-quedan { float: none; display: block; margin-top: 0.15rem; }
   .votar-para { display: block; margin-left: 0; }
 }
+
+/* Como quedo la quincena pasada: un podio por tamaño */
+.podios {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.75rem; margin-top: var(--space-3);
+}
+.podio-nombre {
+  display: block;
+  font-family: var(--font-oswald), sans-serif;
+  text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.75rem;
+  color: var(--acento); margin-bottom: var(--space-2);
+}
+.podio-lista { list-style: none; padding: 0; margin: 0; counter-reset: puesto; }
+.podio-lista li {
+  display: flex; align-items: baseline; gap: 0.5rem;
+  padding: 0.25rem 0; border-bottom: 1px solid var(--borde);
+  font-size: 0.88rem;
+}
+.podio-lista li::before {
+  counter-increment: puesto; content: counter(puesto);
+  color: var(--tenue); font-size: 0.75rem; min-width: 1rem;
+}
+.podio-lista li:first-child { color: var(--acento); font-weight: 600; }
+.podio-mapa { flex: 1; overflow: hidden; text-overflow: ellipsis; }

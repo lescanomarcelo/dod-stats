@@ -2,9 +2,10 @@ import type { Metadata } from 'next'
 import { connection } from 'next/server'
 import { Suspense } from 'react'
 import {
-  catalogoDeMapas, mapasParaVotar, quienVoto, doderosParaVotar, type Tamano
+  catalogoDeMapas, mapasParaVotar, quienVoto, doderosParaVotar,
+  comoQuedoLaQuincena, cuantosVotaron, type Tamano
 } from '@/lib/consultas'
-import { quincenaDe, faltaPara } from '@/lib/quincenas'
+import { quincenaDe, quincenaAnterior, faltaPara } from '@/lib/quincenas'
 import { VOTOS_POR_DIA } from '@/lib/votos'
 import { VotacionMapas } from '@/components/VotacionMapas'
 import { Cargando } from '@/components/Ui'
@@ -54,6 +55,57 @@ async function Votacion () {
       </div>
       <VotacionMapas mapas={mapas} doderos={doderos} votantes={votantes} />
     </>
+  )
+}
+
+/*
+ *  Como quedo la quincena pasada. No hace falta cerrar nada cuando termina una:
+ *  cada voto queda atado a la suya, asi que el 1 y el 16 la nueva arranca vacia
+ *  sola. Si la pasada no tuvo ni un voto, esto no se muestra.
+ */
+async function QuincenaPasada () {
+  await connection()
+
+  const pasada = quincenaAnterior()
+  const [podio, votaron] = await Promise.all([
+    comoQuedoLaQuincena(pasada.clave),
+    cuantosVotaron(pasada.clave)
+  ])
+  if (podio.length === 0) return null
+
+  return (
+    <section className='seccion'>
+      <details className='lista-plegable'>
+        <summary>
+          Cómo quedó la quincena pasada
+          <span className='cuantos numero'>{pasada.nombre}</span>
+        </summary>
+
+        <div className='podios'>
+          {TAMANOS.map((tamano) => {
+            const delTamano = podio.filter((m) => m.tamano === tamano)
+            if (delTamano.length === 0) return null
+            return (
+              <div className='panel podio' key={tamano}>
+                <strong className='podio-nombre'>{tamano}s · hasta {JUGADORES[tamano]}</strong>
+                <ol className='podio-lista'>
+                  {delTamano.map((m) => (
+                    <li key={m.mapa}>
+                      <span className='podio-mapa'>{m.mapa}</span>
+                      <span className='numero'>{m.votos}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )
+          })}
+        </div>
+        <p className='nota'>
+          Votaron {votaron} {votaron === 1 ? 'dodero' : 'doderos'} en la quincena del{' '}
+          {pasada.nombre}.
+        </p>
+      </details>
+    </section>
   )
 }
 
@@ -114,6 +166,10 @@ export default function PaginaMapas () {
 
       <Suspense fallback={<Cargando texto='Abriendo la votación…' />}>
         <Votacion />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <QuincenaPasada />
       </Suspense>
 
       <Suspense fallback={null}>

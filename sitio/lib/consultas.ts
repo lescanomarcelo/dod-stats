@@ -1374,3 +1374,47 @@ export async function doderosParaVotar (): Promise<{ id: number, nick: string }[
   `)
   return filas.map((f) => ({ id: n(f.id), nick: String(f.nick) }))
 }
+
+export type GanadorDeMapa = { mapa: string, tamano: Tamano, votos: number }
+
+/**
+ * Como quedo una quincena: los mapas mas votados de cada tamaño.
+ *
+ * No hay nada que "cerrar" cuando termina una quincena: cada voto queda atado a la
+ * suya, asi que el 1 y el 16 la nueva arranca vacia sola y la vieja queda como
+ * estaba. Esto es solo mirarla.
+ */
+export async function comoQuedoLaQuincena (quincena: string, porTamano = 5): Promise<GanadorDeMapa[]> {
+  'use cache'
+  cacheLife(VIDA_CACHE)
+
+  const filas = await consultar(`
+    SELECT v.mapa, c.tamano, COUNT(*) AS votos
+    FROM {p}votos_mapas v
+    JOIN {p}mapas_catalogo c ON c.mapa = v.mapa
+    WHERE v.quincena = ? AND c.tamano IS NOT NULL
+    GROUP BY v.mapa, c.tamano
+    ORDER BY votos DESC, v.mapa
+  `, [quincena])
+
+  const cuantos: Partial<Record<Tamano, number>> = {}
+  const podio: GanadorDeMapa[] = []
+  for (const f of filas) {
+    const tamano = f.tamano as Tamano
+    cuantos[tamano] = (cuantos[tamano] ?? 0) + 1
+    if (cuantos[tamano]! <= porTamano) {
+      podio.push({ mapa: String(f.mapa), tamano, votos: n(f.votos) })
+    }
+  }
+  return podio
+}
+
+/** Cuanta gente distinta voto en esa quincena */
+export async function cuantosVotaron (quincena: string): Promise<number> {
+  'use cache'
+  cacheLife(VIDA_CACHE)
+
+  const [fila] = await consultar(
+    'SELECT COUNT(DISTINCT jugador_id) AS n FROM {p}votos_mapas WHERE quincena = ?', [quincena])
+  return n(fila?.n)
+}
