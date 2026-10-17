@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
-import { rankingDeMapas, mapasPorTamano, type Tamano } from '@/lib/consultas'
+import { rankingDeMapas, mapasPorTamano, catalogoDeMapas, type Tamano } from '@/lib/consultas'
 import { formatoNumero } from '@/lib/calculos'
 import { Cargando, Tarjeta } from '@/components/Ui'
 import { IconoWhatsApp } from '@/components/Iconos'
@@ -26,7 +26,7 @@ const JUGADORES: Record<Tamano, number> = { chico: 10, mediano: 16, grande: 24 }
 const TAMANOS: Tamano[] = ['chico', 'mediano', 'grande']
 
 async function Contenido () {
-  const [mapas, porTamano] = await Promise.all([rankingDeMapas(), mapasPorTamano()])
+  const [mapas, porTamano, catalogo] = await Promise.all([rankingDeMapas(), mapasPorTamano(), catalogoDeMapas()])
   const totalPartidas = mapas.reduce((suma, m) => suma + m.partidas, 0)
 
   return (
@@ -49,6 +49,35 @@ async function Contenido () {
           {JUGADORES.mediano} y los grandes hasta {JUGADORES.grande}. Cada tamaño va a tener su
           propia votación.
         </p>
+      </section>
+
+      <section className='seccion'>
+        <details className='lista-plegable'>
+          <summary>
+            Todos los mapas, por tamaño
+            <span className='cuantos numero'>{catalogo.length}</span>
+          </summary>
+
+          {TAMANOS.map((tamano) => {
+            const delTamano = catalogo.filter((m) => m.tamano === tamano)
+            return (
+              <div key={tamano}>
+                <h3 className='mapas-grupo'>
+                  {tamano}s · hasta {JUGADORES[tamano]} jugadores
+                  <span className='cuantos numero'>{delTamano.length}</span>
+                </h3>
+                <ul className='mapas-lista'>
+                  {delTamano.map((m) => (
+                    <li key={m.mapa}>
+                      {m.mapa}
+                      <span className='nota'>{m.area}{m.aMano ? ' · a mano' : ''}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )
+          })}
+        </details>
       </section>
 
       <section className='seccion tabla-envoltorio'>

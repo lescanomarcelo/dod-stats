@@ -1343,3 +1343,28 @@ export async function mapasPorTamano (): Promise<Record<Tamano, number>> {
   for (const f of filas) cuenta[f.tamano as Tamano] = n(f.n)
   return cuenta
 }
+
+export type MapaDelCatalogo = { mapa: string, area: number | null, tamano: Tamano | null, aMano: boolean }
+
+/**
+ * Los mapas que se pueden poner en el server hoy, con su tamaño. Es la lista sobre
+ * la que se vota, y la carga a mano el script mapas/catalogo.mjs.
+ */
+export async function catalogoDeMapas (): Promise<MapaDelCatalogo[]> {
+  'use cache'
+  cacheLife(VIDA_CACHE)
+
+  const filas = await consultar(`
+    SELECT mapa, area, tamano, a_mano
+    FROM {p}mapas_catalogo
+    WHERE activo = 1
+    ORDER BY area, mapa
+  `)
+
+  return filas.map((f) => ({
+    mapa: String(f.mapa),
+    area: f.area === null ? null : n(f.area),
+    tamano: (f.tamano as Tamano | null) ?? null,
+    aMano: f.a_mano === 1
+  }))
+}

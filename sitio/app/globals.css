@@ -974,3 +974,23 @@ tbody tr.sin-uso .arma-dibujo { opacity: 0.45; filter: grayscale(1); }
 .medallero-lista li:first-child .posicion { color: var(--acento); }
 .medallero-lista .jugador { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .medallero-lista .ojitos-cuenta { flex: none; }
+
+/* La lista completa de mapas votables, agrupada por tamaño */
+.mapas-grupo {
+  font-family: var(--font-oswald), sans-serif;
+  text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.8rem;
+  color: var(--acento);
+  margin: var(--space-5) 0 var(--space-2);
+  padding-left: 0.55rem; border-left: 3px solid var(--acento);
+}
+.mapas-lista {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 0.15rem 0.9rem; list-style: none; padding: 0; margin: 0;
+}
+.mapas-lista li {
+  display: flex; justify-content: space-between; gap: 0.5rem;
+  padding: 0.25rem 0; border-bottom: 1px solid var(--borde);
+  font-size: 0.88rem;
+}
+.mapas-lista .nota { margin: 0; }
+.mapas-grupo .cuantos { margin-left: 0.5rem; color: var(--tenue); }
