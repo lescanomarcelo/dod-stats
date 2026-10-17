@@ -17,7 +17,8 @@ export const metadata: Metadata = {
     description: BAJADA,
     siteName: 'Tributo Dod Stats!',
     type: 'website',
-    locale: 'es_AR'
+    locale: 'es_AR',
+    images: [{ url: '/mapas/_seccion.jpg', width: 1200, height: 630 }]
   }
 }
 
@@ -31,8 +32,9 @@ async function Contenido () {
 
   return (
     <>
-      <section className='seccion con-compartir'>
-        <h2>Por tamaño</h2>
+      <div className='banda-compartible'>
+        {/* eslint-disable-next-line @next/next/no-img-element -- imagen fija ya optimizada */}
+        <img src='/mapas/_seccion.jpg' alt='' width={1200} height={630} className='banda-seccion banda-ancha' />
         <a
           className='boton-whatsapp'
           href={compartirPorWhatsApp('/mapas', `${TITULO} · ${BAJADA}`)}
@@ -41,6 +43,10 @@ async function Contenido () {
         >
           <IconoWhatsApp className='icono-boton' />
         </a>
+      </div>
+
+      <section className='seccion'>
+        <h2>Por tamaño</h2>
         <div className='tarjetas'>
           {TAMANOS.map((t) => <Tarjeta key={t} etiqueta={`${t}s`} valor={porTamano[t]} />)}
         </div>

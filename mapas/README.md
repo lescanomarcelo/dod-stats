@@ -8,25 +8,15 @@ npm install
 node --env-file=../ingesta/.env bajar-overviews.mjs   # baja los overviews del server por SFTP
 node generar.mjs                                      # -> sitio/public/mapas/*.webp y sitio/lib/overviews.json
 node validar.mjs "<carpeta dod>" ./cache               # verifica la conversion de coordenadas
-node --env-file=../ingesta/.env catalogo.mjs          # carga el catalogo de mapas votables y su tamaño
-node --env-file=../ingesta/.env catalogo.mjs --ver    # lo mismo, pero sin escribir en la base
 ```
 
 Después de `generar.mjs`, commitear `sitio/public/mapas/` y `sitio/lib/overviews.json`.
 
 ## El catálogo de mapas votables
 
-`catalogo.mjs` arma la lista de mapas que se pueden votar en el sitio. Sale de
-`addons/amxmodx/configs/maps.ini`, que es la que usa el menú de admin del server: los
-mapas que un admin puede poner de verdad.
-
-De cada uno saca el tamaño de la caja del mundo del `.bsp`. No baja el archivo
-entero: con una lectura por rango alcanzan la cabecera (124 bytes) y los 24 del
-modelo 0, así que medir los 83 mapas cuesta unos 12 KB en vez de 200 MB.
-
-Los cortes entre chico, mediano y grande están en `ingesta/tamano_mapas.mjs`. Si un
-mapa quedó en el grupo equivocado, se corrige en la tabla poniéndole `a_mano = 1` y
-el script no lo vuelve a pisar.
+Lo arma `ingesta/catalogo-mapas.mjs`, no este paquete: corre todos los días en
+producción, así que vive con el resto de lo que corre solo. De acá usa únicamente
+`bsp.mjs`, que no tiene dependencias.
 
 ## Cómo se convierten las coordenadas
 

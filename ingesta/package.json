@@ -7,7 +7,8 @@
   "scripts": {
     "test": "node --env-file=.env --test",
     "esquema": "node --env-file=.env aplicar-esquema.mjs",
-    "ingerir": "node --env-file=.env ingerir.mjs"
+    "ingerir": "node --env-file=.env ingerir.mjs",
+    "catalogo": "node --env-file=.env catalogo-mapas.mjs"
   },
   "dependencies": {
     "basic-ftp": "^5.0.5",

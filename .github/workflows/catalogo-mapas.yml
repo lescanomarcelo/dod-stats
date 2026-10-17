@@ -1,0 +1,50 @@
+# Mantiene al dia la lista de mapas que se pueden votar en el sitio.
+#
+# Corre a las 04:00 de Argentina, cuando no hay nadie jugando. Argentina es UTC-3
+# todo el año, asi que son las 07:00 UTC.
+#
+# Es barato: lee un archivo chico (maps.ini) y mide solo los mapas que todavia no
+# estan en el catalogo. Un dia sin mapas nuevos no baja nada mas.
+
+name: Catalogo de mapas
+
+on:
+  schedule:
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: catalogo-mapas
+  cancel-in-progress: false
+
+jobs:
+  catalogar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: ingesta
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: ingesta/package-lock.json
+
+      - run: npm ci
+
+      - name: Actualizar el catalogo de mapas
+        run: node catalogo-mapas.mjs
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          SFTP_HOST: ${{ secrets.SFTP_HOST }}
+          SFTP_PORT: ${{ secrets.SFTP_PORT }}
+          SFTP_USER: ${{ secrets.SFTP_USER }}
+          SFTP_PASS: ${{ secrets.SFTP_PASS }}
+          SFTP_HUELLA: ${{ secrets.SFTP_HUELLA }}
