@@ -17,7 +17,7 @@ import { tamanoDe } from './tamano_mapas.mjs'
 
 const RUTA_ESQUEMA = fileURLToPath(new URL('./esquema.sql', import.meta.url))
 /* En orden de borrado: las que apuntan a jugadores, antes que jugadores */
-const TABLAS = ['muertes', 'sesiones', 'impactos', 'acostado', 'jugado', 'puntos', 'comandos', 'admin_logins', 'gungame_ganadas', 'mapas_catalogo', 'visitas', 'partidas', 'mapas_jugados', 'admines', 'ingesta_estado', 'jugadores']
+const TABLAS = ['muertes', 'sesiones', 'impactos', 'acostado', 'jugado', 'puntos', 'comandos', 'admin_logins', 'gungame_ganadas', 'votos_mapas', 'mapas_catalogo', 'visitas', 'partidas', 'mapas_jugados', 'admines', 'ingesta_estado', 'jugadores']
 const FILAS_POR_INSERT = 500
 
 /* Recorta a lo que entra en la columna. Un dato raro no puede trabar la ingesta:

@@ -1368,3 +1368,66 @@ export async function catalogoDeMapas (): Promise<MapaDelCatalogo[]> {
     aMano: f.a_mano === 1
   }))
 }
+
+/* ------------------------------------------------------------------ */
+/*  Votacion de mapas                                                  */
+/* ------------------------------------------------------------------ */
+
+export type MapaVotable = { mapa: string, tamano: Tamano, votos: number }
+
+/**
+ * Los mapas que se pueden votar, con los votos que llevan en esa quincena.
+ *
+ * Van todos, tambien los que no tienen ningun voto: la pantalla es para elegir,
+ * no solo para mirar el resultado.
+ */
+export async function mapasParaVotar (quincena: string): Promise<MapaVotable[]> {
+  /* Sin cache a proposito: en una votacion, ver un conteo viejo justo despues de
+     votar confunde. Son 83 filas y la pagina ya es dinamica. */
+  const filas = await consultar(`
+    SELECT c.mapa, c.tamano, COUNT(v.id) AS votos
+    FROM {p}mapas_catalogo c
+    LEFT JOIN {p}votos_mapas v ON v.mapa = c.mapa AND v.quincena = ?
+    WHERE c.activo = 1 AND c.tamano IS NOT NULL
+    GROUP BY c.mapa, c.tamano
+    ORDER BY votos DESC, c.mapa
+  `, [quincena])
+
+  return filas.map((f) => ({
+    mapa: String(f.mapa),
+    tamano: f.tamano as Tamano,
+    votos: n(f.votos)
+  }))
+}
+
+export type VotoDeDodero = { mapa: string, nick: string }
+
+/** Quien voto que en esa quincena. Es lo que mantiene la votacion honesta. */
+export async function quienVoto (quincena: string): Promise<VotoDeDodero[]> {
+  /* Sin cache, por lo mismo que mapasParaVotar */
+  const filas = await consultar(`
+    SELECT v.mapa, j.nick
+    FROM {p}votos_mapas v
+    JOIN {p}jugadores j ON j.id = v.jugador_id
+    WHERE v.quincena = ?
+    ORDER BY v.momento
+  `, [quincena])
+
+  return filas.map((f) => ({ mapa: String(f.mapa), nick: String(f.nick) }))
+}
+
+/**
+ * Los doderos que pueden votar: los que jugaron alguna vez, del mas activo al
+ * menos. Es la lista para elegir con quien votas.
+ */
+export async function doderosParaVotar (): Promise<{ id: number, nick: string }[]> {
+  'use cache'
+  cacheLife(VIDA_CACHE)
+
+  const filas = await consultar(`
+    SELECT id, nick FROM {p}ranking
+    WHERE kills + muertes + puntos > 0
+    ORDER BY segundos_en_juego DESC, kills DESC
+  `)
+  return filas.map((f) => ({ id: n(f.id), nick: String(f.nick) }))
+}

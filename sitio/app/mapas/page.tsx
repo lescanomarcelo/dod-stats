@@ -1,6 +1,12 @@
 import type { Metadata } from 'next'
+import { connection } from 'next/server'
 import { Suspense } from 'react'
-import { rankingDeMapas, mapasPorTamano, catalogoDeMapas, type Tamano } from '@/lib/consultas'
+import {
+  rankingDeMapas, mapasPorTamano, catalogoDeMapas,
+  mapasParaVotar, quienVoto, doderosParaVotar, type Tamano
+} from '@/lib/consultas'
+import { quincenaDe, faltaPara } from '@/lib/quincenas'
+import { VotacionMapas } from '@/components/VotacionMapas'
 import { formatoNumero } from '@/lib/calculos'
 import { Cargando, Tarjeta } from '@/components/Ui'
 import { IconoWhatsApp } from '@/components/Iconos'
@@ -26,25 +32,38 @@ export const metadata: Metadata = {
 const JUGADORES: Record<Tamano, number> = { chico: 10, mediano: 16, grande: 24 }
 const TAMANOS: Tamano[] = ['chico', 'mediano', 'grande']
 
+async function Votacion () {
+  /* En que quincena estamos depende de la hora: sin esto, el build con Cache
+     Components intentaria congelarla en el momento en que se compilo */
+  await connection()
+
+  const quincena = quincenaDe()
+  const [mapas, votantes, doderos] = await Promise.all([
+    mapasParaVotar(quincena.clave),
+    quienVoto(quincena.clave),
+    doderosParaVotar()
+  ])
+
+  return (
+    <>
+      <div className='encabezado-votacion'>
+        <h2>Qué querés jugar</h2>
+        <p className='nota'>
+          Quincena del {quincena.nombre} · {faltaPara(quincena.hasta)} · hasta 3 mapas por día
+          en cada lista
+        </p>
+      </div>
+      <VotacionMapas mapas={mapas} doderos={doderos} votantes={votantes} />
+    </>
+  )
+}
+
 async function Contenido () {
   const [mapas, porTamano, catalogo] = await Promise.all([rankingDeMapas(), mapasPorTamano(), catalogoDeMapas()])
   const totalPartidas = mapas.reduce((suma, m) => suma + m.partidas, 0)
 
   return (
     <>
-      <div className='banda-compartible'>
-        {/* eslint-disable-next-line @next/next/no-img-element -- imagen fija ya optimizada */}
-        <img src='/mapas/_seccion.jpg' alt='' width={1200} height={630} className='banda-seccion banda-ancha' />
-        <a
-          className='boton-whatsapp'
-          href={compartirPorWhatsApp('/mapas', `${TITULO} · ${BAJADA}`)}
-          target='_blank' rel='noopener noreferrer'
-          aria-label='Compartir los mapas por WhatsApp' title='Compartir por WhatsApp'
-        >
-          <IconoWhatsApp className='icono-boton' />
-        </a>
-      </div>
-
       <section className='seccion'>
         <h2>Por tamaño</h2>
         <div className='tarjetas'>
@@ -128,6 +147,23 @@ export default function PaginaMapas () {
         <h1>{TITULO}</h1>
         <p>{BAJADA}.</p>
       </div>
+
+      <div className='banda-compartible'>
+        {/* eslint-disable-next-line @next/next/no-img-element -- imagen fija ya optimizada */}
+        <img src='/mapas/_seccion.jpg' alt='' width={1200} height={630} className='banda-seccion banda-ancha' />
+        <a
+          className='boton-whatsapp'
+          href={compartirPorWhatsApp('/mapas', `${TITULO} · ${BAJADA}`)}
+          target='_blank' rel='noopener noreferrer'
+          aria-label='Compartir los mapas por WhatsApp' title='Compartir por WhatsApp'
+        >
+          <IconoWhatsApp className='icono-boton' />
+        </a>
+      </div>
+
+      <Suspense fallback={<Cargando texto='Abriendo la votación…' />}>
+        <Votacion />
+      </Suspense>
 
       <Suspense fallback={<Cargando texto='Contando partidas…' />}>
         <Contenido />

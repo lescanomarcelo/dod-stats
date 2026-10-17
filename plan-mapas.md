@@ -78,10 +78,25 @@ No lleva selector de período, igual que el resto de lo que cuenta actividad del
 server: es el histórico completo. El gungame tampoco se filtra acá, porque la partida
 se jugó igual.
 
-**Fase 3 — La votación.** La tabla `votos_mapas (quincena, mapa, jugador_id, dia)` con
-clave única `(mapa, jugador_id, dia)`, que es la que hace cumplir el "una vez por día"
-en la base y no solo en el código. Una ruta `POST /api/voto` como la de las visitas, y
-la pantalla con las tres listas, el buscador y el contador de votos que te quedan.
+**Fase 3 — La votación. HECHA.** Las tres listas en `/mapas`, arriba del ranking.
+
+- Las quincenas están en `sitio/lib/quincenas.ts` (12 tests), todo medido en hora de
+  Argentina: las nueve de la noche del 15 todavía son del 15, aunque en UTC ya sea 16.
+- Las reglas, en `sitio/lib/votos.ts` (9 tests). Las tres votaciones son
+  independientes: quedarse sin votos chicos no toca los medianos.
+- La tabla `votos_mapas` tiene clave única `(mapa, jugador_id, dia)`: el "una vez por
+  día" lo hace cumplir la base, no el código, así que no entra dos veces ni con dos
+  pestañas abiertas a la vez.
+- `POST /api/voto` recibe el voto y también lo saca, para corregir un toque mal dado
+  el mismo día.
+
+Dos cosas que salieron de probarlo en el navegador:
+
+- El nick elegido se guarda en el navegador con `useSyncExternalStore`, no con un
+  efecto: así no rompe la hidratación ni provoca renders en cascada.
+- **Los conteos de votos no se cachean.** Estaban con 30 segundos de caché y, al
+  recargar justo después de votar, se veía el tilde propio pero el contador en cero.
+  En una votación eso confunde, y son 83 filas en una página que ya es dinámica.
 
 **Fase 4 — La quincena.** El cierre automático, el histórico y la vista de "la quincena
 pasada".

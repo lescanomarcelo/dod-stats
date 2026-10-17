@@ -254,6 +254,31 @@ CREATE TABLE IF NOT EXISTS {p}mapas_catalogo (
   KEY ix_tamano (tamano, activo)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Los votos de la votacion de mapas del sitio. Una fila por voto.
+--
+-- La clave unica (mapa, jugador_id, dia) es la que hace cumplir el "una vez por
+-- dia": no se puede meter dos veces el mismo voto ni con dos pestañas abiertas a
+-- la vez. El limite de 3 por dia y por tamaño lo cuenta la ruta que recibe el voto.
+--
+-- quincena es el dia en que arranca (el 1 o el 16), como texto AAAA-MM-DD, y dia
+-- es el dia argentino del voto. Los dos van como texto a proposito: ya vienen
+-- calculados en hora de Argentina y asi no hay forma de que una zona horaria los
+-- corra. Ver sitio/lib/quincenas.ts.
+CREATE TABLE IF NOT EXISTS {p}votos_mapas (
+  id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  quincena   CHAR(10)        NOT NULL,
+  dia        CHAR(10)        NOT NULL,
+  mapa       VARCHAR(40)     NOT NULL,
+  jugador_id INT UNSIGNED    NOT NULL,
+  momento    DATETIME        NOT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_voto (mapa, jugador_id, dia),
+  KEY ix_quincena (quincena, mapa),
+  KEY ix_del_dia (jugador_id, dia),
+  CONSTRAINT fk_{p}votos_mapas_jugador FOREIGN KEY (jugador_id) REFERENCES {p}jugadores (id),
+  CONSTRAINT fk_{p}votos_mapas_mapa FOREIGN KEY (mapa) REFERENCES {p}mapas_catalogo (mapa)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Agregados de columnas a tablas que ya existian. Los CREATE TABLE de arriba son
 -- IF NOT EXISTS, asi que a una base ya creada no le agregan nada: para eso van
 -- estos ALTER. Son idempotentes (IF NOT EXISTS de MariaDB), se pueden correr

@@ -994,3 +994,68 @@ tbody tr.sin-uso .arma-dibujo { opacity: 0.45; filter: grayscale(1); }
 }
 .mapas-lista .nota { margin: 0; }
 .mapas-grupo .cuantos { margin-left: 0.5rem; color: var(--tenue); }
+
+/* ------------------------------------------------------------------ */
+/*  Votacion de mapas                                                  */
+/* ------------------------------------------------------------------ */
+
+.encabezado-votacion { margin-top: var(--space-8); }
+.encabezado-votacion .nota { margin-top: 0.2rem; }
+
+.votar-quien {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem;
+  margin-top: var(--space-5);
+}
+.votar-quien label {
+  font-family: var(--font-oswald), sans-serif;
+  text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.75rem;
+  color: var(--tenue);
+}
+.votar-quien select { min-width: 13rem; }
+.votar-quien input[type='search'] { flex: 1; min-width: 9rem; }
+
+.votar-para {
+  margin-left: 0.6rem; color: var(--tenue); font-size: 0.75rem;
+  text-transform: none; letter-spacing: 0;
+}
+.votar-quedan {
+  float: right; color: var(--tenue); font-size: 0.75rem;
+  text-transform: none; letter-spacing: 0;
+}
+
+.votar-lista {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 0.35rem; list-style: none; padding: 0; margin: 0;
+}
+.votar-lista button {
+  display: flex; align-items: center; gap: 0.55rem; width: 100%;
+  padding: 0.45rem 0.7rem;
+  background: var(--panel); border: 1px solid var(--borde); border-radius: 0;
+  color: var(--texto); font: inherit; font-size: 0.9rem; text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.votar-lista button:hover:not(:disabled) { border-color: var(--acento); }
+.votar-lista button:disabled { opacity: 0.45; cursor: default; }
+.votar-lista .votado button { border-color: var(--acento); background: var(--acento-suave); }
+
+.votar-tilde {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.2rem; height: 1.2rem; flex: none;
+  border: 1px solid var(--borde); color: var(--tenue); font-size: 0.75rem;
+}
+.votado .votar-tilde { border-color: var(--acento); color: var(--acento); }
+.votar-mapa { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.votar-votos { color: var(--acento); font-weight: 700; }
+
+.votar-quienes {
+  display: block; padding: 0.1rem 0.7rem 0.3rem 2.45rem;
+  color: var(--tenue); font-size: 0.72rem;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* En el celular no entra todo en el renglon del titulo */
+@media (max-width: 560px) {
+  .votar-quedan { float: none; display: block; margin-top: 0.15rem; }
+  .votar-para { display: block; margin-left: 0; }
+}
