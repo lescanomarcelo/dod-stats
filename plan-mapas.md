@@ -70,13 +70,13 @@ Dos detalles que resuelve el guardado: un mapa que sale del server queda **inact
 vez de borrarse**, así los votos que ya tenga siguen apuntando a algo; y un tamaño
 corregido a mano (`a_mano = 1`) no se pisa aunque el script vuelva a correr.
 
-**Fase 2 — La sección. HECHA.** Página `/mapas` con el ranking de los más jugados y
-el tamaño de cada uno, más el reparto por tamaño arriba. Entra al menú después de
-Armas. Falta la imagen de la sección.
+**Fase 2 — La sección. HECHA.** Página `/mapas`, en el menú después de Armas, con la
+imagen de banda arriba.
 
-No lleva selector de período, igual que el resto de lo que cuenta actividad del
-server: es el histórico completo. El gungame tampoco se filtra acá, porque la partida
-se jugó igual.
+Arrancó con un ranking de los más jugados, que después se sacó: no aportaba nada al
+lado de la votación, que es a lo que se entra. Quedó la votación arriba y, abajo, la
+lista completa de los mapas del server plegada, con un plegable por tamaño adentro.
+Sin la medida ni la marca de "a mano": al que entra no le sirven y distraen.
 
 **Fase 3 — La votación. HECHA.** Las tres listas en `/mapas`, arriba del ranking.
 

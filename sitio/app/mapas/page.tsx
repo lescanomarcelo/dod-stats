@@ -2,18 +2,17 @@ import type { Metadata } from 'next'
 import { connection } from 'next/server'
 import { Suspense } from 'react'
 import {
-  rankingDeMapas, mapasPorTamano, catalogoDeMapas,
-  mapasParaVotar, quienVoto, doderosParaVotar, type Tamano
+  catalogoDeMapas, mapasParaVotar, quienVoto, doderosParaVotar, type Tamano
 } from '@/lib/consultas'
 import { quincenaDe, faltaPara } from '@/lib/quincenas'
+import { VOTOS_POR_DIA } from '@/lib/votos'
 import { VotacionMapas } from '@/components/VotacionMapas'
-import { formatoNumero } from '@/lib/calculos'
-import { Cargando, Tarjeta } from '@/components/Ui'
+import { Cargando } from '@/components/Ui'
 import { IconoWhatsApp } from '@/components/Iconos'
 import { compartirPorWhatsApp } from '@/lib/enlaces'
 
 const TITULO = 'Mapas'
-const BAJADA = 'Los mapas que más se juegan en el server'
+const BAJADA = 'Votá los mapas que querés jugar en el server'
 
 export const metadata: Metadata = {
   title: TITULO,
@@ -49,8 +48,8 @@ async function Votacion () {
       <div className='encabezado-votacion'>
         <h2>Qué querés jugar</h2>
         <p className='nota'>
-          Quincena del {quincena.nombre} · {faltaPara(quincena.hasta)} · hasta 3 mapas por día
-          en cada lista
+          Quincena del {quincena.nombre} · {faltaPara(quincena.hasta)} · hasta {VOTOS_POR_DIA} mapas
+          por día en cada lista
         </p>
       </div>
       <VotacionMapas mapas={mapas} doderos={doderos} votantes={votantes} />
@@ -58,85 +57,37 @@ async function Votacion () {
   )
 }
 
-async function Contenido () {
-  const [mapas, porTamano, catalogo] = await Promise.all([rankingDeMapas(), mapasPorTamano(), catalogoDeMapas()])
-  const totalPartidas = mapas.reduce((suma, m) => suma + m.partidas, 0)
+/*
+ *  La lista completa de los mapas del server. Va plegada, y cada tamaño adentro
+ *  tambien: lo importante de la seccion es votar, esto es para consultar.
+ */
+async function TodosLosMapas () {
+  const catalogo = await catalogoDeMapas()
 
   return (
-    <>
-      <section className='seccion'>
-        <h2>Por tamaño</h2>
-        <div className='tarjetas'>
-          {TAMANOS.map((t) => <Tarjeta key={t} etiqueta={`${t}s`} valor={porTamano[t]} />)}
-        </div>
-        <p className='nota'>
-          Los chicos van bien hasta {JUGADORES.chico} jugadores, los medianos hasta{' '}
-          {JUGADORES.mediano} y los grandes hasta {JUGADORES.grande}. Cada tamaño va a tener su
-          propia votación.
-        </p>
-      </section>
+    <section className='seccion'>
+      <details className='lista-plegable'>
+        <summary>
+          Todos los mapas, por tamaño
+          <span className='cuantos numero'>{catalogo.length}</span>
+        </summary>
 
-      <section className='seccion'>
-        <details className='lista-plegable'>
-          <summary>
-            Todos los mapas, por tamaño
-            <span className='cuantos numero'>{catalogo.length}</span>
-          </summary>
-
-          {TAMANOS.map((tamano) => {
-            const delTamano = catalogo.filter((m) => m.tamano === tamano)
-            return (
-              <div key={tamano}>
-                <h3 className='mapas-grupo'>
-                  {tamano}s · hasta {JUGADORES[tamano]} jugadores
-                  <span className='cuantos numero'>{delTamano.length}</span>
-                </h3>
-                <ul className='mapas-lista'>
-                  {delTamano.map((m) => (
-                    <li key={m.mapa}>
-                      {m.mapa}
-                      <span className='nota'>{m.area}{m.aMano ? ' · a mano' : ''}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )
-          })}
-        </details>
-      </section>
-
-      <section className='seccion tabla-envoltorio'>
-        <table>
-          <thead>
-            <tr>
-              <th className='num'>#</th>
-              <th>Mapa</th>
-              <th>Tamaño</th>
-              <th className='num'>Partidas</th>
-            </tr>
-          </thead>
-          <tbody>
-            {mapas.map((m, i) => (
-              <tr key={m.mapa}>
-                <td className='posicion num'>{i + 1}</td>
-                <td>
-                  {m.mapa}
-                  {!m.enElServer && <span className='nota'> · ya no está en el server</span>}
-                </td>
-                <td>{m.tamano ?? '—'}</td>
-                <td className='num'>{formatoNumero(m.partidas)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
-
-      <p className='nota'>
-        {formatoNumero(mapas.length)} mapas jugados y {formatoNumero(totalPartidas)} partidas desde
-        que arrancaron las estadísticas. El tamaño sale de la medida real del mapa y decide en cuál
-        de las tres votaciones entra.
-      </p>
-    </>
+        {TAMANOS.map((tamano) => {
+          const delTamano = catalogo.filter((m) => m.tamano === tamano)
+          return (
+            <details className='lista-plegable grupo-mapas' key={tamano}>
+              <summary>
+                {tamano}s · hasta {JUGADORES[tamano]} jugadores
+                <span className='cuantos numero'>{delTamano.length}</span>
+              </summary>
+              <ul className='mapas-lista'>
+                {delTamano.map((m) => <li key={m.mapa}>{m.mapa}</li>)}
+              </ul>
+            </details>
+          )
+        })}
+      </details>
+    </section>
   )
 }
 
@@ -165,8 +116,8 @@ export default function PaginaMapas () {
         <Votacion />
       </Suspense>
 
-      <Suspense fallback={<Cargando texto='Contando partidas…' />}>
-        <Contenido />
+      <Suspense fallback={null}>
+        <TodosLosMapas />
       </Suspense>
     </>
   )
