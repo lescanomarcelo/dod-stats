@@ -14,13 +14,16 @@ import type { Tamano } from '@/lib/consultas'
  *  votos_mapas lo garantiza en la base, así que no hay forma de meter el mismo
  *  voto dos veces aunque lleguen dos pedidos a la vez. El límite de 3 por día y
  *  por tamaño se cuenta acá.
+ *
+ *  El voto no se puede sacar. Una vez que lo apretaste, cuenta: si no, entrar de
+ *  nuevo y acomodar lo votado convierte la votación en un borrador eterno.
  */
 
 const sinCache = { 'Cache-Control': 'no-store' }
 const error = (mensaje: string, codigo = 400) =>
   NextResponse.json({ error: mensaje }, { status: codigo, headers: sinCache })
 
-type Pedido = { jugadorId?: unknown, mapa?: unknown, sacar?: unknown }
+type Pedido = { jugadorId?: unknown, mapa?: unknown }
 
 /** Lo que el dodero votó hoy, con el tamaño de cada mapa */
 async function votosDeHoy (jugadorId: number, dia: string) {
@@ -42,7 +45,6 @@ export async function POST (pedido: Request) {
 
   const jugadorId = Number(cuerpo.jugadorId)
   const mapa = String(cuerpo.mapa ?? '')
-  const sacar = cuerpo.sacar === true
 
   if (!Number.isInteger(jugadorId) || jugadorId <= 0) return error('Elegí tu nick para votar')
   if (!mapa) return error('Falta el mapa')
@@ -61,27 +63,20 @@ export async function POST (pedido: Request) {
     'SELECT tamano FROM {p}mapas_catalogo WHERE mapa = ? AND activo = 1', [mapa])
   if (!delCatalogo?.tamano) return error('Ese mapa no se puede votar')
 
-  if (sacar) {
-    /* Solo se puede sacar un voto del mismo día: es para corregir un toque mal dado */
-    await consultar(
-      'DELETE FROM {p}votos_mapas WHERE mapa = ? AND jugador_id = ? AND dia = ?',
-      [mapa, jugadorId, dia])
-  } else {
-    const hoy = await votosDeHoy(jugadorId, dia)
-    const motivo = motivoParaRechazar(
-      delCatalogo.tamano, contarPorTamano(hoy), hoy.map((v) => v.mapa), mapa)
-    if (motivo) return error(TEXTO_RECHAZO[motivo], 409)
+  const antes = await votosDeHoy(jugadorId, dia)
+  const motivo = motivoParaRechazar(
+    delCatalogo.tamano, contarPorTamano(antes), antes.map((v) => v.mapa), mapa)
+  if (motivo) return error(TEXTO_RECHAZO[motivo], 409)
 
-    try {
-      await consultar(
-        `INSERT INTO {p}votos_mapas (quincena, dia, mapa, jugador_id, momento)
-         VALUES (?, ?, ?, ?, ?)`,
-        [quincena, dia, mapa, jugadorId, ahora])
-    } catch (e) {
-      /* Dos pestañas a la vez: la clave unica lo frena y no es un error del dodero */
-      const codigo = (e as { code?: string }).code
-      if (codigo !== 'ER_DUP_ENTRY') throw e
-    }
+  try {
+    await consultar(
+      `INSERT INTO {p}votos_mapas (quincena, dia, mapa, jugador_id, momento)
+       VALUES (?, ?, ?, ?, ?)`,
+      [quincena, dia, mapa, jugadorId, ahora])
+  } catch (e) {
+    /* Dos pestañas a la vez: la clave unica lo frena y no es un error del dodero */
+    const codigo = (e as { code?: string }).code
+    if (codigo !== 'ER_DUP_ENTRY') throw e
   }
 
   const hoy = await votosDeHoy(jugadorId, dia)

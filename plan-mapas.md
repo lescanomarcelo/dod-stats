@@ -87,8 +87,9 @@ Sin la medida ni la marca de "a mano": al que entra no le sirven y distraen.
 - La tabla `votos_mapas` tiene clave única `(mapa, jugador_id, dia)`: el "una vez por
   día" lo hace cumplir la base, no el código, así que no entra dos veces ni con dos
   pestañas abiertas a la vez.
-- `POST /api/voto` recibe el voto y también lo saca, para corregir un toque mal dado
-  el mismo día.
+- `POST /api/voto` recibe el voto, y nada más: **el voto no se saca**. Una vez que lo
+  apretaste, cuenta. Si se pudiera desmarcar, entrar de nuevo y acomodar lo votado
+  convertiría la votación en un borrador eterno.
 
 Dos cosas que salieron de probarlo en el navegador:
 

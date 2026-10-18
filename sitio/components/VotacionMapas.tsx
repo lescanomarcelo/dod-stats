@@ -95,6 +95,8 @@ export function VotacionMapas (
 
   async function votar (mapa: string) {
     if (!jugadorId) { setAviso('Elegí tu nick arriba para poder votar'); return }
+    /* El voto no se saca: si ya esta votado, no hay nada que hacer */
+    if (mios.includes(mapa)) return
 
     setEnviando(mapa)
     setAviso(null)
@@ -102,7 +104,7 @@ export function VotacionMapas (
       const r = await fetch('/api/voto', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jugadorId, mapa, sacar: mios.includes(mapa) })
+        body: JSON.stringify({ jugadorId, mapa })
       })
       const d = await r.json()
       if (!r.ok) { setAviso(d.error ?? 'No se pudo votar'); return }
@@ -172,8 +174,8 @@ export function VotacionMapas (
                         <button
                           type='button'
                           onClick={() => votar(m.mapa)}
-                          disabled={enviando === m.mapa || (!!jugadorId && sinVotos)}
-                          title={mio ? 'Sacar mi voto' : 'Votar este mapa'}
+                          disabled={mio || enviando === m.mapa || (!!jugadorId && sinVotos)}
+                          title={mio ? 'Ya lo votaste' : 'Votar este mapa'}
                         >
                           <span className='votar-tilde' aria-hidden='true'>{mio ? '✔' : '+'}</span>
                           <span className='votar-mapa'>{m.mapa}</span>

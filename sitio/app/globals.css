@@ -1029,7 +1029,12 @@ tbody tr.sin-uso .arma-dibujo { opacity: 0.45; filter: grayscale(1); }
 }
 .votar-lista button:hover:not(:disabled) { border-color: var(--acento); }
 .votar-lista button:disabled { opacity: 0.45; cursor: default; }
-.votar-lista .votado button { border-color: var(--acento); background: var(--acento-suave); }
+/* El votado tambien esta deshabilitado (el voto no se saca), pero no es lo mismo
+   que uno bloqueado: va entero y en dorado, no apagado */
+.votar-lista .votado button,
+.votar-lista .votado button:disabled {
+  opacity: 1; border-color: var(--acento); background: var(--acento-suave);
+}
 
 .votar-tilde {
   display: inline-flex; align-items: center; justify-content: center;
