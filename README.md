@@ -10,7 +10,7 @@ Plugin .amxx  →  archivo TSV en el server  →  ingesta por SFTP  →  MySQL  
 
 | Carpeta | Qué hay |
 |---|---|
-| `plugin/` | `dod_stats_registro.sma` — registra muertes, impactos por zona del cuerpo, disparos, conexiones, desconexiones y comandos de admin. `dod_saca_espectadores.sma` — saca al espectador que lleva rato mirando cuando el server se llena. Compilados en `plugin/compilado/` con el `amxxpc.exe` de `C:Program Files (x86)AMX Mod Xilesasescripting` |
+| `plugin/` | `dod_stats_registro.sma` — registra muertes, impactos por zona del cuerpo, disparos, conexiones, desconexiones y comandos de admin. `dod_saca_espectadores.sma` — saca al espectador que lleva rato mirando cuando el server se llena; se configura en `addons/amxmodx/configs/espectadores.cfg`, que el propio plugin escribe la primera vez. Compilados en `plugin/compilado/` con el `amxxpc.exe` de `C:\Program Files (x86)\AMX Mod X\files\base\scripting` |
 | `ingesta/` | Baja los archivos del server por SFTP, los parsea y los carga en MySQL. 42 tests |
 | `sitio/` | El sitio en Next.js 16: ranking, perfiles (muñeco de impactos y mapa de calor), Eje vs Aliados, comparación y armas. Se despliega en Vercel |
 | `mapas/` | Genera las imágenes de los mapas de calor y valida la conversión de coordenadas contra los `.bsp` (902/902) |

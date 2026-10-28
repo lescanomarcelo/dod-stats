@@ -13,8 +13,10 @@
  *    espect_admines     0    0 = a todos igual, 1 = a los admines no se los saca
  *    espect_mensaje          lo que ve el que se va
  *
- *  Se pueden poner en addons/amxmodx/configs/amxx.cfg para que queden fijos, o a
- *  mano en la consola para probar.
+ *  Se tocan en addons/amxmodx/configs/espectadores.cfg, que el plugin escribe solo
+ *  la primera vez con estos valores y sus explicaciones. Cambiar un numero ahi y
+ *  cambiar de mapa alcanza: no hay que recompilar nada. En la consola tambien se
+ *  pueden cambiar en caliente, pero eso dura hasta que se reinicie el server.
  *
  *  Como cuenta los jugadores: todos los humanos conectados, mirando o jugando. Es
  *  la cuenta que importa, porque son los que ocupan lugar.
@@ -30,9 +32,10 @@
 
 #include <amxmodx>
 #include <amxmisc>
+#include <file>
 
 #define PLUGIN_NAME     "DoD - Saca espectadores"
-#define PLUGIN_VERSION  "1.0.0"
+#define PLUGIN_VERSION  "1.1.0"
 #define PLUGIN_AUTHOR   "Marcelo Lescano"
 
 #define PREFIJO         "[ESPECT]"
@@ -44,6 +47,7 @@
 #define TAREA_REVISAR   9320
 #define SEGUNDOS_REVISION 15.0
 #define LARGO_MENSAJE   128
+#define ARCHIVO_CFG     "espectadores.cfg"
 
 new g_cvarMinimo, g_cvarMinutos, g_cvarAdmines, g_cvarMensaje
 
@@ -70,6 +74,47 @@ public plugin_cfg()
        nuevo todos estan eligiendo clase, y recien ahi empieza a correr el reloj. */
     for (new id = 1; id <= 32; id++)
         g_mirandoDesde[id] = 0.0
+
+    cargarConfig()
+}
+
+/*
+ *  La configuracion vive en un archivo aparte y no en amxx.cfg: asi se ve de un
+ *  vistazo que se puede tocar y por que, sin perderse entre las cvars de todo lo
+ *  demas. Si el archivo no esta, se escribe con los valores de arriba y con sus
+ *  explicaciones, asi el server queda configurable con solo subir el plugin.
+ *
+ *  Se lee en cada cambio de mapa, que es cuando corre plugin_cfg: editar el
+ *  archivo y cambiar de mapa alcanza para que tome los valores nuevos.
+ */
+cargarConfig()
+{
+    new carpeta[64], ruta[128]
+    get_configsdir(carpeta, charsmax(carpeta))
+    formatex(ruta, charsmax(ruta), "%s/%s", carpeta, ARCHIVO_CFG)
+
+    if (!file_exists(ruta))
+    {
+        write_file(ruta, "// DoD - Saca espectadores")
+        write_file(ruta, "// Cambiar un valor aca y cambiar de mapa: no hace falta recompilar.")
+        write_file(ruta, "")
+        write_file(ruta, "// De cuantos jugadores en adelante se aplica la regla.")
+        write_file(ruta, "espect_minimo 12")
+        write_file(ruta, "")
+        write_file(ruta, "// Cuantos minutos puede estar mirando antes de que lo saquen.")
+        write_file(ruta, "// Acepta decimales: 0.5 es medio minuto. En 0 no se saca a nadie.")
+        write_file(ruta, "espect_minutos 3")
+        write_file(ruta, "")
+        write_file(ruta, "// 0 = a los admines se los saca igual, 1 = a los admines no se los saca.")
+        write_file(ruta, "espect_admines 0")
+        write_file(ruta, "")
+        write_file(ruta, "// Lo que ve el que se va. Sin tildes: la fuente del juego las rompe.")
+        write_file(ruta, "espect_mensaje ^"Volve cuando esten listos los bifes!^"")
+
+        log_amx("%s Primera vez: escribi la configuracion en %s", PREFIJO, ruta)
+    }
+
+    server_cmd("exec %s", ruta)
 }
 
 public client_putinserver(id)
