@@ -10,7 +10,7 @@
  *
  *    espect_minimo     12    de cuantos jugadores en adelante se aplica la regla
  *    espect_minutos     3    cuanto puede estar mirando antes de que lo saquen
- *    espect_admines     1    1 = a los admines no se los saca, 0 = a todos igual
+ *    espect_admines     0    0 = a todos igual, 1 = a los admines no se los saca
  *    espect_mensaje          lo que ve el que se va
  *
  *  Se pueden poner en addons/amxmodx/configs/amxx.cfg para que queden fijos, o a
@@ -56,7 +56,7 @@ public plugin_init()
 
     g_cvarMinimo  = register_cvar("espect_minimo", "12")
     g_cvarMinutos = register_cvar("espect_minutos", "3")
-    g_cvarAdmines = register_cvar("espect_admines", "1")
+    g_cvarAdmines = register_cvar("espect_admines", "0")
     g_cvarMensaje = register_cvar("espect_mensaje", "Volve cuando esten listos los bifes!")
 
     register_concmd("espect_estado", "cmdEstado", ADMIN_RCON, "- muestra quien esta mirando y hace cuanto")
