@@ -77,10 +77,11 @@ public client_putinserver(id)
     g_mirandoDesde[id] = 0.0
 }
 
-public client_disconnected(id, bool:drop, message[], maxlen)
-{
-    g_mirandoDesde[id] = 0.0
-}
+/* No hace falta enganchar la desconexion: la revision de cada 15 segundos le
+   borra el reloj a cualquiera que ya no este conectado. Asi tampoco depende de
+   que el forward se llame client_disconnect o client_disconnected, que cambio
+   de nombre entre versiones de AMXX. */
+
 
 /* ------------------------------------------------------------------ */
 
