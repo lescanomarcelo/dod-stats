@@ -19,8 +19,19 @@ apura.
 
 ## Del sitio
 
-- **Dos commits sin subir**: "Cómo quedó la quincena pasada" y "El voto es
-  definitivo".
+- **Commits sin subir.** Entre ellos el que cierra las trampas de crawler, que es
+  el que más apura: hasta que no se despliegue, el consumo de CPU en Vercel sigue
+  igual.
+
+- **El build local falla**, y ya fallaba antes de todo esto: el sitio apunta a las
+  tablas `demo_` y esas quedaron sin la columna `gg` que sumó lo del gungame.
+  `npx tsc --noEmit` y el lint pasan limpios, y el deploy de Vercel usa las tablas
+  de verdad, así que no frena nada; pero no se puede probar un build completo en la
+  máquina hasta volver a sembrar la demo.
+
+- **Mirar el consumo de Vercel en unos días** (Usage, dentro del equipo ML) para ver
+  si el robots.txt alcanzó. Si siguen entrando bots que lo ignoran, queda la regla
+  del Firewall, que el plan gratuito permite.
 
 - **La rama `diario`** (el tema experimental) quedó sin sincronizar desde el rediseño
   de la ficha militar. Se le fue sumando todo lo que vino después.
