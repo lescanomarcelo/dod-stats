@@ -39,17 +39,22 @@ export function ControlPeriodo ({ rango, enlace, children }: Props) {
         {children}
       </div>
 
+      {/*
+          rel='nofollow' en las flechas: el historico no tiene fondo, siempre hay un
+          dia anterior, asi que un crawler que las siga no termina nunca. Para una
+          persona no cambia nada.
+      */}
       {rango.periodo !== 'global' && (
         <div className='navegador-periodo'>
           {rango.anterior
-            ? <Link href={enlace(rango.periodo, rango.anterior)} scroll={false} aria-label='Período anterior'>‹</Link>
+            ? <Link href={enlace(rango.periodo, rango.anterior)} scroll={false} rel='nofollow' aria-label='Período anterior'>‹</Link>
             : <span />}
           <strong>
             {rango.etiqueta}
             {rango.actual && <small> (en curso)</small>}
           </strong>
           {rango.siguiente
-            ? <Link href={enlace(rango.periodo, rango.siguiente)} scroll={false} aria-label='Período siguiente'>›</Link>
+            ? <Link href={enlace(rango.periodo, rango.siguiente)} scroll={false} rel='nofollow' aria-label='Período siguiente'>›</Link>
             : <span />}
         </div>
       )}
