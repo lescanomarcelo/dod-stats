@@ -5,13 +5,13 @@ apura.
 
 ## Del server
 
-- **`dod_quaint_b1` rompe el server.** Se puso 3 veces y las 3 lo tuvieron que sacar a
-  los 10, 72 y 34 segundos (la última, el 16/10 a las 21:25, con "Reliable channel
-  overflowed" para muchos). **Sigue habilitado para votarse**, así que si gana una
-  votación lo van a poner de nuevo. Conviene sacarlo de
-  `addons/amxmodx/configs/maps.ini`: con eso desaparece solo de la votación en la
-  corrida de las 04:00. La causa no se pudo determinar: no es exceso de contenido
-  (`dod_saints` tiene más entidades y anda bien).
+- **`dod_quaint_b1` rompe el server. RESUELTO.** Se puso 3 veces y las 3 lo tuvieron
+  que sacar a los 10, 72 y 34 segundos (la última, el 16/10 a las 21:25, con
+  "Reliable channel overflowed" para muchos). Quedó comentado en
+  `addons/amxmodx/configs/maps.ini` y la corrida de las 04:00 lo desactivó solo: ya
+  no se puede votar. La causa nunca se determinó: no es exceso de contenido
+  (`dod_saints` tiene más entidades y anda bien), así que si alguna vez se lo quiere
+  volver a habilitar, es a ciegas.
 
 - **Los logs del juego escriben el año 2025** (dicen `10/16/2025` cuando era 2026).
   Los de AMX Mod X sí dicen 2026. No rompe nada nuestro, pero confunde al buscar un
