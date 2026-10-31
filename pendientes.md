@@ -29,9 +29,12 @@ apura.
   de verdad, así que no frena nada; pero no se puede probar un build completo en la
   máquina hasta volver a sembrar la demo.
 
-- **Mirar el consumo de Vercel en unos días** (Usage, dentro del equipo ML) para ver
-  si el robots.txt alcanzó. Si siguen entrando bots que lo ignoran, queda la regla
-  del Firewall, que el plan gratuito permite.
+- **Confirmar el consumo de Vercel en el Usage del equipo ML.** El 31/10, un día
+  después del robots.txt, el tráfico automático sobre `/comparar` ya no estaba: la
+  antigüedad del caché sube pareja y es igual a la de la portada, cuando antes del
+  arreglo daba 12 segundos contra 152. Falta el número de Active CPU, que necesita
+  Observability Plus (plan Pro) y solo se ve entrando al Usage. El Firewall quedó sin
+  ninguna regla: por ahora no hizo falta.
 
 - **La rama `diario`** (el tema experimental) quedó sin sincronizar desde el rediseño
   de la ficha militar. Se le fue sumando todo lo que vino después.
