@@ -57,7 +57,6 @@
 #define SEGUNDOS_REVISION 15.0
 #define LARGO_MENSAJE   128
 #define ARCHIVO_CFG     "espectadores.cfg"
-#define LARGO_LINEA     192
 
 new g_cvarMinimo, g_cvarMinutos, g_cvarAdmines, g_cvarMensaje
 
