@@ -44,9 +44,11 @@ apura.
 
 - **Histórico de quincenas más largo.** Hoy solo se ve la anterior.
 
-- **Revisar las marcas del medallero** cuando haya pasado un mes con datos, para ver
-  si el ritmo real las dejó muy fáciles o muy difíciles. La terna del Kenny es la
-  menos confiable.
+- **Revisar el medallero otra vez cuando empiecen a caer los oros.** La revisión del
+  31/10 (40 días de datos) dejó las marcas como estaban salvo el oro del Kenny, que
+  bajó de 50h a 25h. El primer oro que va a caer es el del Matador: al ritmo del
+  líder, a los pocos días de esa fecha. Cuando pase, conviene mirar si la página los
+  muestra bien, que hasta ahora nunca se vio un oro de verdad.
 
 ## Decisiones tomadas que conviene recordar
 

@@ -42,9 +42,20 @@ const marcas = (bronce: number, plata: number, oro: number): Escalon[] => [
 const HORA = 3600
 
 /*
- *  Las marcas estan calibradas contra los datos del 22/9 al 6/10 de 2026: el bronce lo
- *  alcanzan entre dos y ocho doderos por rubro, y la plata y el oro todavia nadie.
- *  Como los totales solo crecen, con los meses se van a ir aflojando: esta previsto.
+ *  Las marcas se calibraron contra los datos del 22/9 al 6/10 de 2026 y se revisaron
+ *  el 31/10 con 40 dias cargados. Como los totales solo crecen, con los meses se van
+ *  aflojando solas: el bronce ya paso de dos-a-ocho doderos por rubro a ocho-a-25, y
+ *  esta bien que asi sea. No se suben: subir una marca le saca la medalla a alguien
+ *  que ya la tiene, que es peor que un bronce generoso.
+ *
+ *  En esa revision el oro seguia en cero en los once rubros, pero no porque fuera
+ *  inalcanzable: al ritmo de cada lider van cayendo escalonados a lo largo de unos
+ *  ocho meses, de a uno, que es justo lo que se quiere.
+ *
+ *  Ojo con compararlas con los numeros de antes del 25/10: desde entonces lo jugado
+ *  en gungame no cuenta, asi que todos los totales bajaron un poco. Las banderas son
+ *  las mas afectadas (un 11% menos), o sea que el Abanderado quedo de hecho algo mas
+ *  dificil de lo que se penso al calibrarlo.
  */
 export const RUBROS: RubroMedalla[] = [
   {
@@ -122,7 +133,14 @@ export const RUBROS: RubroMedalla[] = [
     nombre: 'Kenny',
     detalle: 'Tiempo acostado',
     formato: formatoTiempo,
-    escalones: marcas(1 * HORA, 10 * HORA, 50 * HORA)
+    /*
+     *  El oro bajo de 50h a 25h en la revision del 31/10. Con el lider en 7,3h en 40
+     *  dias, 50h eran unos ocho meses: mas del doble que el Veterano, que es el
+     *  segundo mas largo. En proporcion al ritmo real era el doble de duro que
+     *  cualquier otro rubro. Bajarlo no le saco la medalla a nadie, porque no la
+     *  tenia nadie.
+     */
+    escalones: marcas(1 * HORA, 10 * HORA, 25 * HORA)
   }
 ]
 
