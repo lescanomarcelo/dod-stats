@@ -25,6 +25,15 @@
  *  que todavia no eligio clase, que es justo lo que se quiere. Los tres minutos le
  *  dan tiempo de sobra para elegir.
  *
+ *  Cada vez que saca a alguien escribe una linea K en el mismo archivo de eventos
+ *  que usa dod_stats_registro, para que la ingesta la levante sin cambiar nada de
+ *  como se leen los archivos:
+ *
+ *    K  <momento>  <steamid>  <nick>  <segundos que llevaba mirando>
+ *
+ *  Se escribe en el momento, sin acumular en memoria como hace el de stats: son
+ *  unos pocos eventos por dia y asi no se pierde ninguno si el server se cae.
+ *
  *  No usa eventos de cambio de equipo: cada 15 segundos mira en que anda cada uno.
  *  Con una regla de minutos, esa precision sobra, y asi no depende de que los
  *  eventos del juego lleguen siempre.
@@ -35,7 +44,7 @@
 #include <file>
 
 #define PLUGIN_NAME     "DoD - Saca espectadores"
-#define PLUGIN_VERSION  "1.1.0"
+#define PLUGIN_VERSION  "1.2.0"
 #define PLUGIN_AUTHOR   "Marcelo Lescano"
 
 #define PREFIJO         "[ESPECT]"
@@ -48,8 +57,12 @@
 #define SEGUNDOS_REVISION 15.0
 #define LARGO_MENSAJE   128
 #define ARCHIVO_CFG     "espectadores.cfg"
+#define LARGO_LINEA     192
 
 new g_cvarMinimo, g_cvarMinutos, g_cvarAdmines, g_cvarMensaje
+
+/* Donde escribe dod_stats_registro sus eventos: escribimos en el mismo archivo */
+new g_carpeta[128]
 
 /* Desde cuando esta mirando cada uno (get_gametime). 0 = esta jugando. */
 new Float:g_mirandoDesde[33]
@@ -64,6 +77,11 @@ public plugin_init()
     g_cvarMensaje = register_cvar("espect_mensaje", "Volve cuando esten listos los bifes!")
 
     register_concmd("espect_estado", "cmdEstado", ADMIN_RCON, "- muestra quien esta mirando y hace cuanto")
+
+    get_datadir(g_carpeta, charsmax(g_carpeta))
+    add(g_carpeta, charsmax(g_carpeta), "/stats")
+    if (!dir_exists(g_carpeta))
+        mkdir(g_carpeta)
 
     set_task(SEGUNDOS_REVISION, "tareaRevisar", TAREA_REVISAR, "", 0, "b")
 }
@@ -196,7 +214,7 @@ public tareaRevisar()
         if (respetarAdmines && is_user_admin(id))
             continue
 
-        sacar(id, mensaje)
+        sacar(id, mensaje, ahora - g_mirandoDesde[id])
         hay--
 
         /* Si sacando a este el server ya no esta lleno, los demas se salvan */
@@ -205,10 +223,12 @@ public tareaRevisar()
     }
 }
 
-sacar(id, const mensaje[])
+sacar(id, const mensaje[], Float:llevaMirando)
 {
     new nick[32], userid = get_user_userid(id)
     get_user_name(id, nick, charsmax(nick))
+
+    anotarKick(id, nick, floatround(llevaMirando))
 
     /* Que lo lea en el chat tambien: el cartel del kick a veces pasa de largo */
     client_print(id, print_chat, "%s", mensaje)
@@ -217,6 +237,47 @@ sacar(id, const mensaje[])
     server_cmd("kick #%d ^"%s^"", userid, mensaje)
 
     g_mirandoDesde[id] = 0.0
+}
+
+/*
+ *  Deja constancia del kick en el archivo de eventos del dia, el mismo que escribe
+ *  dod_stats_registro. La ingesta ya sabe leer ese archivo: solo tuvo que aprender
+ *  un tipo de linea mas.
+ *
+ *  Se abre y se cierra en el momento. El otro plugin acumula y vuelca cada 30
+ *  segundos porque escribe miles de lineas por partida; aca son unas pocas por dia,
+ *  asi que no vale la pena el riesgo de perderlas si el server se cae.
+ *
+ *  Los TAB y los saltos de linea del nick se cambian por espacios: el formato
+ *  separa por TAB y un nick con uno adentro correria las columnas.
+ */
+anotarKick(id, const nick[], segundos)
+{
+    new limpio[32]
+    copy(limpio, charsmax(limpio), nick)
+    for (new i = 0; limpio[i]; i++)
+        if (limpio[i] == '^t' || limpio[i] == '^n' || limpio[i] == '^r')
+            limpio[i] = ' '
+
+    new steam[35]
+    if (is_user_bot(id))
+        copy(steam, charsmax(steam), "BOT")
+    else
+        get_user_authid(id, steam, charsmax(steam))
+
+    new fecha[16], ruta[192]
+    format_time(fecha, charsmax(fecha), "%Y%m%d")
+    formatex(ruta, charsmax(ruta), "%s/eventos_%s.tsv", g_carpeta, fecha)
+
+    new archivo = fopen(ruta, "at")
+    if (!archivo)
+    {
+        log_amx("%s no se pudo abrir %s para anotar el kick de %s", PREFIJO, ruta, limpio)
+        return
+    }
+
+    fprintf(archivo, "K^t%d^t%s^t%s^t%d^n", get_systime(), steam, limpio, segundos)
+    fclose(archivo)
 }
 
 /* ------------------------------------------------------------------ */

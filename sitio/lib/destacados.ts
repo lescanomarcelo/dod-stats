@@ -84,11 +84,11 @@ export const CATEGORIAS_DESTACADO: CategoriaDestacado[] = [
   {
     clave: 'cocinero',
     titulo: 'El cocinero',
-    subtitulo: 'Más tiempo de espectador',
+    subtitulo: 'Más veces echado por mirar',
     imagen: '/destacados/cocinero.webp',
     foco: '60%',
-    valor: (v) => formatoTiempo(v),
-    vacio: 'Todavía nadie miró desde afuera.'
+    valor: (v) => plural(v, 'vez', 'veces'),
+    vacio: 'Todavía no echaron a nadie por quedarse mirando.'
   },
   {
     clave: 'headshots',

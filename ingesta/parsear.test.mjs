@@ -235,3 +235,15 @@ test('lee los comandos de admin (X)', () => {
   assert.equal(parsearLinea(['X', '1758585600', 'STEAM_0:1:12345', 'Trevor', ''].join('\t')), null)
   assert.equal(parsearLinea(['X', '1758585600', 'STEAM_0:1:12345', 'Trevor'].join('\t')), null)
 })
+
+test('lee los kicks por quedarse mirando (K)', () => {
+  const linea = ['K', '1793400000', 'STEAM_0:1:12345', 'Trevor', '312'].join('\t')
+  assert.deepEqual(parsearLinea(linea), {
+    tipo: 'kick', ts: 1793400000, steamid: 'STEAM_0:1:12345', nick: 'Trevor', segundos: 312
+  })
+
+  /* La escribe otro plugin, asi que vale la pena ser estricto con la forma */
+  assert.equal(parsearLinea(['K', '1793400000', 'STEAM_0:1:12345', 'Trevor', 'mucho'].join('\t')), null)
+  assert.equal(parsearLinea(['K', '1793400000', 'STEAM_0:1:12345', 'Trevor'].join('\t')), null)
+  assert.equal(parsearLinea(['K', 'ayer', 'STEAM_0:1:12345', 'Trevor', '312'].join('\t')), null)
+})

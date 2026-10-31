@@ -37,7 +37,7 @@ const VIDA_CACHE = { stale: 300, revalidate: 300, expire: 3600 }
  */
 const TABLAS_CON_GG = ['muertes', 'puntos', 'partidas', 'acostado', 'jugado'] as const
 
-type Tabla = (typeof TABLAS_CON_GG)[number] | 'sesiones' | 'comandos' | 'mapas_jugados'
+type Tabla = (typeof TABLAS_CON_GG)[number] | 'sesiones' | 'comandos' | 'kicks' | 'mapas_jugados'
 
 const llevaGg = (tabla: Tabla) => (TABLAS_CON_GG as readonly string[]).includes(tabla)
 
@@ -550,23 +550,24 @@ const CONSULTA_DESTACADO: Record<ClaveDestacado, (v: Ventana, limite: number) =>
   },
 
   /*
-   *  El cocinero: el que mas tiempo estuvo de espectador. No se mide directo: es lo
-   *  que estuvo conectado menos lo que estuvo en un bando (el rato mirando, eligiendo
-   *  clase o esperando el cambio de mapa).
+   *  El cocinero: a quien mas veces lo echo el server por quedarse mirando.
+   *
+   *  Antes media el tiempo de espectador, pero desde que el plugin
+   *  dod_saca_espectadores saca al que lleva mas de 5 minutos mirando con el server
+   *  lleno, ese tiempo tiene un techo artificial y el ranking dejo de significar
+   *  algo. La cantidad de veces que te echaron dice lo mismo y ahora es mas honesto:
+   *  cuenta cuantas veces te fuiste a cocinar justo cuando hacia falta el lugar.
    */
   cocinero: (v, limite) => {
-    const fs = filtro('sesiones', null, v, '', 'desconexion')
-    const fjg = filtro('jugado', null, v, 'g.', 'dia')
+    const fk = filtro('kicks', null, v, 'k.')
     return {
       sql: `
-        SELECT j.id, j.nick, GREATEST(s.segundos - COALESCE(g.segundos, 0), 0) AS valor
-        FROM (SELECT jugador_id, SUM(segundos) AS segundos FROM {p}sesiones WHERE 1 = 1 ${fs.sql} GROUP BY jugador_id) s
-        LEFT JOIN (SELECT jugador_id, SUM(segundos) AS segundos FROM {p}jugado g WHERE 1 = 1 ${fjg.sql} GROUP BY jugador_id) g
-          ON g.jugador_id = s.jugador_id
-        JOIN {p}jugadores j ON j.id = s.jugador_id
-        HAVING valor > 0 ORDER BY valor DESC LIMIT ${limite}
+        SELECT j.id, j.nick, COUNT(*) AS valor
+        FROM {p}kicks k JOIN {p}jugadores j ON j.id = k.jugador_id
+        WHERE 1 = 1 ${fk.sql}
+        GROUP BY j.id, j.nick ORDER BY valor DESC, MAX(k.momento) DESC LIMIT ${limite}
       `,
-      valores: [...fs.valores, ...fjg.valores]
+      valores: fk.valores
     }
   },
 

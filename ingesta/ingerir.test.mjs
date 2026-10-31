@@ -43,6 +43,9 @@ const E = (ts, inicio, aliados, eje, mapa = 'dod_kalt') => ['E', ts, mapa, inici
 const A = (ts, steam, nick, segundos, mapa = 'dod_kalt') => ['A', ts, mapa, steam, nick, segundos].join('	')
 const J = (ts, steam, nick, segundos, mapa = 'dod_kalt') => ['J', ts, mapa, steam, nick, segundos].join('	')
 
+/* K ts steam nick segundos. La escribe dod_saca_espectadores, no el de stats. */
+const K = (ts, steam, nick, segundos) => ['K', ts, steam, nick, segundos].join('	')
+
 const TREVOR = 'STEAM_0:1:111'
 const PEPE = 'STEAM_0:0:222'
 
@@ -472,4 +475,35 @@ test('un campo mas largo de lo esperado se recorta en vez de trabar la ingesta',
 
   const [fila] = await base.consultar('SELECT arma FROM {p}muertes')
   assert.equal(fila.arma, armaLarga.slice(0, 32))
+})
+
+/* ------------------------------------------------------------------ */
+/*  Kicks por quedarse mirando                                         */
+/* ------------------------------------------------------------------ */
+
+test('los kicks por mirar se guardan con lo que llevaba mirando', async () => {
+  await escribir([
+    P(1793400000),
+    C(1793400000, TREVOR, 'Trevor'),
+    K(1793400300, TREVOR, 'Trevor', 300),
+    K(1793400900, TREVOR, 'Trevor', 420)
+  ])
+  await correr()
+
+  const filas = await base.consultar(
+    'SELECT j.nick, k.segundos FROM {p}kicks k JOIN {p}jugadores j ON j.id = k.jugador_id ORDER BY k.momento')
+  assert.deepEqual(filas.map((f) => [f.nick, f.segundos]), [['Trevor', 300], ['Trevor', 420]])
+})
+
+test('los kicks de bots se ignoran', async () => {
+  await escribir([P(1793400000), K(1793400300, 'BOT', 'Botito', 300)])
+  await correr()
+  assert.equal((await base.consultar('SELECT COUNT(*) c FROM {p}kicks'))[0].c, 0)
+})
+
+test('correr la ingesta dos veces no duplica los kicks', async () => {
+  await escribir([P(1793400000), C(1793400000, TREVOR, 'Trevor'), K(1793400300, TREVOR, 'Trevor', 300)])
+  await correr()
+  await correr()
+  assert.equal((await base.consultar('SELECT COUNT(*) c FROM {p}kicks'))[0].c, 1)
 })

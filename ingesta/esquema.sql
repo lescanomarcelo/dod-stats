@@ -189,6 +189,19 @@ CREATE TABLE IF NOT EXISTS {p}comandos (
   CONSTRAINT fk_{p}comandos_jugador FOREIGN KEY (jugador_id) REFERENCES {p}jugadores (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Cada vez que el server saca a alguien por quedarse mirando con el server lleno.
+-- Lo escribe dod_saca_espectadores.amxx como una linea K en el archivo de eventos.
+CREATE TABLE IF NOT EXISTS {p}kicks (
+  id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  momento     DATETIME        NOT NULL,
+  jugador_id  INT UNSIGNED    NOT NULL,
+  segundos    INT UNSIGNED    NOT NULL,
+  PRIMARY KEY (id),
+  KEY ix_jugador (jugador_id),
+  KEY ix_momento (momento),
+  CONSTRAINT fk_{p}kicks_jugador FOREIGN KEY (jugador_id) REFERENCES {p}jugadores (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Que steamid usa cada cuenta del users.ini, sacado del log de AMX Mod X.
 -- Sirve para emparejar al admin que juega con un nick distinto al que tiene dado de alta.
 CREATE TABLE IF NOT EXISTS {p}admin_logins (
